@@ -629,6 +629,7 @@ describe("visible presentation selector", () => {
       for (const width of [50, 80, 120]) {
         const rendered = stripAnsi(new TuiWelcome(shell).render(width).join("\n"));
         expect(rendered).toContain(activity);
+        expect(rendered).toContain("#####  ###");
         expect(rendered.includes("Sign in with /login")).toBe(loginRequired);
         expect(rendered.includes("Login required")).toBe(loginRequired);
         if (warnings.length && !loginRequired) {

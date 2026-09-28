@@ -8,7 +8,7 @@ Welcome separates design assets, layout, and terminal mechanics. Designers gener
 
 Welcome and `/changelog` share the local changelog bundled with the package. `CHANGELOG.md` is the English default and fallback; `CHANGELOG.zh-CN.md` is the Chinese version. A system locale with language `zh` selects Chinese; other languages select English. For each release, keep version headings synchronized and provide at least three entries per language for Welcome.
 
-The hero uses the Talos mechanical-arm glyph at 40 columns or more, a compact arm at 24–39 columns, and a micro arm at 11–23 columns. Below 11 columns it falls back to `T`. Compact Welcome must still render the hero and show `TALOS` only once in the frame header.
+The hero uses the ASCII `TALOS` wordmark above a smaller mechanical-arm glyph at 32 columns or more, a single-line `TALOS` title above a compact arm at 20–31 columns, and a micro arm at 10–19 columns. Below 10 columns it falls back to `T`. The frame header still carries the normal-size product name for status context.
 
 Shared colors live in `src/tui/theme/palettes.ts`; borders and terminal-width adaptation live in `src/tui/shell/frame.ts`. Initial theme detection and rendering gates belong to infrastructure in `src/tui/theme/render-binding.ts` and `src/tui/renderer/interactive-renderer.ts`. Do not add startup sequencing to Welcome.
 

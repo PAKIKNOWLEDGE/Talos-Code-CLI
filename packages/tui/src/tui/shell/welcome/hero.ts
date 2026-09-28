@@ -2,6 +2,7 @@ import { visibleWidth } from '../../rendering/text.js';
 import { tuiChalk as chalk, tuiColors as colors } from '../../theme/runtime.js';
 import { centerToWidth } from '../frame.js';
 import {
+  TALOS_TERMINAL_ASCII_WORDMARK,
   TALOS_TERMINAL_ARM,
   TALOS_TERMINAL_ARM_COMPACT,
   TALOS_TERMINAL_ARM_MICRO,
@@ -10,7 +11,7 @@ import {
 
 export function renderTuiWelcomeHero(width: number): string[] {
   const { fullMinWidth, mediumMinWidth, microMinWidth, fallbackTitle } = TALOS_WELCOME_DESIGN.hero;
-  const source =
+  const arm =
     width >= fullMinWidth
       ? TALOS_TERMINAL_ARM
       : width >= mediumMinWidth
@@ -18,6 +19,12 @@ export function renderTuiWelcomeHero(width: number): string[] {
         : width >= microMinWidth
           ? TALOS_TERMINAL_ARM_MICRO
           : [fallbackTitle];
+  const source =
+    width >= fullMinWidth
+      ? [...TALOS_TERMINAL_ASCII_WORDMARK, '', ...arm]
+      : width >= mediumMinWidth
+        ? ['TALOS', '', ...arm]
+        : arm;
   const sourceWidth = Math.max(...source.map((line) => visibleWidth(line)));
 
   return source.map((line) => {

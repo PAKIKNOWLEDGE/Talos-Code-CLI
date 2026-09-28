@@ -49,35 +49,49 @@ export const TALOS_WELCOME_DESIGN = {
     news: ['Follow-ups wait', '/context · /feedback'],
   },
   hero: {
-    fullMinWidth: 40,
-    mediumMinWidth: 24,
-    microMinWidth: 11,
+    fullMinWidth: 32,
+    mediumMinWidth: 20,
+    microMinWidth: 10,
     fallbackTitle: 'T',
   },
 } as const;
 
+const TALOS_ASCII_FONT = {
+  T: ['#####', '  #  ', '  #  ', '  #  ', '  #  '],
+  A: [' ### ', '#   #', '#####', '#   #', '#   #'],
+  L: ['#    ', '#    ', '#    ', '#    ', '#####'],
+  O: [' ### ', '#   #', '#   #', '#   #', ' ### '],
+  S: [' ####', '#    ', ' ### ', '    #', '#### '],
+} as const;
+
+function composeTalosAsciiWordmark(): readonly string[] {
+  return Array.from({ length: 5 }, (_, row) =>
+    (['T', 'A', 'L', 'O', 'S'] as const)
+      .map((letter) => TALOS_ASCII_FONT[letter][row])
+      .join(' ')
+      .trimEnd(),
+  );
+}
+
+export const TALOS_TERMINAL_ASCII_WORDMARK = composeTalosAsciiWordmark();
+
 export const TALOS_TERMINAL_ARM = [
-  '                     ▄',
-  '              ▄▄▄████▀▀█▄',
-  '      ▄▄▄▄███████████▄▄███▄',
-  '         █████████▀▀▀▀███████▄',
-  '     ████████▀▀▀       ▀███████▄',
-  '      ███████            ▀▀███▀▄',
-  '       ███████▄           ▄██▀▀██▄',
-  '        ████████         ▀█▀    ██▀',
-  '         ███████▀        ▀██   ▀█▀',
-  '         ███████          ▀█▀',
-  '    ▄▄▄▄▄███████▄▄▄▄▄',
-  '    █████████████████',
+  '       ▄',
+  '   ▄▄██▀█▄',
+  ' ▄████████▄',
+  '███████████',
+  ' ███  ▀█▀',
+  '  ██  ▀█▀',
+  '  ▀██▄',
+  ' ▄████▄',
 ] as const;
 
 export const TALOS_TERMINAL_ARM_COMPACT = [
-  '      ▄',
-  '  ▄▄██▀█▄',
-  ' ███▀▀███▄',
-  '  ██  ▀█▀',
-  ' ▄███████▄',
-  ' █████████',
+  '   ▄',
+  ' ▄███▄',
+  '██████',
+  ' ██▀█▀',
+  ' ▄██▄',
 ] as const;
 
 export const TALOS_TERMINAL_ARM_MICRO = [' ▄ ', '███', '▀█▀'] as const;
