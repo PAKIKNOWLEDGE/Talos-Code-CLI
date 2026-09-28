@@ -159,7 +159,8 @@ describe("TuiProviderManager", () => {
 
     expect(rendered).toContain("Providers");
     expect(rendered).toContain("+ Add provider");
-    expect(rendered).toContain("Browse official presets or configure a custom endpoint");
+    expect(rendered).toContain("Official presets + Custom");
+    expect(rendered).toContain("Configured connections and sign-in");
     expect(rendered).toContain("MiniMax OAuth");
     expect(rendered).toContain("Active · Token Plan");
     expect(rendered).toContain("MiniMax API Key");

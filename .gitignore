@@ -3,6 +3,7 @@ dist/
 .turbo/
 .cache/
 .pnpm-store/
+.talos/
 *.tsbuildinfo
 .env
 .env.*

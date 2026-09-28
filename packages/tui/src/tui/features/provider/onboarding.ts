@@ -353,14 +353,14 @@ export class TuiProviderOnboarding implements Component, Focusable {
       value: template.providerId,
       label: sanitizeTerminalText(template.name),
       description: `${sanitizeTerminalText(template.apiFormat)} · ${template.models.length} models`,
-      groupLabel: 'Known providers',
+      groupLabel: 'Provider catalog',
     }));
     if (!query || 'custom provider'.includes(query)) {
       items.push({
         value: CUSTOM_PROVIDER_VALUE,
         label: 'Custom provider',
         description: 'Enter URL and API key, then import or enter models',
-        groupLabel: 'Manual',
+        groupLabel: 'Provider catalog',
       });
     }
     const list = this.createList(items);

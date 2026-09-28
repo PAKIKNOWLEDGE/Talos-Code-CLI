@@ -227,7 +227,7 @@ describe('models.dev Provider Presets', () => {
     expect(preset?.iconUrl).toBe('https://cdn.example/catalog/release/logos/vendor.with.dots.svg');
   });
 
-  it('excludes MiniMax providers from the preset catalog', async () => {
+  it('keeps the neutral MiniMax preset beside third-party providers', async () => {
     const presets = await parsePresetsForTest(
       providerCatalog([
         'minimax',
@@ -238,7 +238,7 @@ describe('models.dev Provider Presets', () => {
       ]),
     );
 
-    expect(presets.map((preset) => preset.providerId)).toEqual(['compatible']);
+    expect(presets.map((preset) => preset.providerId)).toEqual(['compatible', 'minimax']);
   });
 
   it('maps the three supported transports and normalizes their request bases', async () => {
@@ -761,7 +761,17 @@ describe('Provider Preset ordering', () => {
     });
     await expect(
       global.listProviderPresets().then((items) => items.map((item) => item.providerId)),
-    ).resolves.toEqual(globalIds.slice(1));
+    ).resolves.toEqual([
+      'zai-coding-plan',
+      'zai',
+      'deepseek',
+      'moonshotai',
+      'openai',
+      'anthropic',
+      'aaa',
+      'minimax',
+      'tencent-coding-plan',
+    ]);
   });
 
   it.each([

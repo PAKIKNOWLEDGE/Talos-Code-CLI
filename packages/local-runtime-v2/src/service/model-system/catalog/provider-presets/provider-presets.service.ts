@@ -18,7 +18,6 @@ import {
 const OPENAI_BASE_URL = 'https://api.openai.com/v1';
 const MESSAGES_API_BASE_URL = 'https://api.anthropic.com';
 const DISABLED_PROVIDER_IDS = new Set([
-  'minimax',
   'minimax-cn',
   'minimax-coding-plan',
   'minimax-cn-coding-plan',

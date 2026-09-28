@@ -14,6 +14,7 @@ const skipped = new Set([
   "dist",
   ".cache",
   ".pnpm-store",
+  ".talos",
   ".turbo",
   ".DS_Store",
 ]);

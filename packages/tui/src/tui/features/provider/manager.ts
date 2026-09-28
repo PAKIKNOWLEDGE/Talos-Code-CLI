@@ -137,13 +137,15 @@ export class TuiProviderManager implements Component, Focusable {
       frameRow(
         composeLine(
           chalk.bold.hex(colors.signal)('Providers'),
-          chalk.hex(colors.muted)('Model sources and credentials'),
+          chalk.hex(colors.muted)('Configured connections and sign-in'),
           Math.max(1, width - 4),
         ),
         width,
       ),
       frameRow(
-        chalk.hex(colors.dim)('Choose a source or edit a connection; keys stay masked.'),
+        chalk.hex(colors.dim)(
+          'This list shows saved connections and built-in sign-in; Add provider opens the catalog.',
+        ),
         width,
       ),
       frameDivider(width),
@@ -155,7 +157,7 @@ export class TuiProviderManager implements Component, Focusable {
           chalk.bold.hex(addSelected ? colors.signal : colors.text)(
             `${addSelected ? '›' : ' '} + Add provider`,
           ),
-          chalk.hex(colors.muted)('Browse official presets or configure a custom endpoint'),
+          chalk.hex(colors.muted)('Official presets + Custom'),
           width - 4,
         ),
         width,
