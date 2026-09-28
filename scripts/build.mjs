@@ -135,14 +135,14 @@ writeFileSync(
   JSON.stringify(result.metafile, null, 2) + "\n",
 );
 console.log(
-  `Built MiniMax Code ${version} from ${Object.keys(result.metafile.inputs).length} source files.`,
+  `Built Talos CLI ${version} from ${Object.keys(result.metafile.inputs).length} source files.`,
 );
 
 writeFileSync(
   path.join(outdir, "package.json"),
   JSON.stringify(
     {
-      name: "@minimax-ai/code", version, type: "module", private: true,
+      name: "talos-cli", version, type: "module", private: true,
       bin: { talos: "cli.js" },
       ...(process.env.MCODE_RELEASE_TAG ? {
         gitHead: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),

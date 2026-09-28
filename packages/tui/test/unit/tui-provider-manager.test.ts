@@ -154,10 +154,12 @@ describe("TuiProviderManager", () => {
     expect(onCancel).toHaveBeenCalledOnce();
   });
 
-  it("renders the sources and the refresh action without an add row", () => {
+  it("renders the sources and an explicit add-provider entry", () => {
     const rendered = stripAnsi(createManager().render(84).join("\n"));
 
     expect(rendered).toContain("Providers");
+    expect(rendered).toContain("+ Add provider");
+    expect(rendered).toContain("Browse official presets or configure a custom endpoint");
     expect(rendered).toContain("MiniMax OAuth");
     expect(rendered).toContain("Active · Token Plan");
     expect(rendered).toContain("MiniMax API Key");
@@ -166,9 +168,18 @@ describe("TuiProviderManager", () => {
       "Sign-in managed by /login · Space to use · e to sign in again",
     );
     expect(rendered).toContain("r refresh models");
-    expect(rendered).not.toContain("Add custom provider");
-    expect(rendered).not.toContain("a add");
+    expect(rendered).toContain("a add provider");
     expect(rendered).not.toContain("d delete");
+  });
+
+  it("opens provider onboarding from the add row", () => {
+    const onAddProvider = vi.fn();
+    const manager = createManager({ onAddProvider });
+
+    for (let i = 0; i < snapshot.providers.length; i += 1) manager.handleInput("\u001b[B");
+    manager.handleInput("\r");
+
+    expect(onAddProvider).toHaveBeenCalledOnce();
   });
 
   it("switches from MiniMax API Key back to MiniMax OAuth with space", async () => {
@@ -248,15 +259,16 @@ describe("TuiProviderManager", () => {
     );
   });
 
-  it("ignores the removed add and delete shortcuts", () => {
+  it("keeps the add shortcut scoped to provider onboarding", () => {
     const onRefresh = vi.fn(async () => snapshot);
-    const manager = createManager({ onRefresh });
+    const onAddProvider = vi.fn();
+    const manager = createManager({ onRefresh, onAddProvider });
 
     for (const key of ["a", "d", "y"]) manager.handleInput(key);
 
     const rendered = stripAnsi(manager.render(84).join("\n"));
     expect(rendered).toContain("Providers");
-    expect(rendered).not.toContain("Add provider");
+    expect(onAddProvider).toHaveBeenCalledOnce();
     expect(rendered).not.toContain("Delete");
     expect(onRefresh).not.toHaveBeenCalled();
   });

@@ -1,9 +1,9 @@
 {
-  "name": "minimax-code",
+  "name": "talos-cli",
   "version": "0.5.7",
   "private": true,
   "type": "module",
-  "description": "Standalone MiniMax Code TUI with managed accounts, BYOK models, cloud tools, plugins and ACP.",
+  "description": "Standalone Talos CLI/TUI with provider-neutral models, tools, plugins and ACP.",
   "packageManager": "pnpm@9.12.0",
   "engines": {
     "node": ">=22.19 <23 || >=24.2 <27"

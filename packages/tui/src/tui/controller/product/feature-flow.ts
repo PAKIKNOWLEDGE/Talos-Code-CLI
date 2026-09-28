@@ -935,6 +935,10 @@ export class TuiFeatureFlow {
     const manager = new TuiProviderManager({
       snapshot,
       onRefresh: refresh,
+      onAddProvider: () => {
+        this.closeProviderManager();
+        void this.showProviderOnboarding();
+      },
       onTest: (providerId, modelId) => this.providerApplication.test(providerId, modelId),
       onConnectCodex: () => {
         this.closeProviderManager();

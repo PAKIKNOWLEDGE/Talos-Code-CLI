@@ -34,6 +34,7 @@ export interface TuiProviderManagerOptions {
   onRefreshModels?(provider: McodeProviderView): Promise<number>;
   onTest(providerId: string, modelId?: string): Promise<McodeProviderTestResult>;
   onConnectCodex?(): void;
+  onAddProvider?(): void;
   onSaveCustom?(input: McodeSaveProviderCandidateInput): Promise<McodeSaveProviderCandidateResult>;
   onSetMiniMaxApiKey(apiKey: string): Promise<void>;
   onSetMiniMaxSource(source: 'token_plan' | 'minimax_api_key'): Promise<void>;
@@ -99,7 +100,8 @@ export class TuiProviderManager implements Component, Focusable {
       return;
     }
     const key = data.toLowerCase();
-    if (key === 'r') void this.refreshSelectedModels();
+    if (key === 'a') this.options.onAddProvider?.();
+    else if (key === 'r') void this.refreshSelectedModels();
     else if (key === 't') void this.testSelected();
     else if (key === 'e') this.editSelected();
     else if (key === ' ') void this.useSelected();
@@ -146,6 +148,19 @@ export class TuiProviderManager implements Component, Focusable {
       ),
       frameDivider(width),
     ];
+    const addSelected = this.selectedIndex === providers.length;
+    lines.push(
+      frameRow(
+        composeLine(
+          chalk.bold.hex(addSelected ? colors.signal : colors.text)(
+            `${addSelected ? '›' : ' '} + Add provider`,
+          ),
+          chalk.hex(colors.muted)('Browse official presets or configure a custom endpoint'),
+          width - 4,
+        ),
+        width,
+      ),
+    );
     for (const [index, provider] of providers.entries()) {
       const selected = index === this.selectedIndex;
       const sourceInUse = isSelectedSource(provider);
@@ -187,7 +202,7 @@ export class TuiProviderManager implements Component, Focusable {
         renderTuiActionHint(
           this.busy
             ? 'Working…'
-            : '↑↓ move · Space use · r refresh models · e edit · t test · Esc close',
+            : '↑↓ move · Enter/Space select · a add provider · r refresh models · e edit · t test · Esc close',
         ),
         width,
       ),
@@ -238,7 +253,7 @@ export class TuiProviderManager implements Component, Focusable {
   private move(delta: number): void {
     this.selectedIndex = Math.max(
       0,
-      Math.min(this.providers().length - 1, this.selectedIndex + delta),
+      Math.min(this.providers().length, this.selectedIndex + delta),
     );
     this.status = undefined;
     this.requestRender();
@@ -272,7 +287,10 @@ export class TuiProviderManager implements Component, Focusable {
   /** Custom rows open an editor; selecting them never silently changes credentials. */
   private async useSelected(): Promise<void> {
     const provider = this.selectedProvider();
-    if (!provider) return;
+    if (!provider) {
+      this.options.onAddProvider?.();
+      return;
+    }
     if (provider.kind === 'codex-oauth') {
       await this.connectCodex(provider);
       return;
@@ -438,7 +456,7 @@ export class TuiProviderManager implements Component, Focusable {
     const snapshot = await this.options.onRefresh();
     if (this.disposed) return;
     this.snapshotValue = snapshot;
-    this.selectedIndex = Math.min(this.selectedIndex, Math.max(0, this.providers().length - 1));
+    this.selectedIndex = Math.min(this.selectedIndex, this.providers().length);
     this.setStatus(message, tone);
   }
 
