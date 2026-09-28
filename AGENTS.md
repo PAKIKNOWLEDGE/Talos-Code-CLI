@@ -1,5 +1,9 @@
 # Agent guide
 
+This checkout is the Talos engine fork maintained by `PAKIKNOWLEDGE/Talos`. The companion product repository is `C:\DEV\develop\T3rra-C0d3-Talos`; it owns the GUI, product documentation, and Endfield-inspired visual layer. This repository owns the CLI/TUI, provider and authentication flow, engine data directories, and the ACP endpoint used by Talos. Keep that boundary explicit: Talos must integrate through ACP and must not import internal engine modules directly.
+
+The fork remains a public-source repository with the existing source inventory, license, and synchronization rules below. A Talos-specific change must be isolated, reviewed, and kept small enough to audit against the public upstream baseline. Do not remove LICENSE, NOTICE, third-party attributions, sandbox boundaries, or permission checks merely to remove product branding. Upstream synchronization is a reviewed operation; do not fetch, merge, push, or open a sync PR unless the current task explicitly authorizes it.
+
 This repository is the reviewed public projection of an internal monorepo, not an ordinary workspace. Every published file is listed in `release/public-source.json`, and upstream changes arrive through a three-way merge described in `docs/source-sync.md`. Moving or renaming files therefore has a cost that a normal repository does not have: it shows up as a conflict or an unreviewed new file at the next synchronization. Prefer changing content over changing layout.
 
 ## Layout
@@ -10,6 +14,13 @@ This repository is the reviewed public projection of an internal monorepo, not a
 - `docs/` — human-readable documentation and supporting media.
 - `scripts/` — build and verification tooling. Shared constants live in `scripts/lib/`; import them instead of repeating literal paths or lists.
 - `test/` — repository-level tests and `vitest-suites.json`, the declaration of every Vitest file this distribution runs.
+
+## Talos integration boundary
+
+- The GUI repository is `C:\DEV\develop\T3rra-C0d3-Talos`; keep the two repositories adjacent and independent. Do not add a Git submodule or relocate this checkout.
+- Talos currently consumes this repository through ACP. Changes to ACP messages, provider selection, authentication, data-directory layout, or TUI behavior require a source citation or reproducible probe before implementation, with results recorded in Talos `docs/adapters/minimax-code.md`.
+- The initial Talos sequence is independent-engine verification, then TUI work, then GUI repair. A fork remote or a clean working tree does not mean the engine has been neutralized or product-accepted.
+- Keep user API keys, sessions, logs, and real project content outside the repository. Use a disposable data directory for probes and report whether behavior came from a fake provider or a live model.
 
 ## Generated files
 

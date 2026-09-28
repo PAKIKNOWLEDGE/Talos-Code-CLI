@@ -147,6 +147,7 @@ function normalizeLegacyThinkingEffort(provider: Record<string, unknown>): Recor
 
 export interface RequiredProviderOverrideDeps {
   isManagedRuntime(): boolean;
+  isTalosNeutralRuntime(): boolean;
   shouldEnforceManagedProviderProtection(): boolean;
   getManagedPreset(): { provider: ModelsConfig; defaultModel: string };
   isManagedPresetBaseUrl(baseURL: string): boolean;
@@ -290,6 +291,8 @@ export function applyRequiredProviderOverrides(
       '[config] "minimax_api" is a reserved provider id; ignoring provider.minimax_api from config.yaml',
     );
   }
+
+  if (deps.isTalosNeutralRuntime()) return { provider, defaultModel };
 
   const preset = deps.getManagedPreset();
   const presetProvider = preset.provider.minimax as ProviderConfig;

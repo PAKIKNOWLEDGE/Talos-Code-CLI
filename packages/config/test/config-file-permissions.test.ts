@@ -280,6 +280,7 @@ describe.skipIf(process.platform === "win32")(
       fs.chmodSync(configPath, 0o644);
       const result = migrateLegacyByokProvidersOnDisk(configPath, {
         isManagedRuntime: () => true,
+        isTalosNeutralRuntime: () => false,
         shouldEnforceManagedProviderProtection: () => false,
         getManagedPreset: () => ({ provider: {}, defaultModel: "" }),
         isManagedPresetBaseUrl: () => false,

@@ -180,6 +180,17 @@ export function isManagedRuntime(): boolean {
   return false;
 }
 
+/**
+ * Explicit Talos fork mode that keeps managed runtime services available
+ * without automatically seeding or restoring the MiniMax provider.
+ *
+ * The flag is opt-in so the upstream managed behavior remains unchanged until
+ * a Talos launcher deliberately opts into the neutral distribution profile.
+ */
+export function isTalosNeutralRuntime(): boolean {
+  return process.env.TALOS_NEUTRAL_RUNTIME === "1";
+}
+
 function isElectronProcess(): boolean {
   const versions = process.versions as NodeJS.ProcessVersions & {
     electron?: string;
@@ -1640,7 +1651,7 @@ function shouldEnforceManagedProviderProtection(): boolean {
 }
 
 function syncManagedPresetBaseUrl(configPath: string): void {
-  if (!isManagedRuntime() || !fs.existsSync(configPath)) {
+  if (isTalosNeutralRuntime() || !isManagedRuntime() || !fs.existsSync(configPath)) {
     return;
   }
 
@@ -1876,6 +1887,15 @@ function ensureConfigFile(): void {
     return;
   }
 
+  if (isTalosNeutralRuntime()) {
+    writePrivateConfigFileSync(
+      configPath,
+      yaml.dump({ logLevel: DEFAULTS.logLevel }),
+      true,
+    );
+    return;
+  }
+
   const preset = DEFAULT_MODEL_PRESETS[getRuntimePresetKey()];
   const content = yaml.dump({
     logLevel: DEFAULTS.logLevel,
@@ -1920,6 +1940,7 @@ function parseNotificationsConfig(
 
 const REQUIRED_PROVIDER_OVERRIDE_DEPS: RequiredProviderOverrideDeps = {
   isManagedRuntime,
+  isTalosNeutralRuntime,
   shouldEnforceManagedProviderProtection,
   getManagedPreset: () => DEFAULT_MODEL_PRESETS[getRuntimePresetKey()],
   isManagedPresetBaseUrl,

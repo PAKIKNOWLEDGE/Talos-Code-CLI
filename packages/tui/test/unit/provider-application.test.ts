@@ -63,7 +63,9 @@ describe('McodeProviderApplication', () => {
 
     const snapshot = await application.snapshot({ includeCodexOAuth: true });
 
-    expect(snapshot.providers[0]).toMatchObject({
+    expect(
+      snapshot.providers.find((provider) => provider.providerId === 'openai-codex'),
+    ).toMatchObject({
       providerId: 'openai-codex',
       name: 'OpenAI Codex',
       kind: 'codex-oauth',
@@ -97,11 +99,13 @@ describe('McodeProviderApplication', () => {
     const snapshot = await application.snapshot();
 
     expect(snapshot.providers.map((provider) => provider.providerId)).toEqual([
-      'minimax_oauth',
       'minimax_api',
+      'minimax_oauth',
       'custom_provider:openai',
     ]);
-    expect(snapshot.providers[0]).toMatchObject({
+    expect(
+      snapshot.providers.find((provider) => provider.providerId === 'minimax_oauth'),
+    ).toMatchObject({
       providerId: 'minimax_oauth',
       name: 'MiniMax OAuth',
       kind: 'minimax-oauth',
@@ -110,19 +114,51 @@ describe('McodeProviderApplication', () => {
       readOnly: true,
       hasApiKey: false,
     });
-    expect(snapshot.providers[1]).toMatchObject({
+    expect(
+      snapshot.providers.find((provider) => provider.providerId === 'minimax_api'),
+    ).toMatchObject({
       kind: 'minimax-api-key',
       active: true,
       hasApiKey: true,
     });
     expect(JSON.stringify(snapshot)).toContain('MiniMax OAuth');
     expect(JSON.stringify(snapshot)).not.toContain('must-never-cross-the-cli-boundary');
-    expect(snapshot.providers[2]).not.toHaveProperty('rawApiKey');
-    expect(snapshot.providers[2]?.models[0]).toMatchObject({
+    expect(
+      snapshot.providers.find((provider) => provider.providerId === 'custom_provider:openai'),
+    ).not.toHaveProperty('rawApiKey');
+    expect(
+      snapshot.providers.find((provider) => provider.providerId === 'custom_provider:openai')
+        ?.models[0],
+    ).toMatchObject({
       contextLimit: 32768,
       maxOutputTokens: 4096,
     });
     expect(port.getCodexOAuthStatus).not.toHaveBeenCalled();
+  });
+
+  it('keeps custom providers in the same sorted list as MiniMax sources', async () => {
+    const port = createPort();
+    port.listUserModelProviders.mockResolvedValueOnce([
+      {
+        providerId: 'custom_provider:acme',
+        name: 'Acme',
+        kind: 'custom',
+        enabled: true,
+        apiFormat: 'openai-completions',
+        baseUrl: 'https://api.acme.example/v1',
+        hasApiKey: true,
+        models: [{ modelId: 'acme-model' }],
+      },
+    ]);
+    const application = new McodeProviderApplication(port);
+
+    const snapshot = await application.snapshot();
+
+    expect(snapshot.providers.map((provider) => provider.name)).toEqual([
+      'Acme',
+      'MiniMax API Key',
+      'MiniMax OAuth',
+    ]);
   });
 
   it('marks OAuth active when the MiniMax source is Token Plan', async () => {
@@ -133,8 +169,18 @@ describe('McodeProviderApplication', () => {
     const snapshot = await application.snapshot();
 
     expect(snapshot.minimaxModelSource).toBe('token_plan');
-    expect(snapshot.providers[0]).toMatchObject({ kind: 'minimax-oauth', active: true });
-    expect(snapshot.providers[1]).toMatchObject({ kind: 'minimax-api-key', active: false });
+    expect(
+      snapshot.providers.find((provider) => provider.kind === 'minimax-oauth'),
+    ).toMatchObject({
+      kind: 'minimax-oauth',
+      active: true,
+    });
+    expect(
+      snapshot.providers.find((provider) => provider.kind === 'minimax-api-key'),
+    ).toMatchObject({
+      kind: 'minimax-api-key',
+      active: false,
+    });
   });
 
   it('forwards MiniMax source changes through the CLI port', async () => {
@@ -251,7 +297,9 @@ describe('McodeProviderApplication', () => {
 
     // Runtime drops disabled providers from the roster, so rendering the row
     // as active would contradict the "Disabled" label on the same line.
-    expect(snapshot.providers[2]).toMatchObject({
+    expect(
+      snapshot.providers.find((provider) => provider.providerId === 'custom_provider:byok'),
+    ).toMatchObject({
       providerId: 'custom_provider:byok',
       enabled: false,
       active: false,
@@ -276,7 +324,9 @@ describe('McodeProviderApplication', () => {
 
     const snapshot = await application.snapshot();
 
-    expect(snapshot.providers[2]).toMatchObject({ enabled: true, active: true });
+    expect(
+      snapshot.providers.find((provider) => provider.providerId === 'custom_provider:byok'),
+    ).toMatchObject({ enabled: true, active: true });
   });
 });
 

@@ -29,36 +29,37 @@ export class McodeProviderApplication {
         this.port.getMiniMaxModelSource(),
         options.includeCodexOAuth ? this.port.getCodexOAuthStatus() : undefined,
       ]);
+    const providers: McodeProviderView[] = [
+      ...(!codexOAuthStatus || codexOAuthStatus.state === 'hidden'
+        ? []
+        : [normalizeCodexOAuthProvider(codexOAuthStatus)]),
+      {
+        providerId: 'minimax_oauth',
+        name: 'MiniMax OAuth',
+        kind: 'minimax-oauth',
+        active: minimaxModelSource === 'token_plan',
+        enabled: true,
+        readOnly: true,
+        hasApiKey: false,
+        models: [],
+      },
+      {
+        providerId: 'minimax_api',
+        name: 'MiniMax API Key',
+        kind: 'minimax-api-key',
+        active: minimaxModelSource === 'minimax_api_key',
+        enabled: true,
+        readOnly: false,
+        hasApiKey: minimaxStatus.hasApiKey,
+        ...(minimaxStatus.maskedApiKey ? { maskedApiKey: minimaxStatus.maskedApiKey } : {}),
+        ...(minimaxStatus.cachedStatus ? { status: minimaxStatus.cachedStatus } : {}),
+        models: [],
+      },
+      ...customProviders.map(normalizeCustomProvider),
+    ];
     return {
       minimaxModelSource,
-      providers: [
-        ...(!codexOAuthStatus || codexOAuthStatus.state === 'hidden'
-          ? []
-          : [normalizeCodexOAuthProvider(codexOAuthStatus)]),
-        {
-          providerId: 'minimax_oauth',
-          name: 'MiniMax OAuth',
-          kind: 'minimax-oauth',
-          active: minimaxModelSource === 'token_plan',
-          enabled: true,
-          readOnly: true,
-          hasApiKey: false,
-          models: [],
-        },
-        {
-          providerId: 'minimax_api',
-          name: 'MiniMax API Key',
-          kind: 'minimax-api-key',
-          active: minimaxModelSource === 'minimax_api_key',
-          enabled: true,
-          readOnly: false,
-          hasApiKey: minimaxStatus.hasApiKey,
-          ...(minimaxStatus.maskedApiKey ? { maskedApiKey: minimaxStatus.maskedApiKey } : {}),
-          ...(minimaxStatus.cachedStatus ? { status: minimaxStatus.cachedStatus } : {}),
-          models: [],
-        },
-        ...customProviders.map(normalizeCustomProvider),
-      ],
+      providers: sortProviderViews(providers),
     };
   }
 
@@ -151,6 +152,13 @@ export class McodeProviderApplication {
       ? this.port.testUserModel(providerId, modelId)
       : this.port.testUserModelProvider(providerId);
   }
+}
+
+function sortProviderViews(providers: readonly McodeProviderView[]): McodeProviderView[] {
+  return [...providers].sort(
+    (left, right) =>
+      left.name.localeCompare(right.name) || left.providerId.localeCompare(right.providerId),
+  );
 }
 
 function normalizeCodexOAuthProvider(status: McodeCodexOAuthStatus): McodeProviderView {

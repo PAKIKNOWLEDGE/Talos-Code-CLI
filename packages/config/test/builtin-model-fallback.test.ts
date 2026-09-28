@@ -97,4 +97,43 @@ describe("built-in model fallback", () => {
     );
     expect(getConfig().provider.minimax?.models).toEqual(models);
   });
+
+  it("does not seed MiniMax defaults in the explicit Talos neutral runtime", () => {
+    vi.stubEnv("TALOS_NEUTRAL_RUNTIME", "1");
+    resetConfig();
+
+    const config = getConfig();
+    expect(config.provider.minimax).toBeUndefined();
+    expect(config.defaultModel).toBeUndefined();
+
+    const raw = yaml.load(fs.readFileSync(join(dataDir, "config.yaml"), "utf8"));
+    expect(raw).toEqual({ logLevel: "info" });
+  });
+
+  it("preserves an existing provider selection in the explicit Talos neutral runtime", () => {
+    vi.stubEnv("TALOS_NEUTRAL_RUNTIME", "1");
+    fs.writeFileSync(
+      join(dataDir, "config.yaml"),
+      yaml.dump({
+        provider: {
+          custom_provider: {
+            acme: {
+              name: "Acme",
+              options: { baseURL: "https://api.acme.example/v1" },
+              models: { "acme-model": { name: "Acme Model" } },
+            },
+          },
+        },
+        defaultModel: "custom_provider:acme/acme-model",
+      }),
+    );
+    resetConfig();
+
+    const config = getConfig();
+    expect(config.defaultModel).toBe("custom_provider:acme/acme-model");
+    expect(config.provider.custom_provider).toMatchObject({
+      acme: { name: "Acme" },
+    });
+    expect(config.provider.minimax).toBeUndefined();
+  });
 });

@@ -23,6 +23,8 @@
 
 Understand a project, make changes, and run tests from your terminal. Use your MiniMax account or bring your own model, with search, plugins, and multimodal tools in the same workflow.
 
+> **Talos fork note:** this checkout is also maintained as the engine fork for [Talos](https://github.com/PAKIKNOWLEDGE/Talos). The companion GUI lives in `C:\DEV\develop\T3rra-C0d3-Talos` and connects through ACP. Talos-specific provider, authentication, data-directory, branding, and TUI changes are reviewed in small commits and must preserve the repository's source inventory, licenses, third-party notices, sandbox boundaries, and permission checks.
+
 [![Real MiniMax Code TUI output: fixing clamp, inspecting the diff, and running tests](docs/assets/tui-demo.png)](docs/demo.md)
 
 <p align="center"><a href="docs/demo.md">Watch the 20-second demo →</a> · Real terminal output, with pauses shortened</p>
