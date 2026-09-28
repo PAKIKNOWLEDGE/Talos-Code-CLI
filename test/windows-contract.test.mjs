@@ -38,7 +38,7 @@ describe.skipIf(process.platform !== "win32")("Windows source contract", () => {
     writeFileSync(path.join(fixtureRoot, "package.json"), JSON.stringify({
       name: "@minimax-ai/code",
       version: "1.2.4",
-      bin: { mcode: "cli.cjs" },
+      bin: { talos: "cli.cjs" },
     }));
     writeFileSync(path.join(fixtureRoot, "cli.cjs"), "#!/usr/bin/env node\nconsole.log('1.2.4');\n");
     const environment = {

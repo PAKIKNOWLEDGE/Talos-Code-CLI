@@ -451,7 +451,7 @@ test('npm release manifests require native SQLite and pin installed external dep
   const manifest = releaseManifest([f.root], '0.4.13');
   assert.equal(manifest.version, '0.4.13');
   assert.equal(manifest.private, true);
-  assert.equal(manifest.bin.mcode, 'cli.js');
+  assert.deepEqual(manifest.bin, { talos: 'cli.js' });
   assert.equal(manifest.dependencies['better-sqlite3'], '1.2.3');
   assert.equal(manifest.dependencies['@vscode/ripgrep'], '1.2.3');
   assert.equal(manifest.optionalDependencies['@mariozechner/clipboard'], '1.2.3');

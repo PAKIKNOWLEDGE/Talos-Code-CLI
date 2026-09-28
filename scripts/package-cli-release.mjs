@@ -64,7 +64,7 @@ export function releaseManifest(importers, version) {
   return {
     name: '@minimax-ai/code', version, private: true, type: 'module', license: 'MIT',
     description: 'MiniMax Code CLI built from the tagged public source.',
-    bin: { mcode: 'cli.js' },
+    bin: { talos: 'cli.js' },
     engines: json(path.join(root, 'package.json')).engines,
     repository: { type: 'git', url: 'https://github.com/MiniMax-AI/minimax-code.git' },
     dependencies, optionalDependencies,
@@ -86,14 +86,13 @@ export async function packageCliRelease({ tag, out }) {
     writeFileSync(path.join(stage, 'package.json'), JSON.stringify(manifest, null, 2) + '\n');
     copyLicenses(stage);
     writeFileSync(path.join(stage, 'release.json'), JSON.stringify({ version, tag, revision, buildNode: process.version }, null, 2) + '\n');
-    writeFileSync(path.join(stage, 'README.md'), `# MiniMax Code ${version}
+    writeFileSync(path.join(stage, 'README.md'), `# Talos CLI ${version}
 
-Built from https://github.com/MiniMax-AI/minimax-code/tree/${revision}.
+Built from the reviewed Talos fork at revision ${revision}.
 Install this tar.gz with npm. Node.js must satisfy the package engines requirement.
 Keep optional dependencies enabled and allow better-sqlite3 installation scripts.
-Update by installing a newer GitHub release archive; the built-in updater follows npm.
-The archive uses the same package name, mcode command and user data as the official npm CLI.
-See https://github.com/MiniMax-AI/minimax-code/blob/${revision}/docs/installation.md.
+The primary and only published command is talos. The archive still preserves
+upstream license and attribution files.
 `);
     mkdirSync(out, { recursive: true });
     const archive = path.join(out, `minimax-code-${version}.tar.gz`);

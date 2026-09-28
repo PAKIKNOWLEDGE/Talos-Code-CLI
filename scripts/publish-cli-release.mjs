@@ -41,7 +41,7 @@ Download the tar.gz and its checksum, verify the checksum, then install:
 
 \`\`\`sh
 npm install --global ./minimax-code-${version}.tar.gz --registry=https://registry.npmjs.org/ --include=optional --ignore-scripts=false --allow-scripts=better-sqlite3
-mcode --version
+talos --version
 \`\`\`
 
 Requires Node.js 22.19+ (22.x), 24.2+ (24.x), 25 or 26 and network access to public npm for runtime dependencies. Native dependencies may require a C/C++ toolchain and Python when no prebuilt binary is available.
