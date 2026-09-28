@@ -47,6 +47,7 @@ describe('TuiThemePicker', () => {
     expect(rendered).toContain('MCode');
     expect(rendered).toContain('Midnight');
     expect(rendered).toContain('Aurora');
+    expect(rendered).toContain('Talos');
     expect(rendered).toContain('Mine');
     expect(rendered).toContain('current');
     // The cursor starts on the theme that is already active.
