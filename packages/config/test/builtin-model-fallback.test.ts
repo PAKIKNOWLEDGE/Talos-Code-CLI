@@ -12,9 +12,27 @@ import { resolveModelAvailability } from "../src/model-availability.js";
 
 const modelId = "MiniMax-M3.1-Flash-Preview";
 let dataDir: string;
+let fakeHome: string;
+
+const customProviderConfig = {
+  custom_provider: {
+    acme: {
+      name: "Acme",
+      options: {
+        baseURL: "https://api.acme.example/v1",
+        apiKey: "synthetic-acme-key",
+      },
+      models: {
+        "acme-model": { name: "Acme Model" },
+      },
+    },
+  },
+  defaultModel: "custom_provider:acme/acme-model",
+};
 
 beforeEach(() => {
   dataDir = fs.mkdtempSync(join(os.tmpdir(), "mcode-model-fallback-"));
+  fakeHome = fs.mkdtempSync(join(os.tmpdir(), "mcode-model-fallback-home-"));
   vi.stubEnv("MINIMAX_DATA_DIR", dataDir);
   vi.stubEnv("__MAVIS_RUNTIME_DATA_DIR", dataDir);
   vi.stubEnv("__MAVIS_RUNTIME_MANAGED", "1");
@@ -28,6 +46,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
   resetConfig();
   fs.rmSync(dataDir, { recursive: true, force: true });
+  fs.rmSync(fakeHome, { recursive: true, force: true });
 });
 
 describe("built-in model fallback", () => {
@@ -114,26 +133,60 @@ describe("built-in model fallback", () => {
     vi.stubEnv("TALOS_NEUTRAL_RUNTIME", "1");
     fs.writeFileSync(
       join(dataDir, "config.yaml"),
-      yaml.dump({
-        provider: {
-          custom_provider: {
-            acme: {
-              name: "Acme",
-              options: { baseURL: "https://api.acme.example/v1" },
-              models: { "acme-model": { name: "Acme Model" } },
-            },
-          },
-        },
-        defaultModel: "custom_provider:acme/acme-model",
-      }),
+      yaml.dump(customProviderConfig),
     );
     resetConfig();
 
     const config = getConfig();
     expect(config.defaultModel).toBe("custom_provider:acme/acme-model");
-    expect(config.provider.custom_provider).toMatchObject({
+    expect(config.custom_provider).toMatchObject({
       acme: { name: "Acme" },
     });
+    expect(config.custom_provider?.acme?.options).toMatchObject({
+      baseURL: "https://api.acme.example/v1",
+      apiKey: "synthetic-acme-key",
+    });
+    expect(config.custom_provider?.acme?.models).toMatchObject({
+      "acme-model": { name: "Acme Model" },
+    });
     expect(config.provider.minimax).toBeUndefined();
+
+    resetConfig();
+    expect(getConfig().custom_provider).toEqual(config.custom_provider);
+    expect(getConfig().defaultModel).toBe(config.defaultModel);
+  });
+
+  it("does not inherit fake home config in managed neutral runtime", () => {
+    vi.spyOn(os, "homedir").mockReturnValue(fakeHome);
+    fs.mkdirSync(join(fakeHome, ".minimax"), { recursive: true });
+    fs.writeFileSync(join(fakeHome, ".minimax", "config.yaml"), yaml.dump(customProviderConfig));
+    vi.stubEnv("TALOS_NEUTRAL_RUNTIME", "1");
+    vi.stubEnv("__MAVIS_RUNTIME_MANAGED", "1");
+    resetConfig();
+
+    const config = getConfig();
+    expect(config.custom_provider).toBeUndefined();
+    expect(config.defaultModel).toBeUndefined();
+    expect(config.provider.minimax).toBeUndefined();
+    expect(yaml.load(fs.readFileSync(join(dataDir, "config.yaml"), "utf8"))).toEqual({
+      logLevel: "info",
+    });
+  });
+
+  it("reports fake home inheritance in non-managed neutral runtime", () => {
+    vi.spyOn(os, "homedir").mockReturnValue(fakeHome);
+    fs.mkdirSync(join(fakeHome, ".minimax"), { recursive: true });
+    fs.writeFileSync(join(fakeHome, ".minimax", "config.yaml"), yaml.dump(customProviderConfig));
+    vi.stubEnv("TALOS_NEUTRAL_RUNTIME", "1");
+    vi.stubEnv("__MAVIS_RUNTIME_MANAGED", "0");
+    resetConfig();
+
+    const config = getConfig();
+    expect(config.custom_provider?.acme?.options?.apiKey).toBe("synthetic-acme-key");
+    expect(config.defaultModel).toBe("custom_provider:acme/acme-model");
+    expect(config.provider.minimax).toBeUndefined();
+    expect(yaml.load(fs.readFileSync(join(dataDir, "config.yaml"), "utf8"))).toMatchObject(
+      customProviderConfig,
+    );
   });
 });
