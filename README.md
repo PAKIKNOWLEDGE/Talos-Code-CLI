@@ -25,6 +25,18 @@ Understand a project, make changes, and run tests from your terminal. Use your M
 
 > **Talos fork note:** this checkout is also maintained as the engine fork for [Talos](https://github.com/PAKIKNOWLEDGE/Talos). The companion GUI lives in `C:\DEV\develop\T3rra-C0d3-Talos` and connects through ACP. Talos-specific provider, authentication, data-directory, branding, and TUI changes are reviewed in small commits and must preserve the repository's source inventory, licenses, third-party notices, sandbox boundaries, and permission checks.
 
+### Talos local fork check
+
+For the Talos fork, build and launch the local `talos` entry explicitly:
+
+```powershell
+$env:PATH="C:\Program Files\nodejs;$env:PATH"
+pnpm build
+pnpm talos
+```
+
+The build should identify itself as `talos-cli@0.5.7` and `Built Talos CLI 0.5.7`. The `0.5.7` version is the inherited source baseline; it is not yet a Talos npm release version.
+
 [![Real MiniMax Code TUI output: fixing clamp, inspecting the diff, and running tests](docs/assets/tui-demo.png)](docs/demo.md)
 
 <p align="center"><a href="docs/demo.md">Watch the 20-second demo →</a> · Real terminal output, with pauses shortened</p>
