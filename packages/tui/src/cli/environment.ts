@@ -67,6 +67,10 @@ export function configureTuiRuntimeEnvironment(
   }
   target.MAVIS_REGION = environment.region;
   target.MAVIS_BUILD_ENV = environment.buildEnv;
+  // Talos launches the fork in a neutral profile by default. This prevents
+  // managed startup from seeding or restoring the MiniMax provider while
+  // preserving explicit user-owned provider configuration.
+  target.TALOS_NEUTRAL_RUNTIME = '1';
   target.__MAVIS_RUNTIME_MANAGED = '1';
   return environment;
 }
