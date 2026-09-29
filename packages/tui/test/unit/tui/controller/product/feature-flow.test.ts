@@ -195,7 +195,7 @@ describe("TuiFeatureFlow", () => {
       handleInput(data: string): void;
       render(width: number): string[];
     };
-    manager.handleInput("\u001b[A");
+    manager.handleInput("\u001b[B");
     manager.handleInput("\r");
 
     await vi.waitFor(() => expect(harness.shown).toHaveLength(2));

@@ -43,18 +43,22 @@ export class McodeProviderApplication {
         hasApiKey: false,
         models: [],
       },
-      {
-        providerId: 'minimax_api',
-        name: 'MiniMax API Key',
-        kind: 'minimax-api-key',
-        active: minimaxModelSource === 'minimax_api_key',
-        enabled: true,
-        readOnly: false,
-        hasApiKey: minimaxStatus.hasApiKey,
-        ...(minimaxStatus.maskedApiKey ? { maskedApiKey: minimaxStatus.maskedApiKey } : {}),
-        ...(minimaxStatus.cachedStatus ? { status: minimaxStatus.cachedStatus } : {}),
-        models: [],
-      },
+      ...(minimaxStatus.hasApiKey || minimaxModelSource === 'minimax_api_key'
+        ? [
+            {
+              providerId: 'minimax_api' as const,
+              name: 'MiniMax API Key',
+              kind: 'minimax-api-key' as const,
+              active: minimaxModelSource === 'minimax_api_key',
+              enabled: true,
+              readOnly: false,
+              hasApiKey: minimaxStatus.hasApiKey,
+              ...(minimaxStatus.maskedApiKey ? { maskedApiKey: minimaxStatus.maskedApiKey } : {}),
+              ...(minimaxStatus.cachedStatus ? { status: minimaxStatus.cachedStatus } : {}),
+              models: [],
+            },
+          ]
+        : []),
       ...customProviders.map(normalizeCustomProvider),
     ];
     return {

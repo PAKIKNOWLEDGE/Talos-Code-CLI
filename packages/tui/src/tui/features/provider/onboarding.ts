@@ -18,6 +18,7 @@ import { tuiChalk as chalk, tuiColors as colors, tuiSelectListTheme } from '../.
 import { SelectList } from '../../widgets/select-list.js';
 
 const CUSTOM_PROVIDER_VALUE = '\u0000custom-provider';
+const MANAGE_PROVIDERS_VALUE = '\u0000manage-providers';
 const CUSTOM_FORMATS: readonly {
   readonly value: McodeProviderApiFormat;
   readonly label: string;
@@ -59,6 +60,7 @@ export interface TuiProviderOnboardingOptions {
   readonly templates: readonly McodeProviderTemplate[];
   readonly providers?: readonly McodeProviderView[];
   readonly catalogWarning?: string;
+  readonly onOpenManager?: () => void;
   readonly onDiscover?: (
     input: McodeDiscoverProviderModelsInput,
   ) => Promise<readonly McodeProviderModel[]>;
@@ -152,7 +154,7 @@ export class TuiProviderOnboarding implements Component, Focusable {
     const safeWidth = Math.max(0, width);
     if (!safeWidth) return [];
     const lines = [
-      chalk.bold.hex(colors.signal)('Add 3rd-party provider'),
+      chalk.bold.hex(colors.signal)('Provider catalog'),
       chalk.hex(colors.muted)(this.subtitle()),
       ...(this.mode === 'provider' && this.options.catalogWarning
         ? [chalk.hex(colors.warning)(sanitizeTerminalText(this.options.catalogWarning))]
@@ -349,18 +351,28 @@ export class TuiProviderOnboarding implements Component, Focusable {
     const templates = this.options.templates.filter((template) =>
       `${template.providerId} ${template.name}`.toLocaleLowerCase().includes(query),
     );
-    const items = templates.map((template) => ({
-      value: template.providerId,
-      label: sanitizeTerminalText(template.name),
-      description: `${sanitizeTerminalText(template.apiFormat)} · ${template.models.length} models`,
-      groupLabel: 'Provider catalog',
-    }));
+    const items = [
+      ...templates.map((template) => ({
+        value: template.providerId,
+        label: sanitizeTerminalText(template.name),
+        description: `${sanitizeTerminalText(template.apiFormat)} · ${template.models.length} models`,
+        groupLabel: 'Provider catalog',
+      })),
+    ];
     if (!query || 'custom provider'.includes(query)) {
       items.push({
         value: CUSTOM_PROVIDER_VALUE,
         label: 'Custom provider',
         description: 'Enter URL and API key, then import or enter models',
         groupLabel: 'Provider catalog',
+      });
+    }
+    if (!query || 'manage configured connections'.includes(query)) {
+      items.push({
+        value: MANAGE_PROVIDERS_VALUE,
+        label: 'Manage configured connections',
+        description: 'Open saved connections and built-in sign-in',
+        groupLabel: 'Configured connections',
       });
     }
     const list = this.createList(items);
@@ -510,6 +522,10 @@ export class TuiProviderOnboarding implements Component, Focusable {
 
   private selectProvider(value: string): void {
     this.status = '';
+    if (value === MANAGE_PROVIDERS_VALUE) {
+      this.options.onOpenManager?.();
+      return;
+    }
     if (value === CUSTOM_PROVIDER_VALUE) {
       this.resetKnownProviderDraft();
       this.template = undefined;
@@ -829,7 +845,7 @@ export class TuiProviderOnboarding implements Component, Focusable {
       return 'This provider is already configured. Use the saved connection or add another account.';
     if (this.mode === 'preset-url') return 'Confirm the endpoint before testing with your API key';
     if (this.mode === 'alias') return 'Give the additional account a recognizable name';
-    if (this.mode === 'provider') return 'Choose a known provider or enter a custom endpoint';
+    if (this.mode === 'provider') return 'Choose a provider preset, add a custom connection, or manage saved connections';
     if (this.mode === 'model')
       return `Choose a ${sanitizeTerminalText(this.template?.name ?? '')} model`;
     if (this.mode === 'custom-model-source') return 'Import the model list or enter a model ID';

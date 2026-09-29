@@ -771,7 +771,7 @@ export class TuiFeatureFlow {
     this.options.surface.show(picker);
   }
 
-  private async showProviderOnboarding(): Promise<void> {
+  async showProviderOnboarding(): Promise<void> {
     if (this.isStopped()) return;
     this.closeProviderManager();
     this.closeProviderOnboarding();
@@ -825,6 +825,10 @@ export class TuiFeatureFlow {
       ...(catalogWarning ? { catalogWarning } : {}),
       onSave: (input) => this.providerApplication.saveCandidate(input),
       onDiscover: (input) => this.providerApplication.discoverModels(input),
+      onOpenManager: () => {
+        this.closeProviderOnboarding();
+        void this.showProviderManager();
+      },
       onComplete: (result) =>
         this.completeProviderOnboarding(onboarding, result, sessionId, sessionGeneration),
       onCancel: () => this.closeProviderOnboarding(),

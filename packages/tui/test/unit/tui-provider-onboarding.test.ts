@@ -35,6 +35,29 @@ const knownTemplate: McodeProviderTemplate = {
 };
 
 describe("TuiProviderOnboarding", () => {
+  it("shows the neutral catalog and a separate configured-connections entry", () => {
+    const onOpenManager = vi.fn();
+    const onboarding = new TuiProviderOnboarding({
+      templates: [knownTemplate],
+      onOpenManager,
+      onSave: vi.fn(),
+      onComplete: vi.fn(),
+      onCancel: vi.fn(),
+      requestRender: vi.fn(),
+    });
+
+    const rendered = stripAnsi(onboarding.render(100).join("\n"));
+    expect(rendered).toContain("Provider catalog");
+    expect(rendered).toContain("DeepSeek");
+    expect(rendered).toContain("Custom provider");
+    expect(rendered).toContain("Manage configured connections");
+
+    onboarding.handleInput("\u001b[B");
+    onboarding.handleInput("\u001b[B");
+    onboarding.handleInput("\r");
+    expect(onOpenManager).toHaveBeenCalledOnce();
+  });
+
   it("moves from the first model to API Key with Up and shows the setup shortcut inline", () => {
     const onboarding = new TuiProviderOnboarding({
       templates: [knownTemplate],
@@ -202,7 +225,7 @@ describe("TuiProviderOnboarding", () => {
     );
     onboarding.handleInput("\u001b");
     expect(stripAnsi(onboarding.render(90).join("\n"))).toContain(
-      "Choose a known provider or enter a custom endpoint",
+      "Choose a provider preset, add a custom connection, or manage saved connections",
     );
   });
 

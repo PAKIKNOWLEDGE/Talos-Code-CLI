@@ -136,6 +136,20 @@ describe('McodeProviderApplication', () => {
     expect(port.getCodexOAuthStatus).not.toHaveBeenCalled();
   });
 
+  it('does not show an unconfigured MiniMax API Key as a saved connection', async () => {
+    const port = createPort();
+    port.getMiniMaxApiKeyStatus.mockResolvedValueOnce({ hasApiKey: false });
+    port.getMiniMaxModelSource.mockResolvedValueOnce('token_plan');
+    const application = new McodeProviderApplication(port);
+
+    const snapshot = await application.snapshot();
+
+    expect(snapshot.providers.map((provider) => provider.providerId)).toEqual([
+      'minimax_oauth',
+      'custom_provider:openai',
+    ]);
+  });
+
   it('keeps custom providers in the same sorted list as MiniMax sources', async () => {
     const port = createPort();
     port.listUserModelProviders.mockResolvedValueOnce([
