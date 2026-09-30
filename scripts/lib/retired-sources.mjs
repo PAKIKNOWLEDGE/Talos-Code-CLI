@@ -27,6 +27,11 @@ export const retiredSourceRoots = [
 // build. Enforced by `check:standalone`.
 export const nonBundledSources = [
   "packages/local-runtime/src/services/cu/native.ts",
+  // Talos retains upstream sources for review, but never bundles its installer.
+  "packages/tui/src/cli/update.ts",
+  "packages/tui/src/update/application.ts",
+  "packages/tui/src/update/service.ts",
+  "packages/tui/src/update/prefix-update.ts",
 ];
 
 // Anything retired from the source tree must also stay out of the build graph, so

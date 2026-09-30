@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { checkStandaloneBoundary, requiredStandaloneInputs } from '../scripts/check-standalone-boundary.mjs';
 import assert from 'node:assert/strict';
 import { copyFileSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, rmSync, realpathSync, symlinkSync } from 'node:fs';
 import path from 'node:path';
@@ -1168,3 +1169,52 @@ test('TUI lint failure stops full and platform verification before compilation o
     assert.equal(report.gates.find(gate => gate.name === 'build').status, 'NOT_RUN');
   }
 });
+
+test('standalone boundary accepts the Talos read-only update graph', () => {
+  const graph = standaloneFixture();
+  assert.doesNotThrow(() => checkStandaloneBoundary(graph));
+  assert.ok(requiredStandaloneInputs.includes('packages/tui/src/cli/main.ts'));
+  assert.ok(requiredStandaloneInputs.includes('packages/tui/src/tui/controller/product/update-flow.ts'));
+  assert.ok(!requiredStandaloneInputs.includes('packages/tui/src/update/application.ts'));
+});
+
+function standaloneFixture() {
+  return {
+    inputs: Object.fromEntries(requiredStandaloneInputs.map((name) => [name, {}])),
+    outputs: { 'dist/cli.js': { inputs: Object.fromEntries(
+      requiredStandaloneInputs.map((name) => [name, { bytesInOutput: 1 }]),
+    ) } },
+  };
+}
+
+for (const entry of [
+  'packages/tui/src/cli/main.ts',
+  'packages/tui/src/tui/controller/product/update-flow.ts',
+  'packages/tui/src/auth/application.ts',
+]) {
+  for (const zeroBytes of [false, true]) {
+    test(`standalone boundary rejects missing output for ${entry} (zero bytes: ${zeroBytes})`, () => {
+      const graph = standaloneFixture();
+      if (zeroBytes) graph.outputs['dist/cli.js'].inputs[entry].bytesInOutput = 0;
+      else delete graph.outputs['dist/cli.js'].inputs[entry];
+      assert.throws(() => checkStandaloneBoundary(graph), (error) =>
+        error.message.includes('Required TUI capabilities') && error.message.includes(entry));
+    });
+  }
+}
+
+for (const forbidden of [
+  'packages/tui/src/cli/update.ts',
+  'packages/tui/src/update/application.ts',
+  'packages/tui/src/update/service.ts',
+  'packages/tui/src/update/prefix-update.ts',
+  'packages/local-runtime/src/services/cu/native.ts',
+]) {
+  test(`standalone boundary rejects forbidden input even with zero emitted bytes: ${forbidden}`, () => {
+    const graph = standaloneFixture();
+    graph.inputs[forbidden] = {};
+    graph.outputs['dist/cli.js'].inputs[forbidden] = { bytesInOutput: 0 };
+    assert.throws(() => checkStandaloneBoundary(graph), (error) =>
+      error.message.includes('Forbidden source') && error.message.includes(forbidden));
+  });
+}
