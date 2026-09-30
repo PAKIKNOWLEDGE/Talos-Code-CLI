@@ -44,6 +44,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.restoreAllMocks();
   resetConfig();
   fs.rmSync(dataDir, { recursive: true, force: true });
   fs.rmSync(fakeHome, { recursive: true, force: true });
@@ -173,7 +174,7 @@ describe("built-in model fallback", () => {
     });
   });
 
-  it("reports fake home inheritance in non-managed neutral runtime", () => {
+  it("does not inherit fake home config in non-managed neutral runtime", () => {
     vi.spyOn(os, "homedir").mockReturnValue(fakeHome);
     fs.mkdirSync(join(fakeHome, ".minimax"), { recursive: true });
     fs.writeFileSync(join(fakeHome, ".minimax", "config.yaml"), yaml.dump(customProviderConfig));
@@ -182,9 +183,33 @@ describe("built-in model fallback", () => {
     resetConfig();
 
     const config = getConfig();
-    expect(config.custom_provider?.acme?.options?.apiKey).toBe("synthetic-acme-key");
-    expect(config.defaultModel).toBe("custom_provider:acme/acme-model");
+    expect(config.custom_provider).toBeUndefined();
+    expect(config.defaultModel).toBeUndefined();
     expect(config.provider.minimax).toBeUndefined();
+    expect(fs.existsSync(join(dataDir, "config.yaml"))).toBe(false);
+    expect(fs.existsSync(join(fakeHome, ".mavis"))).toBe(false);
+    expect(yaml.load(fs.readFileSync(join(fakeHome, ".minimax", "config.yaml"), "utf8")))
+      .toEqual(customProviderConfig);
+
+    fs.writeFileSync(join(dataDir, "config.yaml"), yaml.dump(customProviderConfig));
+    resetConfig();
+    const reloaded = getConfig();
+    expect(reloaded.custom_provider?.acme?.options).toMatchObject({
+      baseURL: "https://api.acme.example/v1",
+      apiKey: "synthetic-acme-key",
+    });
+    expect(reloaded.defaultModel).toBe("custom_provider:acme/acme-model");
+  });
+
+  it("retains non-managed home inheritance outside Talos neutral runtime", () => {
+    vi.spyOn(os, "homedir").mockReturnValue(fakeHome);
+    fs.mkdirSync(join(fakeHome, ".minimax"), { recursive: true });
+    fs.writeFileSync(join(fakeHome, ".minimax", "config.yaml"), yaml.dump(customProviderConfig));
+    vi.stubEnv("TALOS_NEUTRAL_RUNTIME", "0");
+    vi.stubEnv("__MAVIS_RUNTIME_MANAGED", "0");
+    resetConfig();
+
+    expect(getConfig().custom_provider?.acme?.options?.apiKey).toBe("synthetic-acme-key");
     expect(yaml.load(fs.readFileSync(join(dataDir, "config.yaml"), "utf8"))).toMatchObject(
       customProviderConfig,
     );

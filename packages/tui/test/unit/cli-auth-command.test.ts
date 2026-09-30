@@ -1,8 +1,21 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { runTuiLogin, runTuiLogout } from '../../src/cli/auth-command.js';
 
 describe('Minimax Code auth commands', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('rejects legacy account commands before creating an auth application in Talos', async () => {
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    const createApplication = vi.fn();
+    const openExternalTarget = vi.fn();
+    const options = { createApplication, openExternalTarget };
+
+    await expect(runTuiLogin(options)).rejects.toThrow('/provider');
+    await expect(runTuiLogout(options)).rejects.toThrow('/provider');
+    expect(createApplication).not.toHaveBeenCalled();
+    expect(openExternalTarget).not.toHaveBeenCalled();
+  });
   it.each([true, false])('returns after dispatching browser logout (%s)', async (openBrowser) => {
     const writeError = vi.fn();
     const logoutUrl =

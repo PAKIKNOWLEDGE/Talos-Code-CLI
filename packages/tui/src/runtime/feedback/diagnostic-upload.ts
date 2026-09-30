@@ -11,6 +11,7 @@ import JSZip from 'jszip';
 import type { SessionReportManifest } from '@mavis/local-runtime-v2/session-system';
 
 import { summarizeDiagnosticText } from './diagnostic-summary.js';
+import { assertTuiFeedbackAvailable } from './service.js';
 
 const LOG_WINDOW_MS = 2 * 24 * 60 * 60 * 1_000;
 const MAX_FILES = 64;
@@ -71,9 +72,11 @@ export async function uploadTuiFeedbackDiagnostics(
   input: TuiFeedbackDiagnosticInput,
   options: TuiFeedbackDiagnosticOptions,
 ): Promise<{ readonly uploadId: string }> {
+  assertTuiFeedbackAvailable();
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
   const nowMs = (options.nowMs ?? Date.now)();
   await options.flushLogs?.();
+  assertTuiFeedbackAvailable();
   input.signal.throwIfAborted();
   const skipped: Array<{ readonly name: string; readonly reason: string }> = [];
   let requiredArtifacts: DiagnosticArtifact[] = [];
@@ -86,6 +89,7 @@ export async function uploadTuiFeedbackDiagnostics(
       reason: 'session_report_unavailable',
     });
   }
+  assertTuiFeedbackAvailable();
   const optionalArtifacts = await collectArtifacts(
     options.dataDir,
     nowMs - LOG_WINDOW_MS,
@@ -156,6 +160,7 @@ export async function uploadTuiFeedbackDiagnostics(
   const region = (options.region ?? getRuntimeRegion)();
   const buildEnv = (options.buildEnv ?? getRuntimeBuildEnv)();
   const baseUrl = LOG_UPLOAD_API_BASE[region][buildEnv];
+  assertTuiFeedbackAvailable();
   const presignResponse = await fetchImpl(`${baseUrl}/matrix/api/v1/log/upload`, {
     method: 'POST',
     headers: {
@@ -179,6 +184,7 @@ export async function uploadTuiFeedbackDiagnostics(
   if (!uploadId || !uploadUrl) {
     throw new Error('Feedback diagnostic upload returned an invalid upload receipt.');
   }
+  assertTuiFeedbackAvailable();
   const uploadResponse = await fetchImpl(uploadUrl, {
     method: 'PUT',
     body: new Uint8Array(archive),

@@ -133,13 +133,13 @@ const COMMAND_SOURCES: readonly TuiCommandSource[] = [
   },
   {
     name: 'update',
-    description: 'Check for and install an MCode update',
+    description: 'Show Talos update status',
     category: 'Application',
     discoverability: 'search-only',
   },
   {
     name: 'changelog',
-    description: 'Show the packaged MCode update history',
+    description: 'Show the packaged Talos update history',
     category: 'Application',
   },
   {
@@ -304,9 +304,10 @@ const COMMAND_SOURCES: readonly TuiCommandSource[] = [
   },
   {
     name: 'login',
-    description: 'Sign in to use MiniMax Code Agent features',
+    description: 'Legacy account login; configure a provider instead',
     category: 'Runtime',
     discoverability: 'contextual',
+    audience: process.env.TALOS_NEUTRAL_RUNTIME === '1' ? 'internal' : 'user',
     visibleWhen: (context) => !context.managedTokenPresent,
   },
   {
@@ -314,6 +315,7 @@ const COMMAND_SOURCES: readonly TuiCommandSource[] = [
     description: 'Sign out of the shared Desktop account',
     category: 'Runtime',
     discoverability: 'contextual',
+    audience: process.env.TALOS_NEUTRAL_RUNTIME === '1' ? 'internal' : 'user',
     visibleWhen: (context) => context.managedTokenPresent,
     unavailableReason: 'No managed MiniMax account is signed in.',
   },
@@ -345,8 +347,11 @@ const COMMAND_SOURCES: readonly TuiCommandSource[] = [
   },
   {
     name: 'feedback',
-    description: 'Review and submit redacted product feedback',
+    description: process.env.TALOS_NEUTRAL_RUNTIME === '1'
+      ? 'Upstream feedback upload is unavailable in Talos'
+      : 'Review and submit redacted product feedback',
     category: 'Application',
+    audience: process.env.TALOS_NEUTRAL_RUNTIME === '1' ? 'internal' : 'user',
     argumentHint: '<message>',
     discoverability: 'search-only',
   },
@@ -354,12 +359,13 @@ const COMMAND_SOURCES: readonly TuiCommandSource[] = [
     name: 'checkin',
     description: 'Claim the daily MiniMax account reward',
     category: 'Application',
+    audience: process.env.TALOS_NEUTRAL_RUNTIME === '1' ? 'internal' : 'user',
     readiness: 'controller',
     preparingHint: 'Checking daily reward…',
   },
   {
     name: 'settings',
-    description: 'Configure the MCode terminal interface',
+    description: 'Configure the Talos terminal interface',
     category: 'Application',
   },
   {
@@ -372,7 +378,7 @@ const COMMAND_SOURCES: readonly TuiCommandSource[] = [
   },
   {
     name: 'theme',
-    description: 'Choose the MCode color theme and terminal appearance',
+    description: 'Choose the Talos color theme and terminal appearance',
     category: 'Application',
     // Reachable by typing, but kept out of the default slash list: theme
     // selection is a preference, not a primary verb.
@@ -509,7 +515,7 @@ const COMMAND_SOURCES: readonly TuiCommandSource[] = [
   {
     name: 'quit',
     aliases: ['exit'],
-    description: 'Exit Minimax Code',
+    description: 'Exit Talos',
     category: 'Application',
     readiness: 'immediate',
   },

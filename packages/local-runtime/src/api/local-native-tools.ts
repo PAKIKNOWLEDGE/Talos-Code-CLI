@@ -117,7 +117,8 @@ export function buildLocalNativeRuntimeTools(input: {
     new LocalWebFetchClient({ fetchImpl: input.fetchImpl });
   const webSearchAdapter =
     input.webSearchEnabled === true
-      ? (input.webSearchAdapter ?? createManagedLocalWebSearchClient(input))
+      ? (input.webSearchAdapter ?? (process.env.TALOS_NEUTRAL_RUNTIME === '1'
+          ? undefined : createManagedLocalWebSearchClient(input)))
       : undefined;
   const builtinSkillNames = resolveFeatureAwareBuiltinSkillNames(capabilities, {
     cuModeActive: input.cuModeActive === true,

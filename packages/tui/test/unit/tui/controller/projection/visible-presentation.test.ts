@@ -6,6 +6,7 @@ import { createTuiHostKeybindings } from "../../../../../src/tui/shell/keybindin
 import { formatTuiShortcut } from "../../../../../src/tui/shell/shortcut-labels.js";
 import { normalizeAccountStatus } from "../../../../../src/runtime/adapters/normalizers.js";
 import { TuiWelcome } from "../../../../../src/tui/shell/welcome/component.js";
+import { renderTuiWelcomeHero } from "../../../../../src/tui/shell/welcome/hero.js";
 import { stripAnsi } from "../../../../../src/tui/rendering/text.js";
 
 const defaultQueueLabel = `${formatTuiShortcut("alt+enter")} queue`;
@@ -629,7 +630,7 @@ describe("visible presentation selector", () => {
       for (const width of [50, 80, 120]) {
         const rendered = stripAnsi(new TuiWelcome(shell).render(width).join("\n"));
         expect(rendered).toContain(activity);
-        expect(rendered).toContain("#####  ###");
+        expect(rendered).toContain("TALOS");
         expect(rendered.includes("Sign in with /login")).toBe(loginRequired);
         expect(rendered.includes("Login required")).toBe(loginRequired);
         if (warnings.length && !loginRequired) {
@@ -639,6 +640,18 @@ describe("visible presentation selector", () => {
       }
     },
   );
+
+  it("keeps the full wordmark and three-hexagon emblem within six visible rows", () => {
+    const hero = renderTuiWelcomeHero(64).map(stripAnsi);
+
+    expect(hero).toHaveLength(6);
+    expect(hero.every((line) => line.length <= 64)).toBe(true);
+    expect(hero.join("\n")).toContain("████████╗");
+    expect(hero[1]).toContain("/######\\");
+    expect(hero.at(-1)).toContain("\\######/\\######/");
+    expect(renderTuiWelcomeHero(20).map(stripAnsi).join("\n")).toContain("/######\\");
+    expect(renderTuiWelcomeHero(10).map(stripAnsi).join("\n")).toContain("[] []");
+  });
 
   it("does not infer readiness from a model label while account state is unknown", () => {
     for (const account of [

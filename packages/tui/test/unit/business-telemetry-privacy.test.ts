@@ -1,3 +1,4 @@
+import { isTelemetryChannelEnabled } from '@mavis/config';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -11,6 +12,75 @@ import { runMcodeTelemetryCommand } from '../../src/cli/telemetry-command.js';
 import { createConfiguredTuiBusinessTelemetry } from '../../src/tui/launcher.js';
 
 describe('business telemetry privacy', () => {
+  it('blocks upstream clients and all status channels in neutral mode despite opt-in', () => {
+    const environment = { TALOS_NEUTRAL_RUNTIME: '1' };
+    const createTelemetry = vi.fn();
+    expect(resolveMcodeBusinessTelemetryPolicy({ configEnabled: true, environment })).toEqual({
+      enabled: false, configured: true, blockedBy: 'TALOS_NEUTRAL_RUNTIME',
+    });
+    expect(createConfiguredTuiBusinessTelemetry({
+      configEnabled: true, environment, createTelemetry,
+      telemetryOptions: { region: 'en', buildEnv: 'prod', version: '0.5.7' },
+    })).toBeUndefined();
+    expect(createTelemetry).not.toHaveBeenCalled();
+    const resolveEnvironment = vi.fn();
+    for (const action of ['status', 'preview'] as const) {
+      const result = JSON.parse(runMcodeTelemetryCommand(action, '0.5.7', {
+        environment,
+        readConfig: () => ({ telemetry: { enabled: true, metrics: true, diagnostics: true } }),
+        readConfigPath: () => '/synthetic/config.yaml', resolveEnvironment,
+      }));
+      for (const channel of ['usage', 'metrics', 'diagnostics']) {
+        expect(result.channels[channel]).toEqual({
+          enabled: false, configured: true, blockedBy: 'TALOS_NEUTRAL_RUNTIME',
+        });
+      }
+      expect(result.optInAvailable).toBe(false);
+      expect(result.optInSetting).toBeNull();
+      if (action === 'preview') {
+        expect(result.request).toBeNull();
+        expect(result.message).toContain('Local diagnostics remain available');
+      }
+    }
+    expect(resolveEnvironment).not.toHaveBeenCalled();
+  });
+
+  it.each(['enabled', 'metrics', 'diagnostics'] as const)(
+    'blocks the shared %s channel without reading consent in neutral mode', (channel) => {
+      vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+      try {
+        const readConfigured = vi.fn(() => true);
+        expect(isTelemetryChannelEnabled(channel, readConfigured)).toBe(false);
+        expect(readConfigured).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    },
+  );
+
+  it.each(['before collecting', 'before draining'] as const)(
+    'never sends upstream business events when neutral is enabled %s', async (phase) => {
+      vi.stubEnv('TALOS_NEUTRAL_RUNTIME', phase === 'before collecting' ? '1' : '');
+      vi.stubEnv('MCODE_DISABLE_TELEMETRY', '');
+      vi.stubEnv('DO_NOT_TRACK', '');
+      try {
+        const fetchRequest = vi.fn<typeof fetch>();
+        const telemetry = createMcodeBusinessTelemetry({
+          region: 'en', buildEnv: 'prod', version: '0.5.7', fetch: fetchRequest,
+        });
+        telemetry.track('tui_launch', { launch_type: 'cold' });
+        vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+        await telemetry.flush();
+        expect(fetchRequest).not.toHaveBeenCalled();
+        vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '');
+        await telemetry.flush();
+        expect(fetchRequest).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    },
+  );
+
   it('is disabled until configured and honors both environment opt-outs', () => {
     expect(resolveMcodeBusinessTelemetryPolicy({ environment: {} })).toEqual({
       enabled: false,

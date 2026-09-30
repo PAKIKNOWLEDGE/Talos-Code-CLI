@@ -57,6 +57,8 @@ const steps = [
   { name: "test:artifact", script: "test:artifact", windows: true },
   { name: "test:capabilities", script: "test:capabilities" },
   { name: "test:windows", script: "test:windows", platforms: ["win32"], windows: true },
+  // Uses the one registered policy file with real host-specific assertions.
+  { name: "test:windows-policy", script: "test:windows-policy", platforms: ["win32"], windows: true },
   { name: "test:status-contract", script: "test:status-contract" },
   { name: "test:smoke", script: "test:smoke" },
   { name: "test:byok", script: "test:byok" },

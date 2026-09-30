@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, readFile, rm, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -48,6 +48,21 @@ import type {
 import { VirtualTerminalScreen } from "../helpers/virtual-terminal.js";
 import { VirtualTerminal } from "../pi-084-upstream/virtual-terminal.js";
 import { TuiFailure } from "../../src/failure.js";
+
+// These integration assertions use English copy regardless of the host OS.
+// Locale-specific cases override hostLocale and still exercise real translation.
+let hostLocale = "en-US";
+const nativeResolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
+let restoreHostLocale: () => void = () => undefined;
+beforeEach(() => {
+  hostLocale = "en-US";
+  const localeSpy = vi.spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions")
+    .mockImplementation(function (this: Intl.DateTimeFormat) {
+      return { ...nativeResolvedOptions.call(this), locale: hostLocale };
+    });
+  restoreHostLocale = () => localeSpy.mockRestore();
+});
+afterEach(() => restoreHostLocale());
 
 const runtimeEvent = (event: RawTuiRuntimeEvent): TuiRuntimeEvent =>
   normalizeTuiRuntimeEvent(event);
@@ -1222,7 +1237,7 @@ describe("createTuiApp", () => {
     },
   );
 
-  it("shows the MCode prompt in an empty Composer and hides it after input", async () => {
+  it("shows the Talos prompt in an empty Composer and hides it after input", async () => {
     const app = createTuiApp({
       runtime: createRuntime(),
       terminal: new FakeTerminal(),
@@ -1235,13 +1250,13 @@ describe("createTuiApp", () => {
       await app.ready;
 
       expect(stripAnsi(app.tui.render(80).join("\n"))).toContain(
-        "Ask Mcode to do anything",
+        "Ask Talos to do anything",
       );
 
       app.editor.handleInput("R");
 
       expect(stripAnsi(app.tui.render(80).join("\n"))).not.toContain(
-        "Ask Mcode to do anything",
+        "Ask Talos to do anything",
       );
       expect(app.editor.getText()).toBe("R");
     } finally {
@@ -1570,24 +1585,24 @@ describe("createTuiApp", () => {
     await app.ready;
     await vi.waitFor(() => {
       expect(terminal.writes.join("")).toContain(
-        "A new version of MCode is available",
+        "A new version of Talos is available",
       );
     });
 
     const rendered = terminal.writes.join("");
     expect(checkForUpdate).toHaveBeenCalledTimes(1);
-    expect(rendered).toContain("Run '/update' to install MCode 1.2.4");
+    expect(rendered).toContain("Run /update for update details");
 
     await app.submit("Start working");
     expect(app.getSurface()).toBe("conversation");
     expect(app.tui.render(80).join("\n")).not.toContain(
-      "A new version of MCode is available",
+      "A new version of Talos is available",
     );
 
     await app.submit("/new");
     expect(app.getSurface()).toBe("welcome");
     expect(app.tui.render(80).join("\n")).toContain(
-      "A new version of MCode is available",
+      "A new version of Talos is available",
     );
     await app.stop();
   });
@@ -1752,7 +1767,7 @@ describe("createTuiApp", () => {
       await app.stop();
 
       expect(terminal.writes.join("")).not.toContain(
-        "A new version of MCode is available",
+        "A new version of Talos is available",
       );
       expect(
         app.transcript.snapshot().filter((cell) => cell.kind === "error"),
@@ -1760,179 +1775,33 @@ describe("createTuiApp", () => {
     },
   );
 
-  it("routes /update through the in-process update confirmation flow", async () => {
-    const plan = {
-      kind: "available" as const,
-      source: "managed-installer" as const,
-      currentVersion: "1.2.3",
-      latestVersion: "1.2.4",
-      channel: "stable" as const,
-    };
-    const inspectUpdate = vi.fn(async () => plan);
-    const applyUpdate = vi.fn(async () => ({
-      applied: true,
-      message:
-        "MCode 1.2.4 is installed. Restart running MCode sessions to use it.",
-    }));
-    const app = createTuiApp({
-      runtime: createRuntime(),
-      terminal: new FakeTerminal(),
-      version: "1.2.3",
-      workspaceDir: "/workspace",
-      inspectUpdate,
-      applyUpdate,
-    });
-
-    await app.ready;
-    await app.submit("/update");
-
-    expect(inspectUpdate).toHaveBeenCalledOnce();
-    expect(app.interaction.current()?.render(80).join("\n")).toContain(
-      "MCode update",
-    );
-    app.interaction.current()?.handleInput?.("\r");
-    await vi.waitFor(() =>
-      expect(applyUpdate).toHaveBeenCalledWith(
-        plan,
-        expect.objectContaining({
-          onOutput: expect.any(Function),
-        }),
-      ),
-    );
-    await vi.waitFor(() =>
-      expect(
-        app.transcript
-          .snapshot()
-          .some((cell) => cell.content.includes("MCode update completed")),
-      ).toBe(true),
-    );
-    await app.stop();
-  });
-
-  it("leaves the current TUI after /update stages an npm-prefix replacement", async () => {
-    const plan = {
-      kind: "package-manager" as const,
-      source: "npm-prefix" as const,
-      currentVersion: "1.2.3",
-      latestVersion: "1.2.4",
-      packageTag: "latest" as const,
-      command: {
-        executable: "npm",
-        args: ["install"],
-        display: "npm install",
-      },
-    };
+  it("shows update status without opening the installer or leaving the TUI", async () => {
     const requestRestart = vi.fn();
+    const runtime = createRuntime();
+    const inspectUpdate = vi.fn(async () => ({ kind: "available" }));
+    const applyUpdate = vi.fn(async () => ({ applied: true }));
     const app = createTuiApp({
-      runtime: createRuntime(),
+      runtime,
       terminal: new FakeTerminal(),
       version: "1.2.3",
       workspaceDir: "/workspace",
-      inspectUpdate: async () => plan,
-      applyUpdate: async () => ({
-        applied: true,
-        restartRequired: true,
-        message: "MCode 1.2.4 is staged safely.",
-      }),
       requestRestart,
+    ...{ inspectUpdate, applyUpdate },
     });
 
     app.start();
     await app.ready;
     await app.submit("/update");
-    app.interaction.current()?.handleInput?.("\r");
 
-    await vi.waitFor(() => expect(requestRestart).toHaveBeenCalledOnce());
-    await app.stopped;
-  });
-
-  it("rechecks local and Runtime work before applying an update", async () => {
-    const runtime = createRuntime();
-    const applyUpdate = vi.fn(async () => ({
-      applied: true,
-      message: "updated",
-    }));
-    const app = createTuiApp({
-      runtime,
-      terminal: new FakeTerminal(),
-      version: "1.2.3",
-      workspaceDir: "/workspace",
-      inspectUpdate: async () => ({
-        kind: "available",
-        source: "managed-installer",
-        currentVersion: "1.2.3",
-        latestVersion: "1.2.4",
-        channel: "stable",
-      }),
-      applyUpdate,
-    });
-    await app.ready;
-    await app.openSession("session-1");
-    vi.mocked(runtime.getActiveRun).mockResolvedValue({
-      schemaVersion: 1,
-      sessionId: "session-1",
-      state: "running",
-      turnId: "turn-active",
-      actions: { steer: true },
-    });
-
-    await app.submit("/update");
-    app.interaction.current()?.handleInput?.("\r");
-
-    await vi.waitFor(() =>
-      expect(
-        app.transcript
-          .snapshot()
-          .some((cell) =>
-            cell.content.includes(
-              "MCode update failed: Finish or stop the active response before updating.",
-            ),
-          ),
-      ).toBe(true),
-    );
+    expect(app.transcript.snapshot().some((cell) =>
+      cell.content.includes("no Talos npm update source configured"),
+    )).toBe(true);
+    expect(app.interaction.current()).toBeUndefined();
+    expect(requestRestart).not.toHaveBeenCalled();
+    expect(runtime.sendMessage).not.toHaveBeenCalled();
+    expect(inspectUpdate).not.toHaveBeenCalled();
     expect(applyUpdate).not.toHaveBeenCalled();
-    await app.stop();
-  });
-
-  it("fails the update gate closed when Runtime state cannot be verified", async () => {
-    const runtime = createRuntime();
-    const applyUpdate = vi.fn(async () => ({
-      applied: true,
-      message: "updated",
-    }));
-    const app = createTuiApp({
-      runtime,
-      terminal: new FakeTerminal(),
-      version: "1.2.3",
-      workspaceDir: "/workspace",
-      inspectUpdate: async () => ({
-        kind: "available",
-        source: "managed-installer",
-        currentVersion: "1.2.3",
-        latestVersion: "1.2.4",
-        channel: "stable",
-      }),
-      applyUpdate,
-    });
-    await app.ready;
-    await app.openSession("session-1");
-    vi.mocked(runtime.getActiveRun).mockRejectedValue(
-      new Error("Runtime unavailable"),
-    );
-
-    await app.submit("/update");
-    app.interaction.current()?.handleInput?.("\r");
-
-    await vi.waitFor(() =>
-      expect(
-        app.transcript
-          .snapshot()
-          .some((cell) =>
-            cell.content.includes("Unable to verify that this Session is idle"),
-          ),
-      ).toBe(true),
-    );
-    expect(applyUpdate).not.toHaveBeenCalled();
+    expect(app.getSurface()).toBe("conversation");
     await app.stop();
   });
 
@@ -2756,11 +2625,11 @@ describe("createTuiApp", () => {
 
     expect(app.getSurface()).toBe("conversation");
     const conversation = app.tui.render(80).join("\n");
-    expect(conversation).toContain("Tips for getting started");
+    expect(conversation).toContain("Field notes");
     expect(conversation).toContain("Say hello");
     expect(conversation).toContain("Hello from the Agent");
     expect(terminal.started).toBe(true);
-    expect(terminal.title).toBe("Done | workspace (session-) | MCode");
+    expect(terminal.title).toBe("Done | workspace (session-) | Talos");
     expect(runtime.createSession).toHaveBeenCalledWith({
       workspaceDir: "/workspace",
     });
@@ -3417,7 +3286,7 @@ describe("createTuiApp", () => {
       expect(rendered).toContain("Running");
       expect(rendered).not.toContain("Running · 0s");
       expect(rendered).not.toContain("Running · Read");
-      expect(rendered).not.toContain("MCode · Running");
+      expect(rendered).not.toContain("Talos · Running");
       expect(rendered).toContain("Ctrl+O details");
       expect(rendered).toContain("Esc stop");
       expect(rendered).not.toContain("Enter run next");
@@ -3518,7 +3387,7 @@ describe("createTuiApp", () => {
         .filter(
           (line) =>
             line.includes("Inspecting the repository") &&
-            !line.includes("MCode"),
+            !line.includes("Talos"),
         ).length;
     let expandedThinkingRows = 0;
 
@@ -3538,7 +3407,7 @@ describe("createTuiApp", () => {
         expect(rendered).toContain("Ctrl+O details");
         expect(rendered).toContain("Esc stop");
         expect(rendered).toContain("Thinking…");
-        expect(rendered).not.toContain("MCode ·");
+        expect(rendered).not.toContain("Talos ·");
         expect(rendered).not.toContain("Thinking · Inspecting the repository");
         expandedThinkingRows = countThinkingBodyRows(rendered);
         expect(expandedThinkingRows).toBeGreaterThan(0);
@@ -5528,6 +5397,40 @@ describe("createTuiApp", () => {
     );
   });
 
+
+  it('keeps neutral /feedback local without account checks, report creation or model submission', async () => {
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    const runtime = createRuntime();
+    const app = createTuiApp({ runtime, terminal: new FakeTerminal(), version: '0.5.7', workspaceDir: '/workspace' });
+    try {
+      app.start(); await app.ready;
+      vi.mocked(runtime.getAccountStatus).mockClear();
+      await app.submit('/feedback');
+      await app.submit('/feedback synthetic report');
+      expect(app.transcript.snapshot().at(-1)?.content).toContain('Upstream feedback upload is unavailable in Talos');
+      expect(runtime.getAccountStatus).not.toHaveBeenCalled();
+      expect(runtime.prepareFeedback).not.toHaveBeenCalled();
+      expect(runtime.submitFeedback).not.toHaveBeenCalled();
+      expect(runtime.sendMessage).not.toHaveBeenCalled();
+      expect(app.interaction.isActive()).toBe(false);
+      expect(stripAnsi(app.tui.render(80).join('\n'))).not.toContain('/feedback previews before upload');
+    } finally { await app.stop(); vi.unstubAllEnvs(); }
+  });
+
+
+  it('describes neutral Auto as local checks without changing the permission mode', async () => {
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    const { TuiPermissionModePicker } = await import('../../src/tui/features/interaction/permission-mode-picker.js');
+    try {
+      const onSelect = vi.fn();
+      const picker = new TuiPermissionModePicker('auto', onSelect, vi.fn());
+      expect(stripAnsi(picker.render(100).join('\n'))).toContain('Local checks; confirm uncertain actions');
+      expect(onSelect).not.toHaveBeenCalled();
+      picker.handleInput('\r');
+      expect(onSelect).toHaveBeenCalledExactlyOnceWith('auto');
+    } finally { vi.unstubAllEnvs(); }
+  });
+
   it("previews /feedback without uploading until Enter confirms the Runtime draft", async () => {
     const terminal = new FakeTerminal();
     terminal.rows = 30;
@@ -5615,7 +5518,7 @@ describe("createTuiApp", () => {
     expect(app.interaction.isActive()).toBe(true);
     expect(app.transcript.snapshot()).toEqual(transcriptBeforeStatus);
     const statusOutput = app.tui.render(80).join("\n");
-    expect(statusOutput).toContain("MCode status");
+    expect(statusOutput).toContain("Talos status");
     expect(statusOutput).toContain("Model");
     expect(statusOutput).not.toContain("/status");
     expect(statusOutput).toContain("/workspace");
@@ -5659,7 +5562,7 @@ describe("createTuiApp", () => {
 
     expect(terminal.started).toBe(true);
     expect(firstFrameCommitted).toBe(true);
-    expect(terminal.writes.join("")).toContain("Tips for getting started");
+    expect(terminal.writes.join("")).toContain("Field notes");
     await app.stop();
   });
 
@@ -6101,7 +6004,7 @@ describe("createTuiApp", () => {
     expect(app.tui.hasOverlay()).toBe(false);
     expect(app.interaction.isActive()).toBe(true);
     expect(app.transcript.snapshot()).toEqual(transcriptBeforeStatus);
-    expect(app.tui.render(80).join("\n")).toContain("MCode status");
+    expect(app.tui.render(80).join("\n")).toContain("Talos status");
 
     resolveSessionPage?.({
       sessions: [
@@ -6435,7 +6338,7 @@ describe("createTuiApp", () => {
         expect(history.filter((line) => line.trimEnd().endsWith(`› Message ${index}`))).toHaveLength(1);
       }
       expect(history.join("\n")).not.toContain("Session usage");
-      expect(terminal.getViewport().join("\n")).toContain("Ask Mcode to do anything");
+      expect(terminal.getViewport().join("\n")).toContain("Ask Talos to do anything");
       expect(terminal.getViewport().join("\n")).toContain("/workspace");
     } finally {
       await app.stop();
@@ -7028,7 +6931,7 @@ describe("createTuiApp", () => {
     expect(runtime.getSession).toHaveBeenCalledWith("session-existing");
     expect(app.interaction.current()).toBeDefined();
     expect(app.transcript.snapshot()).toEqual(transcriptBeforeStatus);
-    expect(app.tui.render(100).join("\n")).toContain("MCode status");
+    expect(app.tui.render(100).join("\n")).toContain("Talos status");
     expect(runtime.renameSession).toHaveBeenCalledWith(
       "session-existing",
       "Renamed session",
@@ -7043,9 +6946,15 @@ describe("createTuiApp", () => {
     await app.stop();
   });
 
-  it.each(["regular", "fullscreen"] as const)(
-    "presents /history in %s mode and returns to chat on cancel",
-    async (tuiMode) => {
+  it.each([
+    ["regular", "en-US", "Search:", "Enter actions"],
+    ["fullscreen", "en-US", "Search:", "Enter actions"],
+    ["regular", "zh-CN", "搜索:", "Enter 选择操作"],
+    ["fullscreen", "zh-CN", "搜索:", "Enter 选择操作"],
+  ] as const)(
+    "presents /history in %s mode with %s copy and returns to chat on cancel",
+    async (tuiMode, locale, searchLabel, actionHint) => {
+      hostLocale = locale;
       const terminal = new FakeTerminal();
       const runtime = createRuntime();
       vi.mocked(runtime.listSessionInputSummaries).mockResolvedValue([
@@ -7078,8 +6987,8 @@ describe("createTuiApp", () => {
       expect(renderTerminalViewport(app, terminal)).toContain(
         "Inspect the Session UI",
       );
-      expect(renderTerminalViewport(app, terminal)).toContain("Search:");
-      expect(renderTerminalViewport(app, terminal)).toContain("Enter actions");
+      expect(renderTerminalViewport(app, terminal)).toContain(searchLabel);
+      expect(renderTerminalViewport(app, terminal)).toContain(actionHint);
 
       terminal.input?.("\u001b");
       expect(app.surfaceHost.getActiveSurface()).toEqual({
@@ -9658,7 +9567,7 @@ describe("createTuiApp", () => {
       content: "Proceed?  Yes",
     });
     expect(app.interaction.current()).toBeDefined();
-    expect(app.tui.render(80).join("\n")).toContain("MCode status");
+    expect(app.tui.render(80).join("\n")).toContain("Talos status");
     expect(app.transcript.snapshot()).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -10063,7 +9972,7 @@ describe("createTuiApp", () => {
     await vi.waitFor(() =>
       expect(app.transcript.get("question:question-review")).toMatchObject({
         status: "resolved",
-        detail: "Answer sent · MCode is continuing…",
+        detail: "Answer sent · Talos is continuing…",
       }),
     );
 
@@ -10152,7 +10061,7 @@ describe("createTuiApp", () => {
         app.transcript.get("question:question-delayed-reply"),
       ).toMatchObject({
         status: "resolved",
-        detail: "Answer sent · MCode is continuing…",
+        detail: "Answer sent · Talos is continuing…",
       }),
     );
     await vi.waitFor(() =>
@@ -11738,7 +11647,7 @@ describe("createTuiApp", () => {
     });
     expect(app.tui.render(80).join("\n")).toContain("Loading");
     expect(app.tui.render(80).join("\n")).not.toContain("Loading · 0s");
-    expect(app.tui.render(80).join("\n")).not.toContain("MCode ·");
+    expect(app.tui.render(80).join("\n")).not.toContain("Talos ·");
     terminal.input?.("\x1b");
     await vi.waitFor(() =>
       expect(app.controller.snapshot().activeTurnId).toBeUndefined(),
@@ -14280,7 +14189,7 @@ describe("createTuiApp", () => {
         expect(screen.getScrollBuffer().filter((line) => line.match(/Answer (\d+)/u)?.[1] === String(index))).toHaveLength(1);
       }
       screen.scrollLines(10000);
-      expect(screen.getViewport().join("\n")).toContain("Ask Mcode to do anything");
+      expect(screen.getViewport().join("\n")).toContain("Ask Talos to do anything");
     } finally {
       finish?.();
       await app.stop();
@@ -14658,7 +14567,7 @@ describe("createTuiApp", () => {
       expect(restored.editor.getText()).toBe("");
       expect(restored.getSurface()).toBe("welcome");
       expect(restored.tui.render(80).join("\n")).toContain(
-        "Tips for getting started",
+        "Field notes",
       );
       await restored.stop();
     } finally {
@@ -14959,8 +14868,6 @@ describe("interactive CLI model startup", () => {
                 createTuiRuntime: async () => ({ adapter: runtime }) as never,
                 shutdownTuiRuntime: async () => false,
               }),
-              loadUpdateApplication: async () =>
-                ({ inspect: async () => ({ status: "up-to-date" }) }) as never,
               createApp: (options) => {
                 app = createTuiApp({ ...options, productFeatures: { queue: false } });
                 return app;
@@ -15070,4 +14977,37 @@ describe("interactive model argument contract", () => {
       ),
     ).toBeUndefined();
   });
+});
+
+it("reports the unconfigured Talos update source from the CLI without launching the TUI", async () => {
+  const stdout = vi.fn((_text: string, callback?: () => void) => callback?.());
+  const stderr = vi.fn((_text: string, callback?: () => void) => callback?.());
+  const launch = vi.fn();
+  const processRef = {
+    title: "test",
+    argv: ["node", "cli.js", "update"],
+    env: {},
+    versions: { node: "24.15.0" },
+    stdout: { destroyed: false, writableEnded: false, write: stdout },
+    stderr: { destroyed: false, writableEnded: false, write: stderr },
+    exit: vi.fn(),
+    exitCode: 0,
+  };
+
+  await runTuiCli({
+    processRef,
+    platform: "win32",
+    configureNetworkProxy: () => undefined,
+    launchTui: launch,
+  });
+
+  expect(stdout.mock.calls.map(([value]) => value).join("")).toContain(
+    "no Talos npm update source configured",
+  );
+  expect(stdout.mock.calls.map(([value]) => value).join("")).toContain(
+    "Talos does not install updates automatically",
+  );
+  expect(stderr).not.toHaveBeenCalledWith(expect.stringContaining("error"));
+  expect(launch).not.toHaveBeenCalled();
+  expect(processRef.exitCode).toBe(0);
 });

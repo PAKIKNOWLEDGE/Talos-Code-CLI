@@ -4,7 +4,8 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { PluginSystemCloudTransport, PluginSystemCloudTransportError } from './cloud-transport.js';
+import { PluginSystemCloudTransport, PluginSystemCloudTransportError, resolvePluginCloudAuthContext } from './cloud-transport.js';
+import { resolveGitRepositorySource } from './plugin/import/github-source.js';
 import { writeFileChunkFully } from './file-chunk-writer.js';
 
 // The transport is shared by the Plugin registry and Connector app clients.
@@ -52,6 +53,76 @@ function downloadWriteError(): PluginSystemCloudTransportError {
     'Plugin package download could not be written completely',
   );
 }
+
+
+describe('Talos neutral plugin cloud boundary', () => {
+  it('does not read an upstream identity in neutral mode, while preserving non-neutral identity', () => {
+    const auth = { accessToken: 'synthetic', realUserID: 'test' };
+    const getter = vi.fn(() => auth);
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    try {
+      expect(resolvePluginCloudAuthContext(getter)).toBeUndefined();
+      expect(getter).not.toHaveBeenCalled();
+      vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '');
+      expect(resolvePluginCloudAuthContext(getter)).toBe(auth);
+      expect(getter).toHaveBeenCalledOnce();
+    } finally { vi.unstubAllEnvs(); }
+  });
+
+  it.each(['none', 'optional', 'required'] as const)(
+    'rejects %s cloud requests before authentication, signing or dispatch', async (auth) => {
+      vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+      try {
+        const fetchImpl = vi.fn<typeof fetch>();
+        const authContextGetter = vi.fn(() => ({ accessToken: 'synthetic', realUserID: 'test' }));
+        const nowMs = vi.fn(() => 1);
+        const onDispatch = vi.fn();
+        const transport = new PluginSystemCloudTransport({ baseUrl: 'https://agent.example',
+          fetchImpl, authContextGetter, nowMs });
+        await expect(transport.request({ method: 'POST', path: '/minimax-cloud/api/v1/connectors/tools/call',
+          auth, authContext: { accessToken: 'synthetic', realUserID: 'test' }, onDispatch }))
+          .rejects.toMatchObject({ code: 'PLUGIN_CLOUD_UNAVAILABLE' });
+        expect(authContextGetter).not.toHaveBeenCalled();
+        expect(nowMs).not.toHaveBeenCalled();
+        expect(fetchImpl).not.toHaveBeenCalled();
+        expect(onDispatch).not.toHaveBeenCalled();
+      } finally { vi.unstubAllEnvs(); }
+    },
+  );
+
+  it.each(['before fetch', 'before write'] as const)(
+    'does not download or create an official plugin package when neutral is enabled %s', async (phase) => {
+      vi.stubEnv('TALOS_NEUTRAL_RUNTIME', phase === 'before fetch' ? '1' : '');
+      const root = await mkdtemp(join(tmpdir(), 'talos-plugin-cloud-'));
+      roots.push(root);
+      try {
+        const targetPath = join(root, 'synthetic.zip');
+        const fetchImpl = vi.fn<typeof fetch>(async () => {
+          vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+          return new Response('synthetic package');
+        });
+        const transport = new PluginSystemCloudTransport({ baseUrl: 'https://agent.example',
+          fetchImpl, authContextGetter: vi.fn() });
+        await expect(transport.downloadToFile('https://oss.example/package.zip', targetPath))
+          .rejects.toMatchObject({ code: 'PLUGIN_CLOUD_UNAVAILABLE' });
+        expect(fetchImpl).toHaveBeenCalledTimes(phase === 'before fetch' ? 0 : 1);
+        await expect(readFile(targetPath)).rejects.toMatchObject({ code: 'ENOENT' });
+      } finally { vi.unstubAllEnvs(); }
+    },
+  );
+
+  it('preserves explicit GitHub source resolution through its separate fetch port in neutral mode', async () => {
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    try {
+      const sha = 'a'.repeat(40);
+      const fetchImpl = vi.fn<typeof fetch>(async () => Response.json({ sha }));
+      await expect(resolveGitRepositorySource('https://github.com/synthetic/plugin/tree/main', { fetchImpl }))
+        .resolves.toEqual({ repositoryUrl: 'https://github.com/synthetic/plugin', commitSha: sha });
+      expect(fetchImpl).toHaveBeenCalledOnce();
+      expect(String(fetchImpl.mock.calls[0]?.[0])).toBe('https://api.github.com/repos/synthetic/plugin/commits/main');
+    } finally { vi.unstubAllEnvs(); }
+  });
+});
 
 describe('PluginSystemCloudTransport admission credential', () => {
   it('uses an explicit admission credential without re-reading the live identity', async () => {

@@ -155,7 +155,8 @@ export async function createTuiRuntime(
     };
   };
   // Reject unreadable or unsafe config before auth watchers can keep a failed CLI alive.
-  const requestedMcodeTools = getConfig().beta?.mcodeTools === true;
+  const requestedMcodeTools = getConfig().beta?.mcodeTools === true &&
+    process.env.TALOS_NEUTRAL_RUNTIME !== '1';
   const readAuthContext = dependencies.readAuthContext ?? readCliAuthContext;
   const importSharedAuthContext =
     dependencies.importSharedAuthContext ?? importSharedCliAuthContext;
@@ -324,7 +325,7 @@ export async function createTuiRuntime(
     requestedMcodeTools,
     authScope.buildEnv,
   );
-  if (useSharedOAuth && sharedAuthCore) {
+  if (useSharedOAuth && sharedAuthCore && process.env.TALOS_NEUTRAL_RUNTIME !== '1') {
     mcodeToolsReadiness = await (
       dependencies.prepareMcodeToolsIntegration ?? prepareTuiMcodeToolsIntegration
     )({
@@ -601,7 +602,7 @@ export async function createTuiRuntime(
     if (cleanupFailures.length > 0) {
       throw new AggregateError(
         [error, ...cleanupFailures],
-        'Minimax Code Runtime startup cleanup failed.',
+        'Talos Runtime startup cleanup failed.',
       );
     }
     throw error;

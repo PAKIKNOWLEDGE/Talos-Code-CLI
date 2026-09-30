@@ -24,6 +24,9 @@ export interface RunTuiAuthCommandOptions {
 }
 
 export async function runTuiLogin(options: RunTuiAuthCommandOptions = {}): Promise<string> {
+  if (process.env.TALOS_NEUTRAL_RUNTIME === '1') {
+    throw new Error('Talos uses provider credentials. Configure a model with /provider.');
+  }
   const application = options.createApplication
     ? options.createApplication(options.region)
     : await createAuthApplication(options.region, options.prepareDataDir);
@@ -46,6 +49,9 @@ export async function runTuiLogin(options: RunTuiAuthCommandOptions = {}): Promi
 }
 
 export async function runTuiLogout(options: RunTuiAuthCommandOptions = {}): Promise<string> {
+  if (process.env.TALOS_NEUTRAL_RUNTIME === '1') {
+    throw new Error('Talos has no managed account to sign out. Manage models with /provider.');
+  }
   const application = options.createApplication
     ? options.createApplication(options.region)
     : await createAuthApplication(options.region, options.prepareDataDir);

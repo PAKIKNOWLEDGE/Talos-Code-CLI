@@ -76,13 +76,15 @@ export class ProviderPresetCatalog {
     const latest = await latestCatalogSnapshot(this.options);
     if (!latest) throw new Error('No valid models.dev catalog snapshot is available');
     const pinnedProviderIds =
-      (await resolvePinnedProviderIds({
-        fetchImpl: this.options.commonConfigFetch,
-        originGetter: this.options.commonConfigOriginGetter,
-        timeoutMs: this.options.commonConfigTimeoutMs,
-        previewSecret: this.options.previewSecret,
-        lane: this.options.lane,
-      })) ?? REGION_PINNED_PROVIDER_IDS[(this.options.regionGetter ?? getRuntimeRegion)()];
+      (process.env.TALOS_NEUTRAL_RUNTIME === '1'
+        ? undefined
+        : await resolvePinnedProviderIds({
+            fetchImpl: this.options.commonConfigFetch,
+            originGetter: this.options.commonConfigOriginGetter,
+            timeoutMs: this.options.commonConfigTimeoutMs,
+            previewSecret: this.options.previewSecret,
+            lane: this.options.lane,
+          })) ?? REGION_PINNED_PROVIDER_IDS[(this.options.regionGetter ?? getRuntimeRegion)()];
     return orderProviderPresets(latest.presets, pinnedProviderIds);
   }
 }
@@ -275,7 +277,9 @@ async function refreshModelsDevSnapshot(options: ProviderPresetCatalogOptions): 
   const result = await fetchModelsDevCatalog({
     fetchImpl: options.modelsDevFetch,
     timeoutMs: options.modelsDevTimeoutMs,
-    etag: current?.snapshot.iconBaseUrl ? current.snapshot.etag : undefined,
+    etag: current?.snapshot.iconBaseUrl &&
+      (process.env.TALOS_NEUTRAL_RUNTIME !== '1' || current.snapshot.iconBaseUrl === 'https://models.dev/logos/')
+      ? current.snapshot.etag : undefined,
     region,
     descriptorOriginGetter: options.commonConfigOriginGetter,
     previewSecret: options.previewSecret,
@@ -335,7 +339,10 @@ function parseCatalogSnapshot(value: unknown): ParsedModelsDevCatalogSnapshot {
     throw new Error('Invalid models.dev catalog snapshot');
   }
   const iconBaseUrl = parseSnapshotIconBaseUrl(value.iconBaseUrl);
-  const presets = parseModelsDevProviderPresets(value.catalog, iconBaseUrl);
+  const presets = parseModelsDevProviderPresets(
+    value.catalog,
+    process.env.TALOS_NEUTRAL_RUNTIME === '1' ? 'https://models.dev/logos/' : iconBaseUrl,
+  );
   if (presets.length === 0) {
     throw new Error('models.dev catalog snapshot has no supported providers');
   }

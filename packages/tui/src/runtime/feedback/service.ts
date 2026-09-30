@@ -110,6 +110,7 @@ export class TuiFeedbackService {
     readonly description: string;
     readonly sessionId?: string;
   }): TuiFeedbackPreview {
+    assertTuiFeedbackAvailable();
     this.pruneExpiredDrafts();
     const description = normalizeDescription(input.description);
     const sessionId = normalizeSessionId(input.sessionId);
@@ -169,6 +170,7 @@ export class TuiFeedbackService {
     draftId: string,
     options: TuiFeedbackSubmitOptions = {},
   ): Promise<TuiFeedbackReceipt> {
+    assertTuiFeedbackAvailable();
     const draft = this.requireDraft(draftId);
     if (draft.receipt) return structuredClone(draft.receipt);
     if (draft.activeController)
@@ -184,7 +186,7 @@ export class TuiFeedbackService {
     let token = auth?.accessToken?.trim();
     if (!token)
       throw feedbackError(
-        'MiniMax Code sign-in is required. Run /login, then retry.',
+        'Talos sign-in is required. Run /login, then retry.',
         'feedback_login_required',
         401,
         true,
@@ -215,14 +217,14 @@ export class TuiFeedbackService {
       const realUserID = auth?.realUserID?.trim();
       if (!token)
         throw feedbackError(
-          'MiniMax Code sign-in is required. Run /login, then retry.',
+          'Talos sign-in is required. Run /login, then retry.',
           'feedback_login_required',
           401,
           true,
         );
       if (!realUserID)
         throw feedbackError(
-          'MiniMax Code account identity is not ready. Check the connection, then retry.',
+          'Talos account identity is not ready. Check the connection, then retry.',
           'feedback_upload_failed',
           503,
           true,
@@ -335,6 +337,7 @@ export class TuiFeedbackService {
     realUserID: string,
     signal: AbortSignal,
   ): Promise<Response> {
+    assertTuiFeedbackAvailable();
     const request = feedbackRequest({
       endpoint: feedbackEndpoint(this.options),
       payload,
@@ -361,6 +364,7 @@ export class TuiFeedbackService {
   ): Promise<TuiFeedbackReceipt | undefined> {
     try {
       const nowMs = this.nowMs();
+      assertTuiFeedbackAvailable();
       const request = feedbackListRequest({
         endpoint: feedbackEndpoint(this.options),
         token,
@@ -395,6 +399,7 @@ export class TuiFeedbackService {
   }
 
   private async uploadDiagnostics(draft: FeedbackDraft, signal: AbortSignal): Promise<void> {
+    assertTuiFeedbackAvailable();
     if (!this.options.diagnosticLogUploader || draft.diagnosticUploadId) return;
     try {
       const upload = await this.options.diagnosticLogUploader({
@@ -529,5 +534,15 @@ function reportFeedbackPhase(options: TuiFeedbackSubmitOptions, phase: TuiFeedba
     options.onPhase?.(phase);
   } catch {
     // Presentation observers must not change feedback delivery or outcome.
+  }
+}
+
+/** Neutral Talos must not collect or deliver upstream feedback artifacts. */
+export function assertTuiFeedbackAvailable(): void {
+  if (process.env.TALOS_NEUTRAL_RUNTIME === '1') {
+    throw new TuiFeedbackError(
+      'Upstream feedback upload is unavailable in Talos. No report or diagnostic attachment will be uploaded.',
+      'feedback_unavailable', 403, false,
+    );
   }
 }

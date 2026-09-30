@@ -24,10 +24,10 @@ export type TuiTerminalNotificationKind =
 const NOTIFICATIONS: Readonly<
   Record<TuiTerminalNotificationKind, { title: string; body: string }>
 > = {
-  'turn-complete': { title: 'MCode', body: 'Response complete' },
-  'permission-required': { title: 'MCode', body: 'Permission needs your input' },
-  'question-required': { title: 'MCode', body: 'Question needs your input' },
-  'turn-failed': { title: 'MCode', body: 'Response stopped with an error' },
+  'turn-complete': { title: 'Talos', body: 'Response complete' },
+  'permission-required': { title: 'Talos', body: 'Permission needs your input' },
+  'question-required': { title: 'Talos', body: 'Question needs your input' },
+  'turn-failed': { title: 'Talos', body: 'Response stopped with an error' },
 };
 
 type ExecuteNotificationFile = (

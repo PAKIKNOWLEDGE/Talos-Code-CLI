@@ -68,9 +68,11 @@ export function readTuiThemeSetting(dataDir: string): string | undefined {
   const pinnedId = pair?.[1];
   const pinnedAppearance = pair?.[2];
   if (pinnedId && pinnedAppearance) {
-    return `${pinnedId}/${pinnedAppearance.toLowerCase()}`;
+    const themeId = pinnedId.toLowerCase() === 'minimax' ? 'talos' : pinnedId;
+    return `${themeId}/${pinnedAppearance.toLowerCase()}`;
   }
-  return THEME_ID.test(raw) ? raw : undefined;
+  if (!THEME_ID.test(raw)) return undefined;
+  return raw.toLowerCase() === 'minimax' ? 'talos' : raw;
 }
 
 export function writeTuiThemeSetting(dataDir: string, theme: string): void {

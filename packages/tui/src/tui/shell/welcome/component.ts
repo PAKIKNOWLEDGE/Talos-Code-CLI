@@ -198,6 +198,8 @@ function renderWelcomeAccountNoticeRows(state: TuiShellState, width: number): st
   const message =
     state.accountStatus === 'Sign in with /login'
       ? state.accountStatus
+      : state.accountStatus === 'Configure a provider with /provider'
+        ? state.accountStatus
       : state.accountStatus === 'Connected with warnings'
         ? 'Check /provider or /status for details.'
         : state.accountStatus === 'Account unavailable'
@@ -211,6 +213,9 @@ function renderWelcomeAccountNoticeRows(state: TuiShellState, width: number): st
 function renderActivity(state: TuiShellState): string {
   if (state.accountStatus === 'Sign in with /login') {
     return chalk.bold.hex(colors.warning)('○ Login required');
+  }
+  if (state.accountStatus === 'Configure a provider with /provider') {
+    return chalk.bold.hex(colors.warning)('○ Provider needed');
   }
   if (state.runtimeStatus === 'error') {
     return chalk.bold.hex(colors.error)('× Error');

@@ -1,3 +1,5 @@
+import { DesktopMatrixClient } from '@mavis/agent-tools/desktop';
+import { projectEmbeddedRuntimeConfig } from '../../src/runtime/embedded-host.js';
 import { execFileSync } from 'node:child_process';
 import { chmod, copyFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -32,6 +34,77 @@ afterEach(async () => {
 });
 
 describe('TUI mcode-tools integration readiness', () => {
+  it.each(['host', 'provided'] as const)('blocks neutral opt-in before resource/broker/PATH work (%s environment)', async (source) => {
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', source === 'host' ? '1' : '');
+    try {
+      const environment = { PATH: 'synthetic-parent', ...(source === 'provided' ? { TALOS_NEUTRAL_RUNTIME: '1' } : {}) };
+      const previous = { ...environment };
+      const validateResource = vi.fn(); const startBroker = vi.fn();
+      const createRuntimeDir = vi.fn(); const activateEnvironment = vi.fn();
+      const session = createSession({ status: 'authenticated', generation: 1 }).session;
+      const result = await prepareTuiMcodeToolsIntegration({ requested: true,
+        dataDir: '/synthetic/profile', buildEnv: 'prod', region: 'en', session,
+        entryUrl: pathToFileURL('/synthetic/cli.js').href, environment },
+        { validateResource, startBroker, createRuntimeDir, activateEnvironment });
+      expect(result).toMatchObject({ requested: true, ready: false, category: 'disabled' });
+      result.ensureCommandPath(); await result.dispose();
+      expect(validateResource).not.toHaveBeenCalled(); expect(startBroker).not.toHaveBeenCalled();
+      expect(createRuntimeDir).not.toHaveBeenCalled(); expect(activateEnvironment).not.toHaveBeenCalled();
+      expect(session.getStatus).not.toHaveBeenCalled(); expect(session.getAccessToken).not.toHaveBeenCalled();
+      expect(environment).toEqual(previous);
+    } finally { vi.unstubAllEnvs(); }
+  });
+
+  it('prevents neutral host/child environment activation and keeps the config capability ceiling off', () => {
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    try {
+      const environment = { PATH: 'synthetic-parent' };
+      expect(() => activateTuiMcodeToolsHostEnvironment(environment, {
+        runtimeExecutable: process.execPath, brokerEndpoint: '/synthetic/broker',
+        brokerCapabilityFile: '/synthetic/capability', configDir: '/synthetic/config',
+        region: 'en', commandBinDir: '/synthetic/bin',
+      })).toThrow('unavailable in Talos');
+      expect(() => configureMcodeToolsChildEnvironment(environment)).toThrow('unavailable in Talos');
+      expect(environment).toEqual({ PATH: 'synthetic-parent' });
+      const config = { beta: { mcodeTools: true }, marker: 'preserved' };
+      const projection = projectEmbeddedRuntimeConfig(config as never, { isInternalBuild: false }, true);
+      expect(projection.beta?.mcodeTools).toBe(false);
+      expect((projection as unknown as { marker: string }).marker).toBe('preserved');
+      expect(config.beta.mcodeTools).toBe(true);
+    } finally { vi.unstubAllEnvs(); }
+  });
+
+  it('blocks neutral Matrix POST/upload/download and credential headers before fetch', async () => {
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    try {
+      const fetchImpl = vi.fn<typeof fetch>(); const routingHeadersGetter = vi.fn();
+      const readToken = vi.fn(() => 'synthetic-token');
+      const authContext = { get accessToken() { return readToken(); } };
+      const client = new DesktopMatrixClient({ baseUrl: 'https://agent.minimax.io',
+        authContext, fetchImpl, routingHeadersGetter });
+      await expect(client.postJson('/matrix/api/v1/mcp/web_search', {})).rejects.toThrow('unavailable in Talos');
+      await expect(client.postGatewayJson('/mavis/api/v1/mcp/web_search', {})).rejects.toThrow('unavailable in Talos');
+      await expect(client.putBytes('https://upload.example/test', 'synthetic', {})).rejects.toThrow('unavailable in Talos');
+      await expect(client.getStream('https://download.example/test')).rejects.toThrow('unavailable in Talos');
+      expect(() => client.buildHeaders()).toThrow('unavailable in Talos');
+      expect(readToken).not.toHaveBeenCalled(); expect(routingHeadersGetter).not.toHaveBeenCalled();
+      expect(fetchImpl).not.toHaveBeenCalled();
+    } finally { vi.unstubAllEnvs(); }
+  });
+
+  it('preserves non-neutral Matrix HTTP behavior through the original injected transport', async () => {
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '');
+    try {
+      const fetchImpl = vi.fn<typeof fetch>(async (_url, init) => init?.method === 'POST'
+        ? Response.json({ synthetic: true }) : new Response('synthetic'));
+      const client = new DesktopMatrixClient({ baseUrl: 'https://synthetic.example', accessToken: 'synthetic-token', fetchImpl });
+      await expect(client.postGatewayJson('/mavis/api/v1/mcp/test', {})).resolves.toEqual({ synthetic: true });
+      await client.putBytes('https://synthetic.example/upload', 'synthetic', {});
+      const download = await client.getStream('https://synthetic.example/download'); download.dispose();
+      expect(fetchImpl.mock.calls.map(([, init]) => init?.method)).toEqual(['POST', 'PUT', 'GET']);
+    } finally { vi.unstubAllEnvs(); }
+  });
+
   it.skipIf(process.platform === 'win32')(
     'keeps the POSIX broker socket path below platform limits',
     async () => {
@@ -383,7 +456,7 @@ describe('mcode-tools command environment', () => {
       configureMcodeToolsChildEnvironment({
         __MAVIS_MCODE_TOOLS_BROKER_ENDPOINT: '/runtime/broker.sock',
       }),
-    ).toThrow(/Restart MCode/u);
+    ).toThrow(/Restart Talos/u);
   });
 });
 

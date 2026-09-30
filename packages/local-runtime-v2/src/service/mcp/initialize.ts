@@ -63,7 +63,8 @@ export function initializeMcpService(options: InitializeMcpServiceOptions): Init
     ...(options.nowMs ? { nowMs: options.nowMs } : {}),
     ...(pool ? { connectionPool: pool } : {}),
     builtinMatrix: {
-      enabled: options.builtinMatrix && Boolean(resolveMatrixMcpStdioEntrypoint()),
+      enabled: process.env.TALOS_NEUTRAL_RUNTIME !== '1' &&
+        options.builtinMatrix && Boolean(resolveMatrixMcpStdioEntrypoint()),
       webSearchOnly: options.matrixWebSearchOnly,
     },
   });

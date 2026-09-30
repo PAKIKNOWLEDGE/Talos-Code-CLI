@@ -204,7 +204,7 @@ export class ExecDiagnostics {
   }
 
   private reportFailure(message: string): void {
-    if (!this.failed) this.warn(`mcode diagnostics warning: ${message}\n`);
+    if (!this.failed) this.warn(`talos diagnostics warning: ${message}\n`);
     this.failed = true;
   }
 }

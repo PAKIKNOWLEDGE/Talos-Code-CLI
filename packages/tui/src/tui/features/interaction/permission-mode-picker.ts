@@ -74,7 +74,7 @@ export class TuiPermissionModePicker implements Component {
         ...(safeWidth >= 42 ? { meta: `Current · ${currentMode}` } : {}),
         body: [
           chalk.hex(colors.muted)(
-            compact ? 'Choose a tool access policy.' : 'Choose how MCode handles tool access.',
+            compact ? 'Choose a tool access policy.' : 'Choose how Talos handles tool access.',
           ),
           '',
           ...MINIMAX_CODE_PERMISSION_MODES.flatMap((mode, index) =>
@@ -119,7 +119,11 @@ function renderMode(
   ]
     .filter(Boolean)
     .join(' ');
-  const description = chalk.hex(colors.muted)(PERMISSION_MODE_DESCRIPTIONS[mode]);
+  const description = chalk.hex(colors.muted)(
+    mode === 'auto' && process.env.TALOS_NEUTRAL_RUNTIME === '1'
+      ? 'Local checks; confirm uncertain actions'
+      : PERMISSION_MODE_DESCRIPTIONS[mode],
+  );
   const heading = `${prefix} ${label}`;
 
   if (options.compact) {

@@ -9,14 +9,20 @@ export const MINIMAX_CODE_TUI_LOGIN_REQUIRED_MESSAGE =
   'Sign in to MiniMax to use Agent features. Run /login, then retry.';
 
 export const MINIMAX_CODE_HEADLESS_LOGIN_REQUIRED_MESSAGE =
-  'Sign in to MiniMax to use Agent features. Run `mcode login`, then retry.';
+  'Sign in to use Agent features. Run `talos login`, then retry.';
+
+const TALOS_PROVIDER_REQUIRED_MESSAGE = 'Select a model with /provider and provide its credentials.';
+
+function loginRequiredMessage(fallback: string): string {
+  return process.env.TALOS_NEUTRAL_RUNTIME === '1' ? TALOS_PROVIDER_REQUIRED_MESSAGE : fallback;
+}
 
 type TuiLoginStatusPort = Pick<TuiConfigurationPort, 'getAccountStatus'>;
 
 export class TuiLoginRequiredError extends TuiFailure {
   constructor(
     readonly account: TuiAccountStatus,
-    message = MINIMAX_CODE_HEADLESS_LOGIN_REQUIRED_MESSAGE,
+    message = loginRequiredMessage(MINIMAX_CODE_HEADLESS_LOGIN_REQUIRED_MESSAGE),
   ) {
     super('config', message, {
       code: 'auth.login_required',
@@ -57,7 +63,7 @@ async function readTuiAccount(
 export async function requireTuiAgentAccess(
   runtime: TuiLoginStatusPort,
   sessionId?: string,
-  message = MINIMAX_CODE_HEADLESS_LOGIN_REQUIRED_MESSAGE,
+  message = loginRequiredMessage(MINIMAX_CODE_HEADLESS_LOGIN_REQUIRED_MESSAGE),
   onAccount?: (account: TuiAccountStatus) => void,
   options?: TuiAccountStatusOptions,
 ): Promise<TuiAccountStatus> {
@@ -71,7 +77,7 @@ export async function requireTuiAgentAccess(
 export async function requireTuiAccountLogin(
   runtime: TuiLoginStatusPort,
   sessionId?: string,
-  message = MINIMAX_CODE_HEADLESS_LOGIN_REQUIRED_MESSAGE,
+  message = loginRequiredMessage(MINIMAX_CODE_HEADLESS_LOGIN_REQUIRED_MESSAGE),
   onAccount?: (account: TuiAccountStatus) => void,
 ): Promise<TuiAccountStatus> {
   const account = await readTuiAccount(runtime, sessionId, onAccount, { requireManagedAuth: true });
@@ -91,7 +97,7 @@ export async function requireTuiInteractiveAgentAccess(
   await requireTuiAgentAccess(
     { getAccountStatus: getAccountStatus.bind(runtime) },
     sessionId,
-    MINIMAX_CODE_TUI_LOGIN_REQUIRED_MESSAGE,
+    loginRequiredMessage(MINIMAX_CODE_TUI_LOGIN_REQUIRED_MESSAGE),
     onAccount,
   );
 }
@@ -106,7 +112,7 @@ export async function requireTuiInteractiveAccountLogin(
   await requireTuiAccountLogin(
     { getAccountStatus: getAccountStatus.bind(runtime) },
     sessionId,
-    MINIMAX_CODE_TUI_LOGIN_REQUIRED_MESSAGE,
+    loginRequiredMessage(MINIMAX_CODE_TUI_LOGIN_REQUIRED_MESSAGE),
     onAccount,
   );
 }

@@ -12,26 +12,28 @@ export class McodePluginApplication {
     readonly includeAvailable: boolean;
     readonly marketplace?: McodePluginMarketplace;
   }): Promise<McodePluginCatalog> {
+    const neutral = process.env.TALOS_NEUTRAL_RUNTIME === '1';
+    requirePluginMarketplace(input.marketplace);
+    const marketplace = input.marketplace ?? (neutral ? 'local' : undefined);
     if (!input.includeAvailable) {
       return {
-        installed: await this.access.listInstalledPlugins({
-          marketplace: input.marketplace,
-        }),
+        installed: (await this.access.listInstalledPlugins({ marketplace }))
+          .filter((plugin) => !neutral || plugin.marketplace === 'local'),
         available: [],
       };
     }
-    const marketplaces: readonly McodePluginMarketplace[] = input.marketplace
-      ? [input.marketplace]
+    const marketplaces: readonly McodePluginMarketplace[] = marketplace
+      ? [marketplace]
       : ['official', 'local'];
     const [installed, ...marketplaceCatalogs] = await Promise.all([
-      this.access.listInstalledPlugins({ marketplace: input.marketplace }),
-      ...marketplaces.map((marketplace) => this.access.listMarketplacePlugins({ marketplace })),
+      this.access.listInstalledPlugins({ marketplace }),
+      ...marketplaces.map((catalogMarketplace) => this.access.listMarketplacePlugins({ marketplace: catalogMarketplace })),
     ]);
     const merged = new Map(
       marketplaceCatalogs.flat().map((plugin) => [plugin.pluginId, plugin] as const),
     );
     for (const plugin of installed) merged.set(plugin.pluginId, plugin);
-    return partitionCatalog([...merged.values()]);
+    return partitionCatalog([...merged.values()].filter((plugin) => !neutral || plugin.marketplace === 'local'));
   }
 
   install(plugin: McodePluginView): Promise<McodePluginView> {
@@ -54,6 +56,7 @@ export class McodePluginApplication {
     plugin: McodePluginView,
     action: 'install' | 'remove' | 'enable' | 'disable',
   ): Promise<McodePluginView> {
+    requirePluginMarketplace(plugin.marketplace);
     const result = await this.access.mutatePlugin({
       action,
       plugin: { name: plugin.name, marketplace: plugin.marketplace },
@@ -69,4 +72,10 @@ function partitionCatalog(plugins: readonly McodePluginView[]): McodePluginCatal
     (plugin.installed ? installed : available).push(plugin);
   }
   return { installed, available };
+}
+
+function requirePluginMarketplace(marketplace: McodePluginMarketplace | undefined): void {
+  if (process.env.TALOS_NEUTRAL_RUNTIME === '1' && marketplace === 'official') {
+    throw new Error('Upstream plugin marketplace is unavailable in Talos. Use local plugins.');
+  }
 }

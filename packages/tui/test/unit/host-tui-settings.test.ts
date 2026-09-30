@@ -57,7 +57,7 @@ describe('TUI mode settings', () => {
     expect(readTuiModeSetting(dataDir)).toBe('regular');
   });
 
-  it('persists the selected fullscreen mode in the MCode data directory', async () => {
+  it('persists the selected fullscreen mode in the Talos data directory', async () => {
     const dataDir = await temporaryDataDir();
 
     writeTuiModeSetting(dataDir, 'fullscreen');
@@ -107,6 +107,14 @@ describe('TUI theme settings', () => {
 
     writeTuiThemeSetting(dataDir, 'aurora/dark');
     expect(readTuiThemeSetting(dataDir)).toBe('aurora/dark');
+  });
+
+  it('maps the retired minimax theme selection to talos', async () => {
+    const dataDir = await temporaryDataDir();
+    await mkdir(join(dataDir, 'tui'), { recursive: true });
+    await writeFile(join(dataDir, 'tui', 'tui-settings.json'), '{"theme":"minimax/dark"}', 'utf8');
+
+    expect(readTuiThemeSetting(dataDir)).toBe('talos/dark');
   });
 
   it('does not drop the theme when the TUI mode is written afterwards', async () => {

@@ -932,6 +932,7 @@ test('Windows contract profile selects focused gates', () => {
       'check:standalone',
       'test:artifact',
       'test:windows',
+      'test:windows-policy',
     ]);
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -977,6 +978,19 @@ test('suite runner preserves gate arguments and canonicalizes Windows temporary 
     const expected = platform === 'win32' ? realpathSync.native(alias) : alias;
     assert.equal(child.temp, expected);
     assert.equal(child.tmp, expected);
+
+    const matching = spawnSync(process.execPath,
+      ['--require', preload, path.join(root, 'scripts/run-vitest-suite.mjs'), 'fixture', '--platform', platform],
+      { encoding: 'utf8', env: { ...process.env, TEMP: alias, TMP: alias, TMPDIR: alias } });
+    assert.equal(matching.status, 17, matching.stderr);
+    assert.deepEqual(JSON.parse(matching.stdout).args, child.args);
+    const mismatch = platform === 'win32' ? 'linux' : 'win32';
+    const rejected = spawnSync(process.execPath,
+      ['--require', preload, path.join(root, 'scripts/run-vitest-suite.mjs'), 'fixture', '--platform', mismatch],
+      { encoding: 'utf8', env: { ...process.env, TEMP: alias, TMP: alias, TMPDIR: alias } });
+    assert.notEqual(rejected.status, 0);
+    assert.match(rejected.stderr, /requires .*current host is/);
+    assert.equal(rejected.stdout, '');
   }
 });
 

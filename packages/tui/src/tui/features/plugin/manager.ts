@@ -13,7 +13,10 @@ import {
 import { TuiSelectionScrollView } from '../../widgets/selection-scroll-view.js';
 
 type PluginTab = 'all' | 'installed' | 'official' | 'local';
-const TABS: readonly PluginTab[] = ['all', 'installed', 'official', 'local'];
+function pluginTabs(): readonly PluginTab[] {
+  return process.env.TALOS_NEUTRAL_RUNTIME === '1'
+    ? ['all', 'installed', 'local'] : ['all', 'installed', 'official', 'local'];
+}
 
 export interface TuiPluginManagerOptions {
   readonly plugins: readonly McodePluginView[];
@@ -134,7 +137,9 @@ export class TuiPluginManager implements TuiFeatureScreen, Component, Focusable 
   private renderHeader(width: number): string[] {
     const safeWidth = Math.max(0, width);
     if (!safeWidth) return [];
-    const installedCount = this.plugins.filter((plugin) => plugin.installed).length;
+    const neutral = process.env.TALOS_NEUTRAL_RUNTIME === '1';
+    const displayedPlugins = this.plugins.filter((plugin) => !neutral || plugin.marketplace === 'local');
+    const installedCount = displayedPlugins.filter((plugin) => plugin.installed).length;
     this.searchInput.focused = this.focused;
     const searchPrompt = chalk.hex(colors.muted)('Search: ');
     const searchWidth = Math.max(0, safeWidth - visibleWidth(searchPrompt));
@@ -142,7 +147,9 @@ export class TuiPluginManager implements TuiFeatureScreen, Component, Focusable 
     return [
       chalk.bold.hex(colors.signal)('Plugins'),
       chalk.hex(colors.muted)(
-        `Browse MiniMax Official and Local plugins · Installed ${installedCount} of ${this.plugins.length}`,
+        neutral
+          ? `Browse local plugins · Installed ${installedCount} of ${displayedPlugins.length}`
+          : `Browse MiniMax Official and Local plugins · Installed ${installedCount} of ${displayedPlugins.length}`,
       ),
       renderTabs(this.tab, installedCount),
       searchLine,
@@ -184,6 +191,7 @@ export class TuiPluginManager implements TuiFeatureScreen, Component, Focusable 
   private visiblePlugins(): McodePluginView[] {
     const query = this.searchInput.getValue().trim().toLocaleLowerCase();
     return this.plugins.filter((plugin) => {
+      if (process.env.TALOS_NEUTRAL_RUNTIME === '1' && plugin.marketplace !== 'local') return false;
       const inTab =
         this.tab === 'all' ||
         (this.tab === 'installed' ? plugin.installed : plugin.marketplace === this.tab);
@@ -208,8 +216,9 @@ export class TuiPluginManager implements TuiFeatureScreen, Component, Focusable 
   }
 
   private cycleTab(delta: number): void {
-    const current = TABS.indexOf(this.tab);
-    this.tab = TABS[(current + delta + TABS.length) % TABS.length] ?? 'all';
+    const tabs = pluginTabs();
+    const current = tabs.indexOf(this.tab);
+    this.tab = tabs[(current + delta + tabs.length) % tabs.length] ?? 'all';
     this.resetSelection();
     this.requestRender();
   }
@@ -239,8 +248,10 @@ export class TuiPluginManager implements TuiFeatureScreen, Component, Focusable 
       this.status = formatTuiActionFailure(error, {
         summary: `Couldn't update ${plugin.displayName}.`,
         nextStep: isPluginAuthRequired(error)
-          ? 'Run /login, then retry.'
-          : 'Retry or run mcode plugin for details.',
+          ? process.env.TALOS_NEUTRAL_RUNTIME === '1'
+            ? 'This plugin requires a managed account unavailable in Talos.'
+            : 'Run /login, then retry.'
+          : 'Retry or run talos plugin for details.',
       });
     } finally {
       if (!this.disposed) {
@@ -264,7 +275,7 @@ export class TuiPluginManager implements TuiFeatureScreen, Component, Focusable 
       if (this.disposed) return;
       this.status = formatTuiActionFailure(error, {
         summary: "Couldn't refresh Plugins.",
-        nextStep: 'Retry or run mcode plugin marketplace upgrade.',
+        nextStep: 'Retry or run talos plugin marketplace upgrade.',
       });
     } finally {
       if (!this.disposed) {
@@ -293,6 +304,7 @@ function renderTabs(tab: PluginTab, installedCount: number): string {
     ['local', 'Local'],
   ];
   return entries
+    .filter(([id]) => pluginTabs().includes(id))
     .map(([id, label]) =>
       id === tab ? chalk.bold.hex(colors.signal)(`[${label}]`) : chalk.hex(colors.muted)(label),
     )

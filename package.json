@@ -16,6 +16,7 @@
     "verify": "node scripts/verify.mjs",
     "test:smoke": "node --test test/smoke.test.mjs",
     "test:policy": "node scripts/run-vitest-suite.mjs policy",
+    "test:windows-policy": "node scripts/run-vitest-suite.mjs policy --platform win32",
     "test:byok": "node --test test/byok.test.mjs",
     "check:standalone": "node scripts/check-standalone-boundary.mjs",
     "check:tsconfig": "node scripts/gen-tsconfig-paths.mjs",

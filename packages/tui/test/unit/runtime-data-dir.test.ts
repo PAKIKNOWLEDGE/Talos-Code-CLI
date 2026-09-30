@@ -1,4 +1,3 @@
-import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -9,17 +8,17 @@ import {
 
 describe('TUI data directory', () => {
   it.each(['dev', 'test', 'staging', 'prod'] as const)(
-    'uses the shared user directory for %s builds',
+    'uses the Talos user directory for %s builds',
     (buildEnv) => {
-      expect(resolveDefaultTuiDataDir(buildEnv, undefined, () => null)).toBe(
-        join(homedir(), '.minimax'),
+      expect(resolveDefaultTuiDataDir(buildEnv, () => '/fake-home', () => null)).toBe(
+        join('/fake-home', '.talos'),
       );
     },
   );
 
-  it('keeps the shared profile suffix', () => {
-    expect(resolveDefaultTuiDataDir('prod', undefined, () => 'smoke')).toBe(
-      join(homedir(), '.minimax-smoke'),
+  it('keeps the Talos profile suffix', () => {
+    expect(resolveDefaultTuiDataDir('prod', () => '/fake-home', () => 'smoke')).toBe(
+      join('/fake-home', '.talos-smoke'),
     );
   });
 

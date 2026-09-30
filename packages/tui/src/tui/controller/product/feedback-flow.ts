@@ -33,6 +33,10 @@ export class FeedbackFlow {
 
   async show(description: string): Promise<void> {
     if (this.stopped) return;
+    if (process.env.TALOS_NEUTRAL_RUNTIME === '1') {
+      this.appendNotice('Upstream feedback upload is unavailable in Talos. No report or diagnostic attachment will be uploaded.', 'warning');
+      return;
+    }
     if (!description) {
       this.appendNotice('Usage: /feedback <message>');
       return;

@@ -356,7 +356,11 @@ function resolveAccountShellState(
 
 function resolveWelcomeAccountStatus(account: TuiAccountStatus | undefined): string {
   if (!account) return 'Checking account';
-  if (tuiAccountNeedsLoginPrompt(account)) return 'Sign in with /login';
+  if (tuiAccountNeedsLoginPrompt(account)) {
+    return process.env.TALOS_NEUTRAL_RUNTIME === '1'
+      ? 'Configure a provider with /provider'
+      : 'Sign in with /login';
+  }
   if (account.status === 'ready') return 'Account ready';
   if (account.status === 'warning') return 'Connected with warnings';
   return 'Account unavailable';

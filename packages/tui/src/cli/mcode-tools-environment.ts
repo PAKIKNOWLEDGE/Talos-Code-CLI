@@ -44,8 +44,9 @@ export function activateTuiMcodeToolsHostEnvironment(
     bedrockLane?: string;
   },
 ): TuiMcodeToolsHostEnvironmentActivation {
+  assertMcodeToolsAvailable(environment);
   if (!path.isAbsolute(options.runtimeExecutable)) {
-    throw new Error('The MCode mcode-tools runtime executable must be absolute.');
+    throw new Error('The Talos tools runtime executable must be absolute.');
   }
   const assigned: ProcessEnvironment = {
     [HOST_ENVIRONMENT_KEYS.runtimeExecutable]: options.runtimeExecutable,
@@ -92,6 +93,7 @@ export function activateTuiMcodeToolsHostEnvironment(
 export function configureMcodeToolsChildEnvironment(
   environment: ProcessEnvironment = process.env,
 ): boolean {
+  assertMcodeToolsAvailable(environment);
   const brokerEndpoint = environment[HOST_ENVIRONMENT_KEYS.brokerEndpoint]?.trim();
   const brokerCapabilityFile = environment[HOST_ENVIRONMENT_KEYS.brokerCapabilityFile]?.trim();
   const configDir = environment[HOST_ENVIRONMENT_KEYS.configDir]?.trim();
@@ -101,7 +103,7 @@ export function configureMcodeToolsChildEnvironment(
   const hostValues = [runtimeExecutable, brokerEndpoint, brokerCapabilityFile, configDir, region];
   if (hostValues.every((value) => !value)) return false;
   if (hostValues.some((value) => !value) || (region !== 'cn' && region !== 'en')) {
-    throw new Error('The MCode mcode-tools host environment is incomplete. Restart MCode.');
+    throw new Error('The Talos tools host environment is incomplete. Restart Talos.');
   }
 
   stripRuntimeBoundaryKeysFrom(environment, 'agent-runtime');
@@ -139,4 +141,10 @@ function setEnvironmentValue(
 ): void {
   if (value === undefined) delete environment[key];
   else environment[key] = value;
+}
+
+function assertMcodeToolsAvailable(environment: ProcessEnvironment): void {
+  if (process.env.TALOS_NEUTRAL_RUNTIME === '1' || environment.TALOS_NEUTRAL_RUNTIME === '1') {
+    throw new Error('Upstream cloud tools are unavailable in Talos. Configure your own MCP server.');
+  }
 }

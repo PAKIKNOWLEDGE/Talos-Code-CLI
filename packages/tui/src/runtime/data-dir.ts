@@ -1,4 +1,6 @@
-import { getPrimaryDataDirPath, getProfile } from '@mavis/config';
+import os from 'node:os';
+import path from 'node:path';
+import { getProfile } from '@mavis/config';
 import { resolveMcodeDataEnvironment, type McodeDataEnvironment } from '../auth/environment.js';
 import { configureTuiRuntimeEnvironment } from '../cli/environment.js';
 
@@ -18,10 +20,11 @@ export interface PrepareTuiDataDirOptions {
 
 export function resolveDefaultTuiDataDir(
   _buildEnv: McodeDataEnvironment,
-  getPrimaryDataDir: typeof getPrimaryDataDirPath = getPrimaryDataDirPath,
+  getHomeDir: () => string = os.homedir,
   getCurrentProfile: typeof getProfile = getProfile,
 ): string {
-  return getPrimaryDataDir(undefined, getCurrentProfile());
+  const profile = getCurrentProfile();
+  return path.join(getHomeDir(), profile ? `.talos-${profile}` : '.talos');
 }
 
 function getDefaultTuiDataDir(): string {

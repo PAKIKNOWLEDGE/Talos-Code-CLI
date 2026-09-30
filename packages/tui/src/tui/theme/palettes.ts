@@ -21,7 +21,7 @@ function palette(
 }
 
 /**
- * Default MCode palette. The values are frozen in place so a theme switch can
+ * Default Talos palette. The values are frozen in place so a theme switch can
  * never mutate a palette another theme still references.
  */
 export const MINIMAX_CODE_DARK_THEME = palette(
@@ -90,7 +90,7 @@ export function defaultPalette(appearance: TuiResolvedAppearance) {
 // ---------------------------------------------------------------------------
 
 /**
- * Midnight keeps the MCode blue but deepens the background toward a blue-black
+ * Midnight keeps the inherited blue but deepens the background toward a blue-black
  * and lifts foreground contrast, which suits high-DPI and OLED terminals.
  */
 const MIDNIGHT: TuiThemeDefinition = Object.freeze({
@@ -452,19 +452,19 @@ const TALOS: TuiThemeDefinition = Object.freeze({
   ),
 });
 
-export const DEFAULT_THEME_ID = 'minimax';
+export const DEFAULT_THEME_ID = 'talos';
 
 /**
  * The theme every lookup falls back to. Exported as a concrete value so callers
  * never have to assert a built-in exists.
  */
 export const DEFAULT_THEME: TuiThemeDefinition = Object.freeze({
-  id: MINIMAX_CODE_DARK_THEME.id,
-  label: 'MCode',
-  description: 'The default MCode blue palette',
+  id: TALOS.id,
+  label: TALOS.label,
+  description: TALOS.description,
   source: 'builtin',
-  dark: MINIMAX_CODE_DARK_THEME,
-  light: MINIMAX_CODE_LIGHT_THEME,
+  dark: TALOS.dark,
+  light: TALOS.light,
 });
 
 export const BUILT_IN_THEMES: readonly TuiThemeDefinition[] = Object.freeze([
@@ -472,7 +472,6 @@ export const BUILT_IN_THEMES: readonly TuiThemeDefinition[] = Object.freeze([
   MIDNIGHT,
   GRAPHITE,
   AURORA,
-  TALOS,
 ]);
 
 export function builtinTheme(id: string): TuiThemeDefinition | undefined {

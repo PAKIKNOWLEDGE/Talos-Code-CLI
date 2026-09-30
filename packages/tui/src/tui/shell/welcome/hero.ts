@@ -3,32 +3,50 @@ import { tuiChalk as chalk, tuiColors as colors } from '../../theme/runtime.js';
 import { centerToWidth } from '../frame.js';
 import {
   TALOS_TERMINAL_ASCII_WORDMARK,
-  TALOS_TERMINAL_ARM,
-  TALOS_TERMINAL_ARM_COMPACT,
-  TALOS_TERMINAL_ARM_MICRO,
+  TALOS_TERMINAL_EMBLEM,
+  TALOS_TERMINAL_EMBLEM_MICRO,
   TALOS_WELCOME_DESIGN,
 } from './design.js';
 
 export function renderTuiWelcomeHero(width: number): string[] {
   const { fullMinWidth, mediumMinWidth, microMinWidth, fallbackTitle } = TALOS_WELCOME_DESIGN.hero;
-  const arm =
+  const emblem =
     width >= fullMinWidth
-      ? TALOS_TERMINAL_ARM
+      ? TALOS_TERMINAL_EMBLEM
       : width >= mediumMinWidth
-        ? TALOS_TERMINAL_ARM_COMPACT
+        ? TALOS_TERMINAL_EMBLEM
         : width >= microMinWidth
-          ? TALOS_TERMINAL_ARM_MICRO
+          ? TALOS_TERMINAL_EMBLEM_MICRO
           : [fallbackTitle];
   const source =
     width >= fullMinWidth
-      ? [...TALOS_TERMINAL_ASCII_WORDMARK, '', ...arm]
+      ? renderFullHero()
       : width >= mediumMinWidth
-        ? ['TALOS', '', ...arm]
-        : arm;
+        ? ['TALOS', '', ...emblem]
+        : emblem;
   const sourceWidth = Math.max(...source.map((line) => visibleWidth(line)));
+  const wordmarkRowCount = width >= fullMinWidth ? TALOS_TERMINAL_ASCII_WORDMARK.length : 0;
+  const wordmarkGradient = [
+    colors.wordmarkHighlight,
+    colors.wordmarkHighlight,
+    colors.brand,
+    colors.brand,
+    colors.wordmarkShadow,
+    colors.wordmarkShadow,
+  ];
 
-  return source.map((line) => {
+  return source.map((line, index) => {
     const canvasLine = line + ' '.repeat(Math.max(0, sourceWidth - visibleWidth(line)));
-    return centerToWidth(chalk.bold.hex(colors.warning)(canvasLine), width);
+    const color = index < wordmarkRowCount ? wordmarkGradient[index] : colors.warning;
+    return centerToWidth(chalk.bold.hex(color)(canvasLine), width);
+  });
+}
+
+function renderFullHero(): string[] {
+  const emblemWidth = Math.max(...TALOS_TERMINAL_EMBLEM.map((line) => visibleWidth(line)));
+
+  return TALOS_TERMINAL_ASCII_WORDMARK.map((line, index) => {
+    const emblem = TALOS_TERMINAL_EMBLEM[index] ?? '';
+    return `${line}${' '.repeat(4)}${emblem}${' '.repeat(Math.max(0, emblemWidth - visibleWidth(emblem)))}`;
   });
 }

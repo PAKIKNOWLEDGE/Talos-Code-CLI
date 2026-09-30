@@ -50,6 +50,25 @@ function createManager() {
 }
 
 describe('TuiPluginManager', () => {
+  it('keeps neutral tabs and stale mixed catalogs local, while local toggles remain usable', async () => {
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    try {
+      const { manager, options } = createManager();
+      const rendered = stripVTControlCharacters(manager.render(100).join('\n'));
+      expect(rendered).toContain('Notes'); expect(rendered).toContain('Installed (1)');
+      expect(rendered).not.toContain('Documents'); expect(rendered).not.toContain('Calendar');
+      expect(rendered).not.toContain('MiniMax Official');
+      manager.handleInput('\t'); manager.handleInput('\t');
+      expect(stripVTControlCharacters(manager.render(100).join('\n'))).toContain('[Local]');
+      manager.handleInput(' ');
+      await vi.waitFor(() => expect(options.onSetEnabled).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ name: 'notes', marketplace: 'local' }), true,
+      ));
+      manager.handleInput('\t');
+      expect(stripVTControlCharacters(manager.render(100).join('\n'))).toContain('[All Plugins]');
+    } finally { vi.unstubAllEnvs(); }
+  });
+
   it('renders a searchable logical catalog with source tabs and bounded lines', () => {
     const { manager } = createManager();
     const lines = manager.render(74);

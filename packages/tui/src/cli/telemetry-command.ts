@@ -36,7 +36,10 @@ export function runMcodeTelemetryCommand(
       metrics: channel(config.telemetry.metrics),
       diagnostics: channel(config.telemetry.diagnostics),
     },
-    optInSetting: { telemetry: { enabled: true, metrics: true, diagnostics: true } },
+    optInAvailable: policy.blockedBy !== 'TALOS_NEUTRAL_RUNTIME',
+    optInSetting: policy.blockedBy === 'TALOS_NEUTRAL_RUNTIME'
+      ? null
+      : { telemetry: { enabled: true, metrics: true, diagnostics: true } },
     optOutEnvironment: ['MCODE_DISABLE_TELEMETRY=1', 'DO_NOT_TRACK=1'],
   };
   if (action === 'status') return `${JSON.stringify(status, null, 2)}\n`;
@@ -45,7 +48,9 @@ export function runMcodeTelemetryCommand(
       {
         ...status,
         request: null,
-        message: 'Usage telemetry is disabled. No business telemetry request will be sent.',
+        message: policy.blockedBy === 'TALOS_NEUTRAL_RUNTIME'
+          ? 'Talos neutral mode disables upstream usage, metrics and diagnostic uploads. Local diagnostics remain available.'
+          : 'Usage telemetry is disabled. No business telemetry request will be sent.',
       },
       null,
       2,

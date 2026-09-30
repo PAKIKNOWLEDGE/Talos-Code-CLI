@@ -83,7 +83,7 @@ export interface CreateMcodeBusinessTelemetryOptions {
 export interface McodeTelemetryPolicy {
   readonly enabled: boolean;
   readonly configured: boolean;
-  readonly blockedBy?: 'MCODE_DISABLE_TELEMETRY' | 'DO_NOT_TRACK';
+  readonly blockedBy?: 'TALOS_NEUTRAL_RUNTIME' | 'MCODE_DISABLE_TELEMETRY' | 'DO_NOT_TRACK';
 }
 
 export interface McodeBusinessTelemetryPreview {
@@ -129,6 +129,9 @@ export function resolveMcodeBusinessTelemetryPolicy(options: {
 }): McodeTelemetryPolicy {
   const environment = options.environment ?? process.env;
   const configured = options.configEnabled === true;
+  if (environment.TALOS_NEUTRAL_RUNTIME === '1') {
+    return { enabled: false, configured, blockedBy: 'TALOS_NEUTRAL_RUNTIME' };
+  }
   if (isEnabledEnvironmentFlag(environment.MCODE_DISABLE_TELEMETRY)) {
     return { enabled: false, configured, blockedBy: 'MCODE_DISABLE_TELEMETRY' };
   }
@@ -151,6 +154,10 @@ export function createMcodeBusinessTelemetry(
   const drain = async (): Promise<void> => {
     drainScheduled = false;
     while (queue.length > 0) {
+      if (!resolveMcodeBusinessTelemetryPolicy({ configEnabled: true }).enabled) {
+        queue.length = 0;
+        return;
+      }
       const item = queue.shift();
       if (!item) continue;
       try {
@@ -181,6 +188,7 @@ export function createMcodeBusinessTelemetry(
 
   return {
     track(event, properties) {
+      if (!resolveMcodeBusinessTelemetryPolicy({ configEnabled: true }).enabled) return;
       if (queue.length >= queueLimit) queue.shift();
       queue.push({ event, properties } as McodeBusinessEvent);
       scheduleDrain();

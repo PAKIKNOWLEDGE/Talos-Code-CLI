@@ -20,6 +20,36 @@ import { initSkillService } from '../../src/skills/skill-service.js';
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '../..');
 
 describe('local native turn tools', () => {
+  it('does not advertise default Matrix native search in neutral mode and retains the other native tools', async () => {
+    const dataDir = await mkdtemp(join(tmpdir(), 'talos-native-search-'));
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '');
+    try {
+      const input = { dataDir, workspaceRoot: dataDir, agentName: 'mavis', webSearchEnabled: true };
+      const originalNames = buildLocalNativeRuntimeTools(input).map((tool) => tool.def.name);
+      expect(originalNames).toContain('web_search');
+      vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+      const neutralNames = buildLocalNativeRuntimeTools(input).map((tool) => tool.def.name);
+      expect(neutralNames).not.toContain('web_search');
+      expect(neutralNames).toEqual(originalNames.filter((name) => name !== 'web_search'));
+    } finally { vi.unstubAllEnvs(); await rm(dataDir, { recursive: true, force: true }); }
+  });
+
+  it('keeps an explicitly injected custom search adapter usable in neutral mode', async () => {
+    const dataDir = await mkdtemp(join(tmpdir(), 'talos-custom-search-'));
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    try {
+      const search = vi.fn(async () => ({ tool_name: 'web_search', text: 'custom-search-ok',
+        content: [{ type: 'text' as const, text: 'custom-search-ok' }] }));
+      const tool = buildLocalNativeRuntimeTools({ dataDir, workspaceRoot: dataDir, agentName: 'mavis',
+        webSearchEnabled: true, webSearchAdapter: { search },
+      }).find((entry) => entry.def.name === 'web_search');
+      expect(tool).toBeDefined();
+      const result = await tool!.impl.execute({ sessionId: 'synthetic', turnId: 'synthetic' }, { query: 'synthetic' });
+      expect(result.text).toBe('custom-search-ok');
+      expect(search).toHaveBeenCalledOnce();
+    } finally { vi.unstubAllEnvs(); await rm(dataDir, { recursive: true, force: true }); }
+  });
+
   it('exposes native web_search only when the local product owner gate is enabled', () => {
     const base = {
       workspaceRoot: '/workspace',

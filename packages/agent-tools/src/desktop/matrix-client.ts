@@ -90,6 +90,7 @@ export class DesktopMatrixClient implements MatrixExecutor {
     signal?: AbortSignal,
     options?: { timeoutMs?: number },
   ): Promise<Record<string, unknown>> {
+    assertMatrixCloudAvailable();
     const response = await this.postGatewayJson(
       toLocalGatewayPath(pathname),
       body,
@@ -105,6 +106,7 @@ export class DesktopMatrixClient implements MatrixExecutor {
     signal?: AbortSignal,
     timeoutMs?: number,
   ): Promise<Record<string, unknown>> {
+    assertMatrixCloudAvailable();
     const requestTimeoutMs = timeoutMs ?? this.timeoutMs;
     const scoped = createScopedAbortSignal(signal, requestTimeoutMs);
     try {
@@ -122,6 +124,7 @@ export class DesktopMatrixClient implements MatrixExecutor {
         setFetchDispatcher(init, dispatcher);
       }
 
+      assertMatrixCloudAvailable();
       const res = await this.fetchImpl(`${this.baseUrl}${pathname}`, init);
       const text = await res.text();
       if (!res.ok) {
@@ -145,6 +148,7 @@ export class DesktopMatrixClient implements MatrixExecutor {
     signal?: AbortSignal,
     timeoutMs?: number,
   ): Promise<void> {
+    assertMatrixCloudAvailable();
     const scoped = createScopedAbortSignal(signal, timeoutMs ?? this.timeoutMs);
     try {
       const res = await this.fetchImpl(url, {
@@ -168,6 +172,7 @@ export class DesktopMatrixClient implements MatrixExecutor {
     signal?: AbortSignal,
     timeoutMs?: number,
   ): Promise<{ body: ReadableStream<Uint8Array>; contentLength?: number; dispose(): void }> {
+    assertMatrixCloudAvailable();
     const scoped = createScopedAbortSignal(signal, timeoutMs ?? this.timeoutMs);
     try {
       const res = await this.fetchImpl(url, {
@@ -192,6 +197,7 @@ export class DesktopMatrixClient implements MatrixExecutor {
   }
 
   buildHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
+    assertMatrixCloudAvailable();
     const token = this.explicitAccessToken ?? this.getManagedAccessToken();
     if (!token) {
       throw new Error(
@@ -287,4 +293,10 @@ function buildLongRequestDispatcher(
 
 function setFetchDispatcher(init: RequestInit, dispatcher: Dispatcher): void {
   Object.assign(init, { dispatcher });
+}
+
+function assertMatrixCloudAvailable(): void {
+  if (process.env.TALOS_NEUTRAL_RUNTIME === '1') {
+    throw new Error('Upstream Matrix cloud tools are unavailable in Talos. Configure your own MCP server.');
+  }
 }

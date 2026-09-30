@@ -43,7 +43,6 @@ import { TuiPermissionModeFlow } from './controller/interaction/permission-mode-
 import { TuiPlanModeFlow } from './controller/interaction/plan-mode-flow.js';
 import { createTuiAbortLiveTurn } from './controller/run/abort-live-turn.js';
 import { createTuiUpdateFlow } from './controller/product/update-flow.js';
-import { createTuiUpdateAdmission } from './controller/product/update-admission.js';
 import { resolveTuiProductFeatures } from './product-features.js';
 import { createTuiTranscriptExporter } from '../host/transcript-export.js';
 import type { CreateTuiAppOptions, TuiApp, TuiStopOptions } from '../types/tui-app.js';
@@ -254,7 +253,7 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
     deliverPermissionFeedback: async (feedback) => {
       const disposition = await commandFlow.submit(feedback);
       if (disposition === 'retained')
-        throw new Error('MCode kept the guidance in the composer instead of sending it.');
+        throw new Error('Talos kept the guidance in the composer instead of sending it.');
     },
     onChanged: () => {
       updateChrome(controller.snapshot());
@@ -307,7 +306,9 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
     onOpenSession: (sessionId) => sessionFlow.activateSessionById(sessionId),
     onArchivedCurrentSession: (sessionId) => sessionFlow.archiveCurrentProjection(sessionId),
     refreshAutocomplete: () => activeRunFlow?.refreshAutocomplete(),
-    onStartMiniMaxLogin: () => commandFlow.startMiniMaxLogin(), // Wired below.
+    ...(process.env.TALOS_NEUTRAL_RUNTIME === '1'
+      ? {}
+      : { onStartMiniMaxLogin: () => commandFlow.startMiniMaxLogin() }), // Wired below.
     isStopped: () => stopped,
     hasLiveRun,
   });
@@ -332,24 +333,7 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
     requestInteractionRender,
     () => resolveTuiInteractionMaxRows(terminal.rows),
   );
-  const admitUpdate = createTuiUpdateAdmission({
-    runtime: options.runtime,
-    snapshot: () => controller.snapshot(),
-    defaultAgentName,
-    queueEnabled: productFeatures.queue,
-  });
-  const updateFlow = createTuiUpdateFlow(
-    options,
-    appendLocalCell,
-    interactionSurface,
-    requestInteractionRender,
-    () => resolveTuiInteractionMaxRows(terminal.rows),
-    async () => {
-      options.requestRestart?.();
-      await leaveUi();
-    },
-    admitUpdate,
-  );
+  const updateFlow = createTuiUpdateFlow(appendLocalCell);
   activeRunFlow = new TuiActiveRunFlow({
     runtime: options.runtime,
     controller,

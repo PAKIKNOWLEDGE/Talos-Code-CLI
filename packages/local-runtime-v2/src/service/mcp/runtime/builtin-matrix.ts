@@ -37,6 +37,7 @@ export function buildBuiltinMatrixServerConfig(
   context?: LocalMcpRuntimeContext,
   options?: { webSearchOnly?: boolean },
 ): LocalMcpServerConfig {
+  assertBuiltinMatrixAvailable();
   const workspaceRoot = resolveMatrixWorkspaceRoot(context);
   const runtimeEnv = buildBuiltinMatrixRuntimeEnv();
   const entrypoint = resolveMatrixMcpStdioEntrypoint();
@@ -74,6 +75,7 @@ export function buildBuiltinMatrixServerConfig(
 export function listBuiltinMatrixMcpToolDescriptors(
   context?: LocalMcpRuntimeContext,
 ): LocalMcpToolInfo[] {
+  if (process.env.TALOS_NEUTRAL_RUNTIME === '1') return [];
   const workspaceRoot = resolveMatrixWorkspaceRoot(context);
   return getBuiltinMatrixTools(workspaceRoot, buildBuiltinMatrixRuntimeEnv());
 }
@@ -101,6 +103,7 @@ export function isRetiredLegacyMatrixMcpServerConfig(
 export function buildBuiltinMatrixTokenOverrides(
   context?: LocalMcpRuntimeContext,
 ): McpConnectionTokenOverrides {
+  assertBuiltinMatrixAvailable();
   const workspaceRoot = resolveMatrixWorkspaceRoot(context);
   const auth = context?.authContext;
   const accessToken = auth?.accessToken?.trim() ?? '';
@@ -221,4 +224,10 @@ function readProcessStringEnv(): Record<string, string> {
     if (typeof value === 'string') env[key] = value;
   }
   return env;
+}
+
+function assertBuiltinMatrixAvailable(): void {
+  if (process.env.TALOS_NEUTRAL_RUNTIME === '1') {
+    throw new Error('Upstream Matrix cloud tools are unavailable in Talos. Configure your own MCP server.');
+  }
 }

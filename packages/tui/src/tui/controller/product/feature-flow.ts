@@ -80,7 +80,9 @@ import { sanitizeTerminalText } from '../../rendering/terminal-text.js';
 import { MINIMAX_CODE_VERSION } from '../../../build-info.js';
 import { formatTuiDailyCheckinOutcome } from '../../../checkin/presentation.js';
 
-const OFFICIAL_MODEL_LOGIN_HINT = 'Sign in with /login to use official MiniMax models.';
+const OFFICIAL_MODEL_LOGIN_HINT = process.env.TALOS_NEUTRAL_RUNTIME === '1'
+  ? 'MiniMax Token Plan is unavailable in Talos. Choose an API Key model in /provider.'
+  : 'Sign in with /login to use official MiniMax models.';
 const SESSION_MANAGER_PAGE_SIZE = 50;
 const SESSION_MANAGER_MAX_ROWS = 24;
 const SESSION_EXPORT_PAGE_SIZE = 200;
@@ -375,7 +377,7 @@ export class TuiFeatureFlow {
         const session = this.options.controller.snapshot().session;
         return {
           sessionId: session?.sessionId,
-          title: session?.title || 'MCode Transcript',
+          title: session?.title || 'Talos Transcript',
           exportedAtMs: Date.now(),
         };
       },
@@ -434,7 +436,7 @@ export class TuiFeatureFlow {
       this.options.append(
         formatTuiActionFailure(error, {
           summary: "Couldn't load the packaged changelog.",
-          nextStep: 'Reinstall or update MCode, then retry /changelog.',
+          nextStep: 'Reinstall or update Talos, then retry /changelog.',
         }),
         'warning',
       );
@@ -1045,7 +1047,7 @@ export class TuiFeatureFlow {
           this.options.append(
             formatTuiActionFailure(error, {
               summary: 'Plugin updated, but its Skills could not be refreshed.',
-              nextStep: 'Restart MCode or retry /plugins.',
+              nextStep: 'Restart Talos or retry /plugins.',
             }),
             'warning',
           );
@@ -1127,7 +1129,7 @@ export class TuiFeatureFlow {
 
   async showAccountStatus(): Promise<void> {
     await this.showReportInspection(
-      'MCode status',
+      'Talos status',
       'Loading status…',
       async (publish) => {
         const session = this.options.controller.snapshot().session;

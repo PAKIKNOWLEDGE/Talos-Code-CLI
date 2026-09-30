@@ -59,5 +59,5 @@ export function getPermissionCheckApiUrl(): string {
  * and offline use.
  */
 export function shouldUseCloudClassify(): boolean {
-  return isManagedRuntime();
+  return process.env.TALOS_NEUTRAL_RUNTIME !== '1' && isManagedRuntime();
 }

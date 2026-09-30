@@ -44,7 +44,7 @@ export async function runMcodePluginCommand(
     const request = options.request;
     if (request.action === 'marketplace-list') {
       const marketplaces = [
-        { name: 'official', kind: 'registry' },
+        ...(process.env.TALOS_NEUTRAL_RUNTIME === '1' ? [] : [{ name: 'official', kind: 'registry' }]),
         { name: 'local', kind: 'directory', path: path.join(context.dataDir, 'plugins') },
       ];
       return request.json
@@ -57,8 +57,10 @@ export async function runMcodePluginCommand(
     }
     if (request.action === 'marketplace-upgrade') {
       await context.application.refresh();
-      const result = { marketplace: 'all', refreshed: true };
-      return request.json ? JSON.stringify(result, null, 2) : 'Refreshed all Plugin sources.';
+      const neutral = process.env.TALOS_NEUTRAL_RUNTIME === '1';
+      const result = { marketplace: neutral ? 'local' : 'all', refreshed: true };
+      return request.json ? JSON.stringify(result, null, 2)
+        : neutral ? 'Refreshed local Plugin sources.' : 'Refreshed all Plugin sources.';
     }
     if (request.action !== 'list') {
       const { name, marketplace } = parseSelector(request.selector, request.marketplace);

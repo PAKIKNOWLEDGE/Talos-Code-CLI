@@ -3,11 +3,22 @@ import { createRequire } from "node:module";
 import { realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { parseArgs } from "node:util";
 import { suiteFiles, repositoryRoot } from "./lib/vitest-suites.mjs";
 
 const require = createRequire(import.meta.url);
-const name = process.argv[2];
-if (!name) throw new Error("Usage: node scripts/run-vitest-suite.mjs <suite>");
+const { positionals, values } = parseArgs({
+  args: process.argv.slice(2),
+  allowPositionals: true,
+  options: { platform: { type: "string" } },
+});
+const [name] = positionals;
+if (!name || positionals.length !== 1)
+  throw new Error("Usage: node scripts/run-vitest-suite.mjs <suite> [--platform <win32|linux|darwin>]");
+if (values.platform && !["win32", "linux", "darwin"].includes(values.platform))
+  throw new Error(`Unsupported test host platform: ${values.platform}`);
+if (values.platform && values.platform !== process.platform)
+  throw new Error(`Test suite ${name} requires ${values.platform}; current host is ${process.platform}.`);
 const files = suiteFiles(repositoryRoot, name);
 const manifestPath = require.resolve("vitest/package.json");
 const cli = path.resolve(path.dirname(manifestPath), require(manifestPath).bin.vitest);

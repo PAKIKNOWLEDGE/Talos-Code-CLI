@@ -3294,6 +3294,7 @@
     "packages/tui/test/unit/tui-delegation-flow.test.ts",
     "packages/tui/test/unit/tui-duration.test.ts",
     "packages/tui/test/unit/tui-engine-local-deltas.test.ts",
+    "packages/tui/test/unit/tui-exit-message.test.ts",
     "packages/tui/test/unit/tui-feature-viewport-contract.test.ts",
     "packages/tui/test/unit/tui-goal-banner.test.ts",
     "packages/tui/test/unit/tui-image-preview.test.ts",

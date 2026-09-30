@@ -3,21 +3,21 @@ import { translateRuntimeText } from '@mavis/shared/runtime-i18n';
 export function mcodePrefixActivationScheduledMessage(
   _environment: NodeJS.ProcessEnv = process.env,
 ): string {
-  return 'A staged MCode update will activate after this process exits.';
+  return 'A staged Talos update will activate after this process exits.';
 }
 
 export function mcodePrefixJournalScheduleFailedMessage(
   _environment: NodeJS.ProcessEnv = process.env,
 ): string {
-  return 'MCode update was staged, but its activation journal could not be scheduled.';
+  return 'Talos update was staged, but its activation journal could not be scheduled.';
 }
 
 export function mcodePrefixNonPrefixPlanMessage(_environment: NodeJS.ProcessEnv): string {
-  return 'MCode npm prefix updater received a non-prefix plan.';
+  return 'Talos npm prefix updater received a non-prefix plan.';
 }
 
 export function mcodePrefixOwnershipMissingMessage(_environment: NodeJS.ProcessEnv): string {
-  return 'MCode npm prefix ownership metadata is missing.';
+  return 'Talos npm prefix ownership metadata is missing.';
 }
 
 export function mcodePrefixPendingActivationMessage(

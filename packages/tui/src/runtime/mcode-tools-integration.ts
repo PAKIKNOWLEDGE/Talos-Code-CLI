@@ -82,10 +82,13 @@ export async function prepareTuiMcodeToolsIntegration(
   dependencies: PrepareTuiMcodeToolsIntegrationDependencies = {},
 ): Promise<McodeToolsReadiness> {
   const buildEnv = normalizeMcodeToolsHostBuildEnv(options.buildEnv);
+  const environment = options.environment ?? process.env;
+  if (process.env.TALOS_NEUTRAL_RUNTIME === '1' || environment.TALOS_NEUTRAL_RUNTIME === '1') {
+    return inactiveReadiness(options.requested, 'disabled', buildEnv);
+  }
   if (!options.requested) return inactiveReadiness(false, 'disabled', buildEnv);
 
   const logger = options.logger ?? { info: () => undefined, warn: () => undefined };
-  const environment = options.environment ?? process.env;
   const removeRuntimeDir = dependencies.removeRuntimeDir ?? removeTuiMcodeToolsRuntimeDir;
   let runtimeDir: string | undefined;
   let broker: McodeToolsAuthLeaseBroker | undefined;

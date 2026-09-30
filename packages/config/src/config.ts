@@ -1878,6 +1878,7 @@ function ensureConfigFile(): void {
   // dataDir (<dataDir>/config.yaml). Copy it over so the worktree daemon
   // inherits the existing configuration.
   if (!isManagedRuntime()) {
+    if (isTalosNeutralRuntime()) return;
     const defaultDataDir = resolveDataDir({ homeDir: os.homedir() });
     const defaultConfigPath = path.join(defaultDataDir, "config.yaml");
     if (configPath !== defaultConfigPath && fs.existsSync(defaultConfigPath)) {

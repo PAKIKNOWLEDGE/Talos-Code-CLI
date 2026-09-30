@@ -34,8 +34,9 @@ export async function fetchModelsDevCatalog(options: {
   const fetchImpl = options.fetchImpl ?? fetch;
   const signal = AbortSignal.timeout(options.timeoutMs ?? MODELS_DEV_TIMEOUT_MS);
   const region = options.region ?? getRuntimeRegion();
+  const neutral = process.env.TALOS_NEUTRAL_RUNTIME === '1';
   const location =
-    region === 'cn'
+    region === 'cn' && !neutral
       ? await fetchModelsDevDescriptor({
           fetchImpl,
           originGetter: options.descriptorOriginGetter,
@@ -45,8 +46,8 @@ export async function fetchModelsDevCatalog(options: {
         })
       : { catalogUrl: MODELS_DEV_URL, iconBaseUrl: MODELS_DEV_ICON_BASE_URL };
   const response = await fetchImpl(location.catalogUrl, {
-    headers: modelsDevCatalogRequestHeaders(region, options.etag),
-    ...(region === 'cn' ? { redirect: 'error' as const } : {}),
+    headers: modelsDevCatalogRequestHeaders(neutral ? 'en' : region, options.etag),
+    ...(region === 'cn' || neutral ? { redirect: 'error' as const } : {}),
     signal,
   });
   if (response.status === 304) return { kind: 'not_modified' };

@@ -1268,10 +1268,20 @@ export class TuiCommandFlow {
         await this.options.permissionModeFlow.set(mode);
       },
       login: () => {
+        if (process.env.TALOS_NEUTRAL_RUNTIME === '1') {
+          this.options.append('Talos uses provider credentials. Open /provider to configure a model.', 'warning');
+          return;
+        }
         this.pendingLoginContinuation = undefined;
         this.showLoginRegionPicker();
       },
-      logout: () => this.runAuthCommand('logout'),
+      logout: () => {
+        if (process.env.TALOS_NEUTRAL_RUNTIME === '1') {
+          this.options.append('Talos has no managed account to sign out. Use /provider.', 'warning');
+          return;
+        }
+        return this.runAuthCommand('logout');
+      },
       doctor: async () => this.options.featureFlow.showConfigurationInspection(false),
       context: async () => this.options.activeRunFlow.showContext(),
       steer: async ({ raw }) => {
@@ -1519,11 +1529,19 @@ export class TuiCommandFlow {
    * auth command as `/login`.
    */
   startMiniMaxLogin(): void {
+    if (process.env.TALOS_NEUTRAL_RUNTIME === '1') {
+      this.options.append('Talos uses provider credentials. Open /provider to configure a model.', 'warning');
+      return;
+    }
     this.pendingLoginContinuation = undefined;
     this.showLoginRegionPicker();
   }
 
   private showLoginRegionPicker(): void {
+    if (process.env.TALOS_NEUTRAL_RUNTIME === '1') {
+      this.options.append('Talos uses provider credentials. Open /provider to configure a model.', 'warning');
+      return;
+    }
     if (!this.options.auth) {
       this.pendingLoginContinuation = undefined;
       this.options.append('MiniMax authentication is unavailable in this host.', 'warning');
@@ -1548,6 +1566,10 @@ export class TuiCommandFlow {
   }
 
   private async runDailyCheckinCommand(): Promise<void> {
+    if (process.env.TALOS_NEUTRAL_RUNTIME === '1') {
+      this.options.append('Daily account check-in is unavailable in Talos.', 'warning');
+      return;
+    }
     try {
       if (await this.options.featureFlow.hasManagedAccountLogin()) {
         await this.options.featureFlow.runDailyCheckin();
@@ -1619,7 +1641,7 @@ export class TuiCommandFlow {
           this.options.append(
             formatTuiActionFailure(error, {
               summary: "Couldn't save the TUI mode.",
-              nextStep: 'Check the MCode data directory permissions, then retry /settings.',
+              nextStep: 'Check the Talos data directory permissions, then retry /settings.',
               preservation: `The TUI remains in ${previousMode} mode.`,
             }),
             'warning',

@@ -116,6 +116,29 @@ function diskRecords(directory: string) {
 }
 
 describe('TUI automatic incident HTTP privacy boundary', () => {
+  it('keeps new diagnostics local and does not authenticate or drain old pending records in neutral mode', async () => {
+    const dataDir = temporaryDirectory();
+    const original = fixture(dataDir, false);
+    original.reporter.capture(input(new Error('synthetic pending incident')));
+    await original.reporter.drain();
+    expect(readdirSync(original.directory).some((name) => name.startsWith('pending-'))).toBe(true);
+    original.reporter.completeRun();
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    try {
+      const resolveAuthContext = vi.fn(() => ({ accessToken: token, realUserID: userId }));
+      const neutral = fixture(dataDir, true, () => true, resolveAuthContext);
+      neutral.reporter.capture(input(new Error('synthetic local incident')));
+      await neutral.reporter.drain();
+      await neutral.reporter.flush();
+      expect(neutral.requests).toEqual([]);
+      expect(resolveAuthContext).not.toHaveBeenCalled();
+      expect(readdirSync(neutral.directory).filter((name) => name.startsWith('local-'))).toHaveLength(1);
+      expect(readdirSync(neutral.directory).filter((name) => name.startsWith('pending-'))).toHaveLength(1);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it.each([undefined, false])('keeps incidents local without an explicit diagnostics opt-in (%s)', async (enabled) => {
     const { reporter, requests, directory } = fixture(undefined, true, () => enabled);
     reporter.capture(input(new Error('synthetic')));
@@ -126,7 +149,7 @@ describe('TUI automatic incident HTTP privacy boundary', () => {
     expect(files.some((name) => name.startsWith('pending-'))).toBe(false);
   });
 
-  it.each(['MCODE_DISABLE_TELEMETRY', 'DO_NOT_TRACK'])('%s overrides the diagnostics opt-in', async (key) => {
+  it.each(['TALOS_NEUTRAL_RUNTIME', 'MCODE_DISABLE_TELEMETRY', 'DO_NOT_TRACK'])('%s overrides the diagnostics opt-in', async (key) => {
     vi.stubEnv(key, '1');
     try {
       const { reporter, requests } = fixture(undefined, true, () => true);
@@ -138,7 +161,7 @@ describe('TUI automatic incident HTTP privacy boundary', () => {
     }
   });
 
-  it.each(['config', 'MCODE_DISABLE_TELEMETRY', 'DO_NOT_TRACK'])('does not upload when %s revokes consent during authentication', async (source) => {
+  it.each(['config', 'TALOS_NEUTRAL_RUNTIME', 'MCODE_DISABLE_TELEMETRY', 'DO_NOT_TRACK'])('does not upload when %s revokes consent during authentication', async (source) => {
     let enabled = true;
     let resolveAuth!: (auth: { accessToken: string; realUserID: string }) => void;
     const auth = new Promise<{ accessToken: string; realUserID: string }>((resolve) => {

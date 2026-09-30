@@ -231,7 +231,7 @@ export class TuiProviderManager implements Component, Focusable {
         chalk.hex(colors.muted)(
           replacing
             ? 'The saved key is overwritten once you submit.'
-            : 'Saved locally and used instead of Token Plan.',
+            : 'Saved locally for the MiniMax API Key provider.',
         ),
         width,
       ),

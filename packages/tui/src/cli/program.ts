@@ -65,8 +65,8 @@ export function createTuiProgram(options: CreateTuiProgramOptions): Command {
       : requirePluginRunner(options)(request);
   const program = applyInteractiveCliContract(
     new Command()
-      .name('mcode')
-      .description('Minimax Code — terminal coding agent')
+      .name('talos')
+      .description('Talos — terminal coding agent')
       .version(options.version)
       .enablePositionalOptions(),
     { allowStartupEnvironmentSelection: options.allowStartupEnvironmentSelection },
@@ -106,15 +106,15 @@ export function createTuiProgram(options: CreateTuiProgramOptions): Command {
 
   const acp = program
     .command('acp')
-    .description('Run MiniMax Code as an Agent Client Protocol server over stdio')
+    .description('Run Talos as an Agent Client Protocol server over stdio')
     .allowExcessArguments(false)
     .action(() =>
       activeLane ? requireAcpRunner(options)(activeLane) : requireAcpRunner(options)(),
     );
 
   acp
-    .command('login')
-    .description('Sign in to use MiniMax Code Agent features')
+    .command('login', { hidden: true })
+    .description('Legacy account login (unavailable in Talos)')
     .option('--region <region>', 'account region: cn or global', parseLoginRegion)
     .option('--no-browser', 'print the authorization URL without opening a browser')
     .allowExcessArguments(false)
@@ -125,8 +125,8 @@ export function createTuiProgram(options: CreateTuiProgramOptions): Command {
     );
 
   program
-    .command('login')
-    .description('Sign in to use MiniMax Code Agent features')
+    .command('login', { hidden: true })
+    .description('Legacy account login (unavailable in Talos)')
     .option('--region <region>', 'account region: cn or global', parseLoginRegion)
     .option('--no-browser', 'print the authorization URL without opening a browser')
     .allowExcessArguments(false)
@@ -137,15 +137,15 @@ export function createTuiProgram(options: CreateTuiProgramOptions): Command {
     );
 
   program
-    .command('logout')
-    .description('Sign out of the MiniMax account used by this CLI')
+    .command('logout', { hidden: true })
+    .description('Legacy account logout (unavailable in Talos)')
     .option('--region <region>', 'account region: cn or global', parseLoginRegion)
     .allowExcessArguments(false)
     .action((commandOptions: { region?: MavisRegion }) => options.runLogout(commandOptions.region));
 
   program
     .command('update')
-    .description('Check for and install a Minimax Code update')
+    .description('Show Talos update status')
     .allowExcessArguments(false)
     .action(options.runUpdate);
 
@@ -273,7 +273,7 @@ export function createTuiProgram(options: CreateTuiProgramOptions): Command {
 
   const plugin = program
     .command('plugin')
-    .description('Manage MiniMax Code Plugins')
+    .description('Manage Talos plugins')
     .allowExcessArguments(false)
     .action(() => options.launchTui(withLane({ initialPrompt: '/plugins' })));
 
@@ -320,7 +320,7 @@ export function createTuiProgram(options: CreateTuiProgramOptions): Command {
 
   const marketplace = plugin
     .command('marketplace')
-    .description('List or refresh MiniMax Code Plugin sources');
+    .description('List or refresh Talos plugin sources');
 
   marketplace
     .command('list')

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
@@ -64,6 +64,48 @@ function restoreEnv(key: keyof typeof ORIGINAL_ENV): void {
 }
 
 describe('builtin Matrix MCP server config', () => {
+  it('does not build or describe internal Matrix tools or read token overrides in neutral mode', async () => {
+    const { buildBuiltinMatrixServerConfig, listBuiltinMatrixMcpToolDescriptors, buildBuiltinMatrixTokenOverrides } = await import('./builtin-matrix.js');
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    try {
+      const readAuth = vi.fn(() => ({ accessToken: 'synthetic' }));
+      const context = { workspaceRoot: '/synthetic', get authContext() { return readAuth(); } };
+      expect(() => buildBuiltinMatrixServerConfig(context)).toThrow('unavailable in Talos');
+      expect(listBuiltinMatrixMcpToolDescriptors(context)).toEqual([]);
+      expect(() => buildBuiltinMatrixTokenOverrides(context)).toThrow('unavailable in Talos');
+      expect(readAuth).not.toHaveBeenCalled();
+      expect(desktopMocks.createMatrixMcpRuntime).not.toHaveBeenCalled();
+      expect(desktopMocks.buildMatrixMcpToolDescriptors).not.toHaveBeenCalled();
+    } finally { vi.unstubAllEnvs(); }
+  });
+
+  it.each([false, true])('keeps user-configured MCP even named matrix while hiding internal marked Matrix (user matrix=%s)', async (userMatrix) => {
+    const { LocalMcpService } = await import('./local-mcp.service.js');
+    const directory = await mkdtemp(join(tmpdir(), 'talos-neutral-matrix-'));
+    const filePath = join(directory, 'mcp.json');
+    const matrix = userMatrix
+      ? { type: 'stdio', command: 'synthetic-custom-mcp', enabled: true }
+      : { type: 'stdio', command: 'synthetic-internal-mcp', enabled: true, builtin: true,
+          metadata: { mavisBuiltinMcpServer: 'matrix', mavisBuiltinMcpVersion: 2 } };
+    const original = JSON.stringify({ mcpServers: { matrix,
+      local: { type: 'stdio', command: 'synthetic-local-mcp', enabled: true },
+    } });
+    await writeFile(filePath, original);
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    const pool = { shutdown: vi.fn(async () => undefined), connect: vi.fn() };
+    const service = new LocalMcpService(() => directory, {
+      builtinMatrix: { enabled: true }, connectionPool: pool as never,
+    });
+    try {
+      expect(await service.listBuiltinPublicServerCapabilities()).toEqual([]);
+      expect(await service.getServerConfig('matrix')).toEqual(userMatrix ? expect.objectContaining({ command: 'synthetic-custom-mcp' }) : undefined);
+      expect(await service.getServerConfig('local')).toMatchObject({ command: 'synthetic-local-mcp' });
+      expect(await readFile(filePath, 'utf8')).toBe(original);
+      expect(pool.connect).not.toHaveBeenCalled();
+      expect(desktopMocks.createMatrixMcpRuntime).not.toHaveBeenCalled();
+    } finally { await service.close(); vi.unstubAllEnvs(); await rm(directory, { recursive: true, force: true }); }
+  });
+
   beforeEach(() => {
     vi.resetModules();
     desktopMocks.createMatrixMcpRuntime.mockClear();

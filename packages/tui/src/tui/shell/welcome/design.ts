@@ -1,5 +1,5 @@
 export const TALOS_WELCOME_PASTE_IMAGE_SHORTCUT = '{paste-image-shortcut}';
-const TALOS_WELCOME_CHECKIN_TIP = '/checkin claims the daily reward.';
+const TALOS_WELCOME_PROVIDER_TIP = '/provider manages model connections.';
 
 export const TALOS_WELCOME_DESIGN = {
   sectionTitles: {
@@ -16,90 +16,72 @@ export const TALOS_WELCOME_DESIGN = {
     'Use /history to review and branch from earlier prompts.',
     'Use /goal to keep long-running work focused on a finish line.',
     'Use /permission to choose how tool approvals are handled.',
-    'Use /feedback to preview a redacted report before upload.',
-    TALOS_WELCOME_CHECKIN_TIP,
+    'Use /doctor to inspect local runtime diagnostics.',
+    TALOS_WELCOME_PROVIDER_TIP,
   ],
   wide: {
     tips: [
       'Say what you want and how to verify it.',
       `Use @ for files; ${TALOS_WELCOME_PASTE_IMAGE_SHORTCUT} for images.`,
       'Run /init to map this repo.',
-      TALOS_WELCOME_CHECKIN_TIP,
+      TALOS_WELCOME_PROVIDER_TIP,
     ],
     news: [
       'Send follow-ups while Talos works.',
       '/context shows read-only session context.',
-      '/feedback previews before upload.',
+      '/doctor shows local diagnostics.',
     ],
   },
   stacked: {
     tips: [
       'Say what you want and how to verify it.',
       `@ files · ${TALOS_WELCOME_PASTE_IMAGE_SHORTCUT} images · /init guidance`,
-      '/checkin daily reward',
+      '/provider model connections',
     ],
-    news: ['Follow-ups wait while Talos works.', '/context budget · /feedback preview'],
+    news: ['Follow-ups wait while Talos works.', '/context budget · /doctor diagnostics'],
   },
   compact: {
     tips: [
       `@ files · ${TALOS_WELCOME_PASTE_IMAGE_SHORTCUT} images`,
       '/init repo guidance',
-      '/checkin reward',
+      '/provider models',
     ],
-    news: ['Follow-ups wait', '/context · /feedback'],
+    news: ['Follow-ups wait', '/context · /doctor'],
   },
   hero: {
-    fullMinWidth: 32,
+    fullMinWidth: 64,
     mediumMinWidth: 20,
     microMinWidth: 10,
     fallbackTitle: 'T',
   },
 } as const;
 
-const TALOS_ASCII_FONT = {
-  T: ['#####', '  #  ', '  #  ', '  #  ', '  #  '],
-  A: [' ### ', '#   #', '#####', '#   #', '#   #'],
-  L: ['#    ', '#    ', '#    ', '#    ', '#####'],
-  O: [' ### ', '#   #', '#   #', '#   #', ' ### '],
-  S: [' ####', '#    ', ' ### ', '    #', '#### '],
-} as const;
-
-function composeTalosAsciiWordmark(): readonly string[] {
-  return Array.from({ length: 5 }, (_, row) =>
-    (['T', 'A', 'L', 'O', 'S'] as const)
-      .map((letter) => TALOS_ASCII_FONT[letter][row])
-      .join(' ')
-      .trimEnd(),
-  );
-}
-
-export const TALOS_TERMINAL_ASCII_WORDMARK = composeTalosAsciiWordmark();
-
-export const TALOS_TERMINAL_ARM = [
-  '       ▄',
-  '   ▄▄██▀█▄',
-  ' ▄████████▄',
-  '███████████',
-  ' ███  ▀█▀',
-  '  ██  ▀█▀',
-  '  ▀██▄',
-  ' ▄████▄',
+// Generated from the reviewed ANSI Shadow style source at C:\DEV\develop\tmp\ANSI.txt.
+// Keep the result as literal Unicode rows so the runtime needs no font package.
+export const TALOS_TERMINAL_ASCII_WORDMARK = [
+  '████████╗ █████╗ ██╗      ██████╗ ███████╗',
+  '╚══██╔══╝██╔══██╗██║     ██╔═████╗██╔════╝',
+  '   ██║   ███████║██║     ██║██╔██║███████╗',
+  '   ██║   ██╔══██║██║     ████╔╝██║╚════██║',
+  '   ██║   ██║  ██║███████╗╚██████╔╝███████║',
+  '   ╚═╝   ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚══════╝',
 ] as const;
 
-export const TALOS_TERMINAL_ARM_COMPACT = [
-  '   ▄',
-  ' ▄███▄',
-  '██████',
-  ' ██▀█▀',
-  ' ▄██▄',
+export const TALOS_TERMINAL_EMBLEM = [
+  '      /----\\',
+  '     /######\\',
+  '     \\######/',
+  '  /----\\  /----\\',
+  ' /######\\/######\\',
+  ' \\######/\\######/',
 ] as const;
 
-export const TALOS_TERMINAL_ARM_MICRO = [' ▄ ', '███', '▀█▀'] as const;
+export const TALOS_TERMINAL_EMBLEM_MICRO = ['  []', ' [] []'] as const;
 
 // Compatibility aliases keep the upstream module surface stable while the
 // visible welcome screen moves to Talos assets.
 export const MINIMAX_CODE_WELCOME_PASTE_IMAGE_SHORTCUT = TALOS_WELCOME_PASTE_IMAGE_SHORTCUT;
 export const MINIMAX_CODE_WELCOME_DESIGN = TALOS_WELCOME_DESIGN;
-export const MINIMAX_CODE_TERMINAL_WORDMARK = TALOS_TERMINAL_ARM;
-export const MINIMAX_CODE_TERMINAL_MEDIUM_WORDMARK = TALOS_TERMINAL_ARM_COMPACT;
-export const MINIMAX_CODE_TERMINAL_MICRO_WORDMARK = TALOS_TERMINAL_ARM_MICRO;
+export const MINIMAX_CODE_TERMINAL_WORDMARK = TALOS_TERMINAL_EMBLEM;
+export const MINIMAX_CODE_TERMINAL_MEDIUM_WORDMARK = TALOS_TERMINAL_EMBLEM;
+export const MINIMAX_CODE_TERMINAL_MICRO_WORDMARK = TALOS_TERMINAL_EMBLEM_MICRO;

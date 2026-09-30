@@ -14,7 +14,7 @@ import { consumeLoginRestartHandoff } from '../tui/login-restart-handoff.js';
 import type { McodeTelemetryCliAction } from './telemetry-command.js';
 
 const OUTPUT_DRAIN_TIMEOUT_MS = 250;
-const MINIMAX_CODE_PROCESS_TITLE = 'minimax-code';
+const TALOS_PROCESS_TITLE = 'talos';
 
 export interface TuiOutputStream {
   readonly destroyed: boolean;
@@ -57,7 +57,6 @@ export interface RunTuiCliDependencies {
     lane?: string,
   ) => Promise<string>;
   readonly runLogout?: (region?: MavisRegion) => Promise<string>;
-  readonly runUpdate?: (version: string) => Promise<void>;
   readonly runProvider?: (
     request: McodeProviderCliRequest,
     version: string,
@@ -80,13 +79,13 @@ export interface RunTuiCliDependencies {
 
 export async function runTuiCli(dependencies: RunTuiCliDependencies = {}): Promise<void> {
   const processRef = dependencies.processRef ?? process;
-  processRef.title = MINIMAX_CODE_PROCESS_TITLE;
+  processRef.title = TALOS_PROCESS_TITLE;
   const resumeDraftAfterLogin = consumeLoginRestartHandoff(processRef.env);
   const supportsNodeVersion =
     dependencies.supportsNodeVersion ?? ((version: string) => supportsTuiNodeVersion(version));
   if (!supportsNodeVersion(processRef.versions.node)) {
     processRef.stderr.write(
-      `Minimax Code supports Node.js ${MINIMAX_CODE_SUPPORTED_NODE_VERSIONS}; current version is ${processRef.versions.node}.\n`,
+      `Talos supports Node.js ${MINIMAX_CODE_SUPPORTED_NODE_VERSIONS}; current version is ${processRef.versions.node}.\n`,
     );
     processRef.exitCode = 1;
     return;
@@ -152,8 +151,7 @@ export async function runTuiCli(dependencies: RunTuiCliDependencies = {}): Promi
       },
       runUpdate: async () => {
         completedCommandExitMode = 'natural';
-        const runUpdate = dependencies.runUpdate ?? defaultRunUpdate;
-        await runUpdate(MINIMAX_CODE_VERSION);
+        processRef.stdout.write(`${talosUpdateStatus(MINIMAX_CODE_VERSION)}\n`);
       },
       runProvider: async (request, lane) => {
         const runProvider = dependencies.runProvider ?? defaultRunProvider;
@@ -210,13 +208,10 @@ async function formatTuiCliError(error: unknown): Promise<string> {
     return diagnostic;
   }
 
-  const { buildMcodePackageManagerCommand } = await import('../update/install-source.js');
-  const command = buildMcodePackageManagerCommand('npm-global', MINIMAX_CODE_VERSION);
   return [
-    'MCode could not load its native SQLite dependency.',
+    'Talos could not load its native SQLite dependency.',
     'If npm reported blocked install scripts, the installation needs explicit script approval.',
-    'Reinstall with the original installer. For npm installations, run:',
-    `  ${command.display} --foreground-scripts`,
+    'Rebuild the current Talos source with install scripts enabled.',
     '',
     `Original error: ${diagnostic}`,
   ].join('\n');
@@ -279,9 +274,8 @@ async function defaultRunLogout(region?: MavisRegion): Promise<string> {
   return runTuiLogout({ region });
 }
 
-async function defaultRunUpdate(version: string): Promise<void> {
-  const { runMcodeUpdate } = await import('./update.js');
-  await runMcodeUpdate(version);
+function talosUpdateStatus(version: string): string {
+  return `Talos ${version}: this build has no Talos npm update source configured. Use the current source build; Talos does not install updates automatically.`;
 }
 
 async function defaultRunProvider(

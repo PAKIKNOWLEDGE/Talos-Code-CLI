@@ -7,7 +7,7 @@ import type { MiniAppPluginPublicationCapability } from "../miniapp/index.js";
 import { initializeHostConnectorSystem } from "../host-connector-system/index.js";
 import { ConnectorCloudClient } from "./app/cloud-client.js";
 import { DesktopConnectorRuntime } from "./app/runtime.js";
-import { PluginSystemCloudTransport } from "./cloud-transport.js";
+import { PluginSystemCloudTransport, resolvePluginCloudAuthContext } from "./cloud-transport.js";
 import type {
   InitializedPluginService,
   PluginServiceCompatibility,
@@ -41,10 +41,12 @@ export function initializePluginService(
     gauge: (name: string, value: number, tags?: Record<string, string>) =>
       compatibility.metrics.gauge(name, value, tags ?? {}),
   };
+  const cloudAuthContextGetter = () =>
+    resolvePluginCloudAuthContext(compatibility.authContextGetter);
   const deploymentGetter = () =>
     `${getRuntimeRegion()}-${getRuntimeBuildEnv()}`;
   const officialAuthState = () =>
-    resolveOfficialPluginAuthState(compatibility.authContextGetter());
+    resolveOfficialPluginAuthState(cloudAuthContextGetter());
   const officialAuthBarrier = new OfficialPluginAuthBarrier({
     isReady: () =>
       officialAuthState() === "ready" && Boolean(deploymentGetter().trim()),
@@ -70,7 +72,7 @@ export function initializePluginService(
   const cloudTransport = new PluginSystemCloudTransport({
     baseUrl: resolveCloudBaseUrl(),
     fetchImpl: compatibility.fetchImpl,
-    authContextGetter: compatibility.authContextGetter,
+    authContextGetter: cloudAuthContextGetter,
     appVersion: compatibility.appVersion,
     previewSecret: process.env.PREVIEW_SECRET,
     lane: process.env.MAVIS_PLUGIN_CLOUD_LANE,
@@ -83,7 +85,7 @@ export function initializePluginService(
   const connectorClient = new ConnectorCloudClient(cloudTransport);
   const hostConnectorSystem = initializeHostConnectorSystem({
     client: connectorClient.asHostProcessClient(),
-    credentialGetter: compatibility.authContextGetter,
+    credentialGetter: cloudAuthContextGetter,
     audit: {
       record: (event) =>
         compatibility.logger.info({ ...event }, "Host-process Connector audit"),
@@ -102,7 +104,7 @@ export function initializePluginService(
     },
     metrics: metricTags,
     scopeKeyGetter: () => {
-      const principalId = compatibility.authContextGetter()?.realUserID?.trim();
+      const principalId = cloudAuthContextGetter()?.realUserID?.trim();
       const deployment = `${getRuntimeRegion()}-${getRuntimeBuildEnv()}`;
       return principalId
         ? JSON.stringify([principalId, deployment])
@@ -120,7 +122,7 @@ export function initializePluginService(
     dataDir: compatibility.dataDir,
     officialCacheRoot,
     repository,
-    authContextGetter: compatibility.authContextGetter,
+    authContextGetter: cloudAuthContextGetter,
     deploymentGetter,
     listReservations: compatibility.listReservations,
     connectorRuntime,

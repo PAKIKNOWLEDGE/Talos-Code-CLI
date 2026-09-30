@@ -80,6 +80,7 @@ export class PluginSystemCloudTransport {
   }
 
   async request(request: PluginSystemCloudRequest): Promise<unknown> {
+    assertPluginCloudAvailable();
     const auth = readAuth(
       resolveAuthContext(request, this.options.authContextGetter),
       request.auth,
@@ -103,6 +104,7 @@ export class PluginSystemCloudTransport {
     const signal = composeSignal(request.signal, request.timeoutMs ?? this.timeoutMs);
     let response: Response;
     try {
+      assertPluginCloudAvailable();
       const responsePromise = this.options.fetchImpl(joinUrl(this.options.baseUrl, signedPath), {
         method: request.method,
         headers: buildHeaders({
@@ -143,6 +145,7 @@ export class PluginSystemCloudTransport {
   }
 
   async downloadToFile(url: string, targetPath: string, signal?: AbortSignal): Promise<void> {
+    assertPluginCloudAvailable();
     const parsed = parseDownloadUrl(url);
     let response: Response;
     try {
@@ -160,6 +163,7 @@ export class PluginSystemCloudTransport {
         response.status,
       );
     }
+    assertPluginCloudAvailable();
     await writeBoundedBody(response, targetPath);
   }
 }
@@ -403,4 +407,18 @@ function readNumber(
 ): number | undefined {
   const field = value[snake] ?? value[camel];
   return typeof field === 'number' ? field : undefined;
+}
+
+/** Only upstream cloud identity is gated; local plugins and GitHub imports use other ports. */
+export function resolvePluginCloudAuthContext<Auth>(getter: () => Auth | undefined): Auth | undefined {
+  return process.env.TALOS_NEUTRAL_RUNTIME === '1' ? undefined : getter();
+}
+
+function assertPluginCloudAvailable(): void {
+  if (process.env.TALOS_NEUTRAL_RUNTIME === '1') {
+    throw new PluginSystemCloudTransportError(
+      'PLUGIN_CLOUD_UNAVAILABLE',
+      'Upstream plugin marketplace and cloud connectors are unavailable in Talos. Use local plugins or your configured MCP servers.',
+    );
+  }
 }

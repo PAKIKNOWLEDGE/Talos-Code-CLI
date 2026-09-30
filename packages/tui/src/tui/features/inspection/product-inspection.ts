@@ -69,7 +69,9 @@ export function createTuiAccountStatusInspection(
     : needsLogin
       ? account?.modelSource === 'byok'
         ? 'Not signed in'
-        : 'Sign in with /login'
+        : process.env.TALOS_NEUTRAL_RUNTIME === '1'
+          ? 'Configure /provider'
+          : 'Sign in with /login'
       : identity
         ? safeInline(identity)
         : status === 'ready'
@@ -196,7 +198,7 @@ export function createTuiAccountStatusInspection(
   const quotaRows = createTokenPlanQuotaRows(account).filter((row) => row.label !== 'Video');
   if (quotaRows.length > 0) sections.push({ title: 'Quota', rows: quotaRows });
   return {
-    title: `MCode status${options.version ? ` · v${safeInline(options.version)}` : ''}`,
+    title: `Talos status${options.version ? ` · v${safeInline(options.version)}` : ''}`,
     badge: options.accountLoading
       ? { label: 'Loading account…', tone: 'neutral' }
       : accountStatusBadge(status),
@@ -231,7 +233,9 @@ function createTokenPlanRows(
   needsLogin: boolean,
 ): TranscriptUsageAccountRow[] {
   if (needsLogin) {
-    return [{ label: 'Plan', value: 'Run /login to view plan and quota', tone: 'warning' }];
+    return process.env.TALOS_NEUTRAL_RUNTIME === '1'
+      ? []
+      : [{ label: 'Plan', value: 'Run /login to view plan and quota', tone: 'warning' }];
   }
   const summary = account?.tokenPlanSummary;
   const hasTokenPlan =
@@ -418,7 +422,7 @@ export function createTuiRuntimeInspection(
               rows: [
                 {
                   label: 'Current run',
-                  value: 'MCode may use built-in defaults until the config is fixed and restarted.',
+                  value: 'Talos may use built-in defaults until the config is fixed and restarted.',
                   tone: 'warning' as const,
                 },
               ],
@@ -442,15 +446,15 @@ export function createTuiRuntimeInspection(
 function configurationNextStep(diagnostics: TuiRuntimeDiagnostics): string {
   const path = safe(diagnostics.configPath ?? 'the config file');
   if (diagnostics.warnings.some((issue) => issue.includes('does not exist'))) {
-    return `Create or restore ${path}, restart MCode, then run /doctor again.`;
+    return `Create or restore ${path}, restart Talos, then run /doctor again.`;
   }
   if (diagnostics.warnings.some((issue) => issue.includes('cannot be read'))) {
-    return `Check access to ${path}, restart MCode, then run /doctor again.`;
+    return `Check access to ${path}, restart Talos, then run /doctor again.`;
   }
   if (diagnostics.warnings.some((issue) => issue.includes('defaultModel'))) {
-    return `Set defaultModel in ${path} to an available provider/model, restart MCode, then run /doctor again.`;
+    return `Set defaultModel in ${path} to an available provider/model, restart Talos, then run /doctor again.`;
   }
-  return `Fix ${path}, restart MCode, then run /doctor again.`;
+  return `Fix ${path}, restart Talos, then run /doctor again.`;
 }
 
 export function createTuiConfigInspection(
@@ -508,7 +512,9 @@ export function formatTuiUsage(
   const presentation = resolveTuiUsagePresentation(usage, options);
   if (!presentation) {
     return options.scope === 'account'
-      ? 'No account usage is available. Sign in with /login to view plan and quota.'
+      ? process.env.TALOS_NEUTRAL_RUNTIME === '1'
+        ? 'No account plan is available in Talos.'
+        : 'No account usage is available. Sign in with /login to view plan and quota.'
       : 'No usage has been recorded for this Session.';
   }
   return formatInspectionReport({

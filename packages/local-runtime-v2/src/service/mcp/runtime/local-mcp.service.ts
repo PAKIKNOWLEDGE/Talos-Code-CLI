@@ -289,7 +289,7 @@ export class LocalMcpService {
 
   async listBuiltinPublicServerCapabilities(): Promise<LocalMcpPublicServerCapability[]> {
     this.assertOpen();
-    if (this.options.builtinMatrix?.enabled !== true) return [];
+    if (process.env.TALOS_NEUTRAL_RUNTIME === '1' || this.options.builtinMatrix?.enabled !== true) return [];
     const available = this.isBuiltinMatrixEnabled();
     return [
       {
@@ -945,6 +945,11 @@ export class LocalMcpService {
   }
 
   private withBuiltinServers(file: LocalMcpFile, context?: LocalMcpRuntimeContext): LocalMcpFile {
+    if (process.env.TALOS_NEUTRAL_RUNTIME === '1') {
+      return { ...file, mcpServers: Object.fromEntries(
+        Object.entries(file.mcpServers).filter(([name, config]) => !isBuiltinMatrixConfig(name, config)),
+      ) };
+    }
     if (!this.isBuiltinMatrixEnabled()) return file;
     const matrix = buildBuiltinMatrixServerConfig(
       { ...(context ?? {}), dataDir: this.dataDir() },
@@ -960,7 +965,8 @@ export class LocalMcpService {
   }
 
   private isBuiltinMatrixEnabled(): boolean {
-    return this.options.builtinMatrix?.enabled === true && !!this.options.connectionPool;
+    return process.env.TALOS_NEUTRAL_RUNTIME !== '1' &&
+      this.options.builtinMatrix?.enabled === true && !!this.options.connectionPool;
   }
 
   private isBuiltinMatrixWebSearchOnly(): boolean {

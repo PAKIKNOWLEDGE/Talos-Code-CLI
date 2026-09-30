@@ -53,8 +53,6 @@ import {
   resolveTuiManagedBackendLane,
   resolveTuiStartupEnvironmentOption,
 } from '../cli/environment.js';
-import { resolveMcodeStartupUpdateNotice } from '../update/startup-notice.js';
-import type { McodeUpdateApplication } from '../update/application.js';
 import { tuiErrorDiagnostic } from '../user-facing-failure.js';
 import { getConfig, resetConfig, writeTuiStatusLineSetting, type MavisRegion } from '@mavis/config';
 import { markLoginRestartHandoff } from './login-restart-handoff.js';
@@ -64,11 +62,10 @@ import {
   writeTuiModeSetting,
   writeTuiThemeSetting,
 } from '../host/tui-settings.js';
-import { schedulePendingMcodePrefixUpdate } from '../update/prefix-update.js';
 import { MCODE_TUI_RESULT_PATH_ENV } from './automation/result-writer.js';
 import { startTuiStartupStatus, type TuiStartupStatus } from './startup-status.js';
 
-const MINIMAX_CODE_EXIT_SLOGAN = 'Intelligence with everyone, bye~';
+const TALOS_TUI_EXIT_SLOGAN = '-- 3NDM1N15T4T0R OFFL1NE --';
 export interface LaunchTuiOptions {
   version: string;
   initialPrompt?: string;
@@ -122,9 +119,6 @@ export interface LaunchTuiDependencies {
   createObservability?: typeof createTuiObservability;
   installProcessGuards?: typeof installTuiProcessGuards;
   loadRuntimeLifecycle?: () => Promise<RuntimeLifecycleModule>;
-  loadUpdateApplication?: (
-    currentVersion: string,
-  ) => Promise<Pick<McodeUpdateApplication, 'inspect' | 'apply'>>;
   writeExitMessage?: (message: string) => void;
   prepareDataDir?: typeof prepareTuiDataDir;
   restartProcess?: (
@@ -168,7 +162,7 @@ export async function launchTui(
     );
   }
   if (!options.terminal && (!process.stdin.isTTY || !process.stdout.isTTY)) {
-    throw new Error('Minimax Code interactive mode requires a TTY.');
+    throw new Error('Talos interactive mode requires a TTY.');
   }
 
   const homeDirectory = options.homeDir ?? homedir();
@@ -300,17 +294,6 @@ export async function launchTui(
     columns: terminal.columns,
     rows: terminal.rows,
   });
-  const loadUpdateApplication =
-    dependencies.loadUpdateApplication ??
-    (async (currentVersion: string) => {
-      const { McodeUpdateApplication } = await import('../update/application.js');
-      return new McodeUpdateApplication({ currentVersion });
-    });
-  let updateApplicationPromise: ReturnType<typeof loadUpdateApplication> | undefined;
-  const updateApplication = () => {
-    updateApplicationPromise ??= loadUpdateApplication(options.version);
-    return updateApplicationPromise;
-  };
   let resolveProcessStopFailure: (() => void) | undefined;
   const processStopFailure = new Promise<void>((resolve) => {
     resolveProcessStopFailure = resolve;
@@ -472,10 +455,6 @@ export async function launchTui(
           keybindings.manager.setUserBindings({ ...keybindings.hostOverrides, ...next.overrides });
         },
         ...(options.resumeDraftAfterLogin ? { resumeDraftAfterLogin: true } : {}),
-        checkForUpdate: async () =>
-          resolveMcodeStartupUpdateNotice(await (await updateApplication()).inspect()),
-        inspectUpdate: async () => (await updateApplication()).inspect(),
-        applyUpdate: async (plan, progress) => (await updateApplication()).apply(plan, progress),
       });
       // Runtime failure also rejects hydration, which may never reach the await below.
       void app.ready.catch(() => undefined);
@@ -487,7 +466,7 @@ export async function launchTui(
         report: (error) => {
           try {
             process.stderr.write(
-              `Minimax Code TUI stopped unexpectedly: ${tuiErrorDiagnostic(error)}. Restart MCode; if it keeps happening, report it through an available support channel.\n`,
+              `Talos TUI stopped unexpectedly: ${tuiErrorDiagnostic(error)}. Restart Talos; if it keeps happening, report it through an available support channel.\n`,
             );
           } catch {
             // The terminal may already be disconnected.
@@ -820,17 +799,6 @@ export async function restartTuiProcess(
 ): Promise<void> {
   const args = resolveRestartArguments(process.execPath, process.argv, sessionId, initialPrompt);
   const environment = resolveRestartEnvironment(process.env, region);
-  if (
-    await schedulePendingMcodePrefixUpdate(
-      process.argv[1],
-      process.execPath,
-      process.pid,
-      args,
-      environment,
-    )
-  ) {
-    return;
-  }
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, args, {
       cwd: process.cwd(),
@@ -869,7 +837,7 @@ export function resolveRestartArguments(
   if (!nodeExecutable) return [...environmentArgs, ...resumeArgs, ...promptArgs];
   const entryFile = argv[1];
   if (!entryFile || !isExistingFile(entryFile)) {
-    throw new Error('Unable to restart MCode because its Node.js entry file is unavailable.');
+    throw new Error('Unable to restart Talos because its Node.js entry file is unavailable.');
   }
   return [entryFile, ...environmentArgs, ...resumeArgs, ...promptArgs];
 }
@@ -896,13 +864,13 @@ function isExistingFile(file: string): boolean {
 
 export function formatTuiExitMessage(sessionId?: string): string {
   const sessionHint = sessionId ? formatTuiSessionHint(sessionId) : undefined;
-  return `${sessionHint ?? '\n'}${sessionHint ? '\n' : ''}${MINIMAX_CODE_EXIT_SLOGAN}\n`;
+  return `${sessionHint ?? '\n'}${sessionHint ? '\n' : ''}${TALOS_TUI_EXIT_SLOGAN}\n`;
 }
 
 export function formatTuiSessionHint(sessionId: string): string | undefined {
   const normalized = sessionId.trim();
   if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$/u.test(normalized)) return undefined;
-  return `\nContinue this session with:\n  mcode --session ${normalized}\n`;
+  return `\nContinue this session with:\n  talos --session ${normalized}\n`;
 }
 
 async function prepareInitialTuiState(

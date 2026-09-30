@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { McodeProviderModel, McodeProviderView } from '../../src/provider/contract.js';
 import { McodeProviderApplication } from '../../src/provider/application.js';
 
@@ -58,6 +58,24 @@ function createPort() {
 }
 
 describe('McodeProviderApplication', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('keeps neutral providers while hiding MiniMax account OAuth and rejecting Token Plan', async () => {
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    const port = createPort();
+    const application = new McodeProviderApplication(port);
+
+    const snapshot = await application.snapshot({ includeCodexOAuth: true });
+    expect(snapshot.providers.map((provider) => provider.providerId)).toEqual([
+      'minimax_api',
+      'custom_provider:openai',
+      'openai-codex',
+    ]);
+    expect(() => application.setMiniMaxSource('token_plan')).toThrow('unavailable');
+    expect(port.setMiniMaxModelSource).not.toHaveBeenCalled();
+    await expect(application.setMiniMaxSource('minimax_api_key')).resolves.toBe('minimax_api_key');
+    expect(port.setMiniMaxModelSource).toHaveBeenCalledWith('minimax_api_key');
+  });
   it('exposes a disconnected Codex OAuth row when Runtime makes it visible', async () => {
     const application = new McodeProviderApplication(createPort());
 

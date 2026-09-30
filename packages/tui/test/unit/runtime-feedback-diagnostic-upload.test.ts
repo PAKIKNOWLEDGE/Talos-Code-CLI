@@ -59,6 +59,39 @@ function transport() {
 }
 
 describe('feedback diagnostic upload privacy', () => {
+  it('rejects a neutral direct upload before flushing logs or reading session artifacts', async () => {
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    try {
+      const fetchImpl = vi.fn<typeof fetch>();
+      const flushLogs = vi.fn();
+      const collectSessionReport = vi.fn();
+      await expect(uploadTuiFeedbackDiagnostics({ description: 'synthetic', sessionId: 'session-test',
+        signal: new AbortController().signal }, { dataDir: '/nonexistent/synthetic', appVersion: '0.5.7',
+        fetchImpl, flushLogs, collectSessionReport })).rejects.toMatchObject({ code: 'feedback_unavailable' });
+      expect(flushLogs).not.toHaveBeenCalled();
+      expect(collectSessionReport).not.toHaveBeenCalled();
+      expect(fetchImpl).not.toHaveBeenCalled();
+    } finally { vi.unstubAllEnvs(); }
+  });
+
+  it.each(['collection', 'presign'] as const)('blocks remaining upload requests when neutral is enabled during %s', async (phase) => {
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '');
+    try {
+      const dataDir = await directory();
+      const fetchImpl = vi.fn<typeof fetch>(async () => {
+        vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+        return Response.json({ upload_id: 'synthetic-upload', upload_url: 'https://upload.example.test/capture' });
+      });
+      const flushLogs = vi.fn(async () => {
+        if (phase === 'collection') vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+      });
+      await expect(uploadTuiFeedbackDiagnostics({ description: 'synthetic', signal: new AbortController().signal },
+        { dataDir, appVersion: '0.5.7', fetchImpl, flushLogs })).rejects.toMatchObject({ code: 'feedback_unavailable' });
+      expect(fetchImpl).toHaveBeenCalledTimes(phase === 'collection' ? 0 : 1);
+      expect(fetchImpl.mock.calls.some(([,init]) => init?.method === 'PUT')).toBe(false);
+    } finally { vi.unstubAllEnvs(); }
+  });
+
   it('runs review, real session collection, packaging and intercepted PUT with synthetic sensitive artifacts', async () => {
     const dataDir = await directory();
     const root = join(dataDir, 'session-root');

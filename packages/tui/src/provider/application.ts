@@ -33,16 +33,18 @@ export class McodeProviderApplication {
       ...(!codexOAuthStatus || codexOAuthStatus.state === 'hidden'
         ? []
         : [normalizeCodexOAuthProvider(codexOAuthStatus)]),
-      {
-        providerId: 'minimax_oauth',
-        name: 'MiniMax OAuth',
-        kind: 'minimax-oauth',
-        active: minimaxModelSource === 'token_plan',
-        enabled: true,
-        readOnly: true,
-        hasApiKey: false,
-        models: [],
-      },
+      ...(process.env.TALOS_NEUTRAL_RUNTIME === '1'
+        ? []
+        : [{
+            providerId: 'minimax_oauth' as const,
+            name: 'MiniMax OAuth',
+            kind: 'minimax-oauth' as const,
+            active: minimaxModelSource === 'token_plan',
+            enabled: true,
+            readOnly: true,
+            hasApiKey: false,
+            models: [],
+          }]),
       ...(minimaxStatus.hasApiKey || minimaxModelSource === 'minimax_api_key'
         ? [
             {
@@ -68,6 +70,9 @@ export class McodeProviderApplication {
   }
 
   setMiniMaxSource(source: McodeMiniMaxModelSource): Promise<McodeMiniMaxModelSource> {
+    if (source === 'token_plan' && process.env.TALOS_NEUTRAL_RUNTIME === '1') {
+      throw new Error('MiniMax Token Plan is unavailable in Talos. Use a provider API key.');
+    }
     return this.port.setMiniMaxModelSource(source);
   }
 

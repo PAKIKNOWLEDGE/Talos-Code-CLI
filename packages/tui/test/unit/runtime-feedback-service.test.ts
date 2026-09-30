@@ -12,6 +12,47 @@ function ticketResponse(ticketId = 'ticket-1'): Response {
 }
 
 describe('TuiFeedbackService', () => {
+  it('rejects neutral prepare and existing draft submit before authentication or upload, but still permits cancellation', async () => {
+    const authContextGetter = vi.fn(() => ({ accessToken: 'synthetic', realUserID: 'test' }));
+    const authContextResolver = vi.fn();
+    const fetchImpl = vi.fn<typeof fetch>();
+    const diagnosticLogUploader = vi.fn();
+    const service = new TuiFeedbackService({ appVersion: '0.5.7', authContextGetter,
+      authContextResolver, fetchImpl, diagnosticLogUploader });
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '');
+    try {
+      const draft = service.prepare({ description: 'synthetic old draft' });
+      vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+      expect(() => service.prepare({ description: 'synthetic new draft' })).toThrow('unavailable in Talos');
+      await expect(service.submit(draft.draftId)).rejects.toMatchObject({
+        code: 'feedback_unavailable', retryable: false,
+      });
+      expect(authContextGetter).not.toHaveBeenCalled();
+      expect(authContextResolver).not.toHaveBeenCalled();
+      expect(diagnosticLogUploader).not.toHaveBeenCalled();
+      expect(fetchImpl).not.toHaveBeenCalled();
+      expect(service.cancel(draft.draftId)).toBe(true);
+    } finally { vi.unstubAllEnvs(); }
+  });
+
+  it('does not send a ticket or confirmation lookup if neutral is enabled while diagnostic collection is pending', async () => {
+    const fetchImpl = vi.fn<typeof fetch>();
+    const diagnosticLogUploader = vi.fn(async () => {
+      vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+      return { uploadId: 'synthetic-upload' };
+    });
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '');
+    try {
+      const service = new TuiFeedbackService({ appVersion: '0.5.7',
+        authContextGetter: () => ({ accessToken: 'synthetic', realUserID: 'test' }),
+        fetchImpl, diagnosticLogUploader });
+      const draft = service.prepare({ description: 'synthetic' });
+      await expect(service.submit(draft.draftId)).rejects.toMatchObject({ code: 'feedback_unavailable' });
+      expect(fetchImpl).not.toHaveBeenCalled();
+      expect(service.cancel(draft.draftId)).toBe(true);
+    } finally { vi.unstubAllEnvs(); }
+  });
+
   it('keeps credentials and upload state behind the TUI runtime adapter', async () => {
     const calls: string[] = [];
     const diagnosticLogUploader = vi.fn(async () => {

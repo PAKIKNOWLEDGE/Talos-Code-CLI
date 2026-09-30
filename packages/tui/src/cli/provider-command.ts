@@ -113,7 +113,9 @@ export async function runMcodeProviderCommand(
     }
     if (request.action === 'test') {
       if (request.providerId === 'minimax_oauth') {
-        const message = 'MiniMax OAuth sign-in and connectivity are managed by /login.';
+        const message = process.env.TALOS_NEUTRAL_RUNTIME === '1'
+          ? 'MiniMax account login is unavailable in Talos. Use a provider API key.'
+          : 'MiniMax OAuth sign-in and connectivity are managed by /login.';
         if (request.json) {
           return JSON.stringify(
             {
@@ -126,7 +128,9 @@ export async function runMcodeProviderCommand(
         }
         return formatTuiActionFailure(message, {
           summary: 'MiniMax OAuth provider test skipped.',
-          nextStep: 'Run /login to manage Token Plan sign-in.',
+          nextStep: process.env.TALOS_NEUTRAL_RUNTIME === '1'
+            ? 'Open /provider to configure a model.'
+            : 'Run /login to manage Token Plan sign-in.',
         });
       }
       const result = await context.application.test(request.providerId, request.modelId);

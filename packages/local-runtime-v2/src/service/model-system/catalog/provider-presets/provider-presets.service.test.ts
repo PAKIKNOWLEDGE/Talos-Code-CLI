@@ -22,6 +22,7 @@ const temporaryDirectories: string[] = [];
 const TEST_RELEASE_SHA = 'a'.repeat(64);
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   await Promise.all(
     temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true })),
   );
@@ -527,6 +528,57 @@ describe('models.dev Provider Presets', () => {
 });
 
 describe('models.dev Provider Preset snapshots', () => {
+  it('stores a direct models.dev refresh in neutral CN mode', async () => {
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    const paths = await catalogPaths();
+    await writeFile(paths.bundledCatalogPath, gzipSync(JSON.stringify(snapshot(10, 'bundled'))));
+    const modelsDevFetch = vi.fn(async () => new Response(JSON.stringify(rawCatalog('network')), {
+      headers: { etag: 'direct-etag' },
+    })) as typeof fetch;
+    const catalog = new ProviderPresetCatalog({
+      ...paths,
+      modelsDevFetch,
+      commonConfigFetch: unavailableCommonConfig(),
+      regionGetter: () => 'cn',
+      now: () => 30,
+    });
+
+    await vi.waitFor(async () => {
+      expect(JSON.parse(await readFile(paths.localCatalogPath, 'utf8'))).toEqual(
+        snapshot(30, 'network', 'direct-etag', 'https://models.dev/logos/'),
+      );
+    });
+    expect(String(vi.mocked(modelsDevFetch).mock.calls[0]?.[0])).toBe('https://models.dev/api.json');
+    await expect(catalog.listProviderPresets()).resolves.toMatchObject([
+      { models: [{ modelId: 'network' }], iconUrl: 'https://models.dev/logos/compatible.svg' },
+    ]);
+  });
+
+  it('uses models.dev directly in neutral CN mode and keeps a mirrored local snapshot offline', async () => {
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    const paths = await catalogPaths();
+    await writeFile(paths.localCatalogPath, JSON.stringify(snapshot(
+      20, 'local', 'old-mirror-etag', 'https://filecdn.minimax.chat/public/models-dev/catalog/logos/',
+    )));
+    const modelsDevFetch = vi.fn(async () => new Response(null, { status: 503 })) as typeof fetch;
+    const commonConfigFetch = vi.fn(async () => commonConfigResponse(['anthropic'])) as typeof fetch;
+    const catalog = new ProviderPresetCatalog({
+      ...paths,
+      modelsDevFetch,
+      commonConfigFetch,
+      regionGetter: () => 'cn',
+    });
+
+    await expect(catalog.listProviderPresets()).resolves.toMatchObject([
+      { models: [{ modelId: 'local' }], iconUrl: 'https://models.dev/logos/compatible.svg' },
+    ]);
+    await vi.waitFor(() => expect(modelsDevFetch).toHaveBeenCalledOnce());
+    expect(String(vi.mocked(modelsDevFetch).mock.calls[0]?.[0])).toBe('https://models.dev/api.json');
+    expect(new Headers(vi.mocked(modelsDevFetch).mock.calls[0]?.[1]?.headers).get('if-none-match')).toBeNull();
+    expect(vi.mocked(modelsDevFetch).mock.calls[0]?.[1]?.redirect).toBe('error');
+    expect(commonConfigFetch).not.toHaveBeenCalled();
+  });
+
   it('lists the newest valid local snapshot without waiting for network', async () => {
     const paths = await catalogPaths();
     await writeFile(

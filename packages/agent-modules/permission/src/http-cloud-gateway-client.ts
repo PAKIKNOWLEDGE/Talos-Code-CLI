@@ -54,6 +54,9 @@ export class HttpCloudGatewayClient implements CloudGatewayClient {
   }
 
   async classify(req: CloudClassifyRequest): Promise<CloudClassifyVerdict> {
+    if (process.env.TALOS_NEUTRAL_RUNTIME === '1') {
+      return fallbackTimeout('Cloud approval is unavailable in Talos neutral mode; user confirmation is required.', 0);
+    }
     const startedAtMs = Date.now();
     const url = this.endpointOverride ?? this.resolveUrl();
     if (!url) {
