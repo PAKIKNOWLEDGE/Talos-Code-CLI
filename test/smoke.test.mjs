@@ -52,6 +52,7 @@ function fixture(t, environment = process.env) {
       MAVIS_DATA_DIR: dataDir,
       MCODE_TEST_NETWORK_AUDIT: audit,
       MCODE_TEST_MANAGED_OFFLINE: "1",
+      MCODE_TEST_CATALOG_OFFLINE: "1",
       MCODE_TEST_PROCESS_PROBE: "1",
       NODE_OPTIONS: `--import=${new URL("./network-deny.mjs", import.meta.url).href}`,
     },

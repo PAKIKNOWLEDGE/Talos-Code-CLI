@@ -169,6 +169,7 @@ test(
       MCODE_TEST_ALLOWED_ORIGIN: new URL(baseUrl).origin,
       MCODE_TEST_NETWORK_AUDIT: networkAudit,
       MCODE_TEST_MANAGED_OFFLINE: "1",
+      MCODE_TEST_CATALOG_OFFLINE: "1",
       MCODE_TEST_PROCESS_PROBE: "1",
       NODE_OPTIONS: `--import=${new URL("./network-deny.mjs", import.meta.url).href}`,
     };
@@ -446,10 +447,7 @@ test(
       "1",
     ]);
     assert.match(first, /LOCAL_BYOK_OK/);
-    await assert.rejects(run([
-      'exec', 'Managed model still requires its own login',
-      '--model', 'minimax/MiniMax-M3', '--timeout', '20s', '--max-steps', '1',
-    ]), /Sign in to MiniMax/);
+
     const beforeResume = requests.length;
     const second = await run([
       "exec",
@@ -511,12 +509,17 @@ test(
       false,
       "Startup, completed turns and resume must not create indexing artifacts",
     );
+    // Keep this intentional failed session after the history continuation check.
+    const beforeUnavailable = requests.length;
+    await assert.rejects(run([
+      'exec', 'An unconfigured provider must not silently fall back',
+      '--model', 'minimax/MiniMax-M3', '--timeout', '20s', '--max-steps', '1',
+    ]), (error) => error.message.includes('Model "minimax/MiniMax-M3" is not available'));
+    assert.equal(requests.length, beforeUnavailable, "An unavailable model must not reach provider transport");
     const managedAudit = `${networkAudit}.managed`;
-    assert.doesNotMatch(
-      existsSync(managedAudit) ? readFileSync(managedAudit, "utf8") : "",
-      /workspace-indexing/,
-      "No workspace indexing request may be attempted",
-    );
+    assert.equal(existsSync(managedAudit) ? readFileSync(managedAudit, "utf8") : "", "",
+      "All BYOK turns and resume must avoid upstream services");
+    t.diagnostic("Completed: persisted provider, configured default reply, resumed marker, real read-tool result and no managed requests");
     const verificationDb = new Database(dbPath, { readonly: true });
     try {
       assert.deepEqual(

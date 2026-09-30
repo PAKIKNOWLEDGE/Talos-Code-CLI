@@ -22,6 +22,12 @@ function denied() {
 globalThis.fetch = function (input, init) {
   const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
   if (allowed && url.origin === allowed.origin) return originalFetch(input, init);
+  // Public catalog traffic is distinct from upstream managed services.
+  // Return a local unavailable response; never connect to the public host.
+  if (process.env.MCODE_TEST_CATALOG_OFFLINE === "1" && url.href === "https://models.dev/api.json") {
+    appendFileSync(process.env.MCODE_TEST_NETWORK_AUDIT + ".catalog", url.href + String.fromCharCode(10));
+    return Promise.resolve(new Response(JSON.stringify({ error: "Public catalog offline fixture" }), { status: 503 }));
+  }
   // Offline acceptance after restoring managed capabilities: these requests return only local failure responses and never reach servers.
   // Keep attempted requests in a separate log; unknown addresses still fail tests.
   if (process.env.MCODE_TEST_MANAGED_OFFLINE === '1' && [

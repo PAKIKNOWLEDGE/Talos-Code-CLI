@@ -36,7 +36,9 @@ describe('LocalBashTool — foreground output truncation', () => {
     const powerShell = ['pwsh', 'powershell'].includes(getShellConfig().type);
     const quote = (value: string) =>
       "'" + value.replaceAll("'", powerShell ? "''" : String.fromCharCode(39, 34, 39, 34, 39)) + "'";
-    return `${powerShell ? "& " : ""}${quote(process.execPath)} ${quote(scriptPath)}`;
+    // PowerShell -Command otherwise maps a failing native command to shell code 1.
+    // This fixture explicitly carries the intended native code through the shell.
+    return `${powerShell ? "& " : ""}${quote(process.execPath)} ${quote(scriptPath)}${powerShell ? "; exit $LASTEXITCODE" : ""}`;
   }
   it('preserves exact stdout and stderr for Compatible PostToolUse', async () => {
     const tool = new LocalBashTool(workspace, undefined, { mode: 'off' });
