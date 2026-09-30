@@ -677,12 +677,26 @@ function isProtectedRuntimeRead(
   };
   const roots = [context.dataDir, path.join(context.homeDir ?? os.homedir(), '.minimax')];
   const canonicalPath = resolveExistingPath(filePath);
+  const canonicalDataRoot = context.dataDir
+    ? resolveExistingPath(path.resolve(context.dataDir))
+    : undefined;
   for (const root of roots) {
     if (!root) continue;
     const resolvedRoot = path.resolve(root);
     const canonicalRoot = resolveExistingPath(resolvedRoot);
     if (recursive && within(canonicalRoot, canonicalPath)) return true;
     if (!within(filePath, resolvedRoot) && !within(canonicalPath, canonicalRoot)) continue;
+    // Keep legacy runtime data protected in Talos; only the explicitly selected
+    // data directory may supply trusted skill/workspace/memory read exceptions.
+    if (
+      process.env.TALOS_NEUTRAL_RUNTIME === '1' &&
+      (!canonicalDataRoot || !isSameResolvedPath(canonicalRoot, canonicalDataRoot))
+    ) {
+      // A user may explicitly select a data directory within the legacy tree.
+      // Its private-data and asset checks already ran against the first root.
+      if (canonicalDataRoot && within(canonicalPath, canonicalDataRoot)) continue;
+      return true;
+    }
     // Do not resolve the asset subdirectory itself: a skills/ symlink pointing
     // at credentials must not turn its destination into a trusted asset root.
     const readableAsset =

@@ -27,7 +27,8 @@
  *   - acceptEdits seed adds 3 global rules; idempotent
  */
 
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -57,6 +58,12 @@ import {
 } from '../../src/infra/trash-script-win.js';
 import { ensureTrashScript } from '../../src/infra/ensure-trash-script.js';
 
+// Fake only the home locator; keep the real filesystem and host platform.
+vi.mock('node:os', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:os')>();
+  return { ...actual, homedir: vi.fn(actual.homedir) };
+});
+
 function freshFacade(
   opts: {
     permissionMode?: LocalRuntimeConfig['permissionMode'];
@@ -65,6 +72,7 @@ function freshFacade(
     platform?: NodeJS.Platform;
     shellFamily?: 'cmd' | 'powershell';
     workspaceDir?: string;
+    sessionWorkspaceDir?: string;
     sandbox?: LocalRuntimeConfig['sandbox'];
     seedPosixTrash?: boolean;
     dataDirParent?: string;
@@ -95,7 +103,9 @@ function freshFacade(
     ruleStore,
     pluginHookPermissionStore,
     configGetter: () => config,
-    getSessionById: async () => undefined,
+    getSessionById: async (sessionId) => opts.sessionWorkspaceDir
+      ? { sessionId, workspaceDir: opts.sessionWorkspaceDir } as never
+      : undefined,
     getLocalAgent: async () =>
       opts.workspaceDir ? { defaultWorkspaceDir: opts.workspaceDir } : undefined,
     cloudGateway: opts.cloudGateway,
@@ -146,6 +156,8 @@ function cleanup(dataDir: string): void {
   }
 }
 
+const isPosixHost = process.platform === 'darwin' || process.platform === 'linux';
+
 describe('LocalPermissionFacade', () => {
   it('asks instead of evaluating with empty rules when the permission store is corrupt', async () => {
     const { facade, dataDir } = freshFacade({ policyOwner: 'core' });
@@ -184,7 +196,7 @@ describe('LocalPermissionFacade', () => {
     }
   });
 
-  it('logs the concrete checker reason for each Bash subcommand', async () => {
+  it.runIf(isPosixHost)('logs the concrete checker reason for each Bash subcommand', async () => {
     const info = vi.spyOn(logger, 'info').mockImplementation(() => undefined);
     const { facade, dataDir } = freshFacade({ policyOwner: 'core' });
     try {
@@ -248,11 +260,11 @@ describe('LocalPermissionFacade', () => {
     }
   });
 
-  it('logs the command and detail for a top-level Bash safety decision', async () => {
+  it('logs the exact workspace write authorization and keeps an external target on confirmation', async () => {
     const info = vi.spyOn(logger, 'info').mockImplementation(() => undefined);
-    const { facade, dataDir } = freshFacade({ policyOwner: 'core' });
+    const { facade, dataDir } = freshFacade({ policyOwner: 'core', sessionWorkspaceDir: path.join(tmpdir(), 'talos-log-workspace') });
     try {
-      const command = 'echo smoke > /tmp/mavis-permission-smoke.txt';
+      const command = 'tee ./mavis-permission-smoke.txt';
       const result = await facade.checkPermission({
         toolName: 'bash',
         sessionId: 'mvs_safety_observability',
@@ -266,21 +278,26 @@ describe('LocalPermissionFacade', () => {
             session_id: 'mvs_safety_observability',
             tool_name: 'bash',
             command,
-            reason_type: 'safetyCheck',
-            reason_code: 'safety_check',
-            reason_category: 'authorizedWriteRedirect',
-            reason_detail: 'Authorized write target in temp/workspace path.',
+            reason_type: 'subcommandResults',
+            reason_code: 'subcommand_results',
+            subcommand_results: [{ command, behavior: 'allow', reason_type: 'safetyCheck',
+              reason_code: 'safety_check', reason_category: 'writeAuthorizedTarget',
+              reason_detail: 'Write target is inside a write-authorized location (workspace / allowed working path).' }],
           }),
           event,
         );
       }
+      const external = await facade.checkPermission({ toolName: 'bash', sessionId: 'mvs_safety_observability',
+        input: { command: `tee "${path.join(homedir(), 'talos-external-workspace', 'mavis-permission-smoke.txt').replaceAll('\\', '/')}"` } });
+      // Bash intentionally allows scratch writes; this control must be outside both cwd and temp.
+      expect(external.behavior, JSON.stringify(external)).toBe('ask');
     } finally {
       info.mockRestore();
       cleanup(dataDir);
     }
   });
 
-  it('logs the safety category and detail that caused a Bash deny', async () => {
+  it.runIf(isPosixHost)('logs the safety category and detail that caused a Bash deny', async () => {
     const info = vi.spyOn(logger, 'info').mockImplementation(() => undefined);
     const { facade, dataDir } = freshFacade({ policyOwner: 'core' });
     try {
@@ -394,7 +411,7 @@ describe('LocalPermissionFacade', () => {
     }
   });
 
-  it.each(['engine', 'core'] as const)(
+  it.runIf(isPosixHost).each(['engine', 'core'] as const)(
     'preserves the public decision contract with the %s policy owner',
     async (policyOwner) => {
       const { facade, dataDir } = freshFacade({ policyOwner });
@@ -478,7 +495,29 @@ describe('LocalPermissionFacade', () => {
     }
   });
 
-  describe('POSIX host trash boundary', () => {
+  describe.runIf(isPosixHost)('POSIX host trash boundary', () => {
+    it.each(['default', 'off', 'bypassPermissions'] as const)(
+      'keeps missing, stale and non-executable native POSIX trash scripts fail-closed in %s', async (permissionMode) => {
+        for (const state of ['missing', 'stale', 'non-executable'] as const) {
+          const { facade, dataDir } = freshFacade({ permissionMode, platform: process.platform,
+            workspaceDir: '/workspace', seedPosixTrash: state !== 'missing' });
+          try {
+            const script = path.join(dataDir, 'bin', 'mavis-trash');
+            if (state === 'stale') writeFileSync(script, '# synthetic replaced script; never executed\n');
+            if (state === 'non-executable') chmodSync(script, 0o644);
+            const result = await facade.checkPermission({ toolName: 'bash', agentName: 'mavis',
+              input: { command: 'rm ./synthetic-never-created.txt' } });
+            expect(result).toMatchObject({ behavior: 'deny', denySource: 'safety-immune' });
+            expect(result.reason).toContain('Recoverable deletion is unavailable');
+            expect(result.reason).toContain(state === 'missing' ? 'ENOENT'
+              : state === 'stale' ? 'files are stale' : 'not executable');
+            expect(result.rewrittenInput).toBeUndefined();
+            expect(result.executionPlan).toBeUndefined();
+          } finally { cleanup(dataDir); }
+        }
+      },
+    );
+
     it('hard-denies rm when the canonical POSIX trash script is unavailable', async () => {
       const { facade, dataDir } = freshFacade({
         platform: 'darwin',
@@ -594,6 +633,49 @@ describe('LocalPermissionFacade', () => {
   });
 
   describe('Windows delete boundary', () => {
+    it.runIf(process.platform === 'win32').each(['engine', 'core'] as const)(
+      'preserves the native Windows permission and targets-only rewrite contract with %s owner', async (policyOwner) => {
+        const workspaceDir = String.raw`C:\talos-synthetic-workspace`;
+        const { facade, dataDir } = freshFacade({ policyOwner, sessionWorkspaceDir: workspaceDir, shellFamily: 'cmd' });
+        const info = vi.spyOn(logger, 'info').mockImplementation(() => undefined);
+        try {
+          seedWindowsTrashRuntime(dataDir);
+          const command = String.raw`del C:\talos-synthetic-workspace\output.log`;
+          const result = await facade.checkPermission({ toolName: 'bash', sessionId: 'windows-rewrite', input: { command, timeout: 9 } });
+          expect(result.behavior).toBe('allow');
+          expect(result.rewrittenInput?.command).toBe('mavis-trash --');
+          expect(result.rewrittenInput?.timeout).toBe(9);
+          const marker = readWindowsTrashExecution(result.rewrittenInput);
+          expect(marker?.targets).toEqual([path.win32.join(workspaceDir, 'output.log')]);
+          expect(result.executionPlan).toMatchObject({ originalInput: { command, timeout: 9 },
+            effectiveInput: result.rewrittenInput, transforms: [{ type: 'recoverable-delete', targets: [path.win32.join(workspaceDir, 'output.log')] }] });
+          expect(info).toHaveBeenCalledWith(expect.objectContaining({ session_id: 'windows-rewrite', checker_behavior: 'allow', rewrite_applied: true,
+            subcommand_results: [expect.objectContaining({ behavior: 'allow', reason_code: 'recoverable_delete_rewrite' })] }), 'permission.checker.decision');
+          expect(info).toHaveBeenCalledWith(expect.objectContaining({ permission_mode: 'default', policy_owner: policyOwner,
+            raw_behavior: 'allow', final_behavior: 'allow', execution_plan_present: true, transform_count: 1 }), 'permission.decision');
+        } finally { info.mockRestore(); cleanup(dataDir); }
+      },
+    );
+
+    it.runIf(process.platform === 'win32').each(['default', 'auto', 'bypassPermissions', 'off'] as const)(
+      'logs native early Windows hard denial before checker/core and does not bypass it in %s', async (permissionMode) => {
+        const { facade, dataDir } = freshFacade({ permissionMode, shellFamily: 'cmd', sessionWorkspaceDir: String.raw`C:\talos-synthetic-workspace` });
+        const info = vi.spyOn(logger, 'info').mockImplementation(() => undefined);
+        try {
+          seedWindowsTrashRuntime(dataDir);
+          for (const command of ['shred -u secret.txt', 'rm -rf /', 'del /f /q C:\\']) {
+            info.mockClear();
+            const result = await facade.checkPermission({ toolName: 'bash', sessionId: 'windows-denial', input: { command } });
+            expect(result).toMatchObject({ behavior: 'deny', denySource: 'safety-immune' });
+            expect(result.rewrittenInput).toBeUndefined(); expect(result.executionPlan).toBeUndefined();
+            expect(info).toHaveBeenCalledWith(expect.objectContaining({ permission_mode: permissionMode, raw_behavior: 'deny', final_behavior: 'deny',
+              deny_source: 'safety-immune', execution_plan_present: false, transform_count: 0 }), 'permission.decision');
+            expect(info.mock.calls.some(([, event]) => event === 'permission.checker.decision' || event === 'permission.core.decision')).toBe(false);
+          }
+        } finally { info.mockRestore(); cleanup(dataDir); }
+      },
+    );
+
     it.each(['default', 'bypassPermissions', 'off'] as const)(
       'hard-denies the incident wrapper command in %s mode before execution',
       async (permissionMode) => {
@@ -1413,7 +1495,7 @@ describe('LocalPermissionFacade', () => {
       }
     });
 
-    it('off mode still applies the catastrophic rm safety boundary', async () => {
+    it.runIf(isPosixHost)('off mode still applies the catastrophic rm safety boundary', async () => {
       const { facade, dataDir } = freshFacade({ permissionMode: 'off', platform: 'darwin' });
       try {
         const r = await facade.checkPermission({
@@ -1597,8 +1679,15 @@ describe('LocalPermissionFacade', () => {
           input: { command: 'rm -rf /' },
         });
         expect(r.behavior).toBe('deny');
-        expect(r.reason).toMatch(/recursive deletion targets a root or home directory/);
-        expect(r.reason).toMatch(/unrecoverable/);
+        if (process.platform === 'win32') {
+          // Windows rejects before the POSIX Bash checker, even in bypass mode.
+          expect(r.reason).toContain('Local hard safety policy blocked deletion');
+          expect(r.reason).toContain('must not fall back to a permanent delete command');
+          expect(r.rewrittenInput).toBeUndefined();
+        } else {
+          expect(r.reason).toMatch(/recursive deletion targets a root or home directory/);
+          expect(r.reason).toMatch(/unrecoverable/);
+        }
         expect(r.denySource).toBe('safety-immune');
       } finally {
         cleanup(dataDir);
@@ -1615,7 +1704,10 @@ describe('LocalPermissionFacade', () => {
           input: { command: 'shred -u secret.txt' },
         });
         expect(r.behavior).toBe('deny');
-        expect(r.denySource).toBe('safety');
+        if (process.platform === 'win32') {
+          expect(r.denySource).toBe('safety-immune');
+          expect(r.rewrittenInput).toBeUndefined();
+        } else expect(r.denySource).toBe('safety');
       } finally {
         cleanup(dataDir);
       }
@@ -2017,13 +2109,19 @@ describe('LocalPermissionFacade', () => {
       }
     });
 
-    it('write to a path inside dataDir still ASKs (sandbox is read-only)', async () => {
-      const { facade, dataDir } = freshFacade({ permissionMode: 'default' });
+    it.each(['default', 'auto'] as const)('write to dataDir outside the session workspace still ASKs in %s (sandbox is read-only)', async (permissionMode) => {
+      const sessionWorkspaceDir = path.join(tmpdir(), 'talos-selected-workspace');
+      const { facade, dataDir } = freshFacade({ permissionMode, sessionWorkspaceDir });
       try {
         const r = await facade.checkPermission({
           toolName: 'write',
+          sessionId: 'fixture-selected-workspace',
           input: { path: path.join(dataDir, 'skills', 'generated', 'SKILL.md') },
         });
+        // The fake dataDir is separate from the selected session workspace.
+        // Omitting the session cwd would default to home, which contains tmpdir
+        // on Windows and would make this a working-directory allow instead.
+        expect(path.relative(sessionWorkspaceDir, dataDir).startsWith('..')).toBe(true);
         // Writes to dataDir go through normal review. The sandbox
         // auto-allow is scoped to READ-ONLY tools because fs-permission's
         // credential / .env / sensitive-git-file safeguards run BEFORE
@@ -2116,11 +2214,149 @@ describe('LocalPermissionFacade', () => {
     });
   });
 
+  describe('legacy home skill trust boundary', () => {
+    it.each(['engine', 'core'] as const)(
+      'keeps legacy home assets private without breaking selected Talos skills (%s)',
+      async (policyOwner) => {
+        const fixture = mkdtempSync(path.join(tmpdir(), 'talos-skill-isolation-'));
+        const fakeHome = path.join(fixture, 'home');
+        const workspace = path.join(fakeHome, 'workspace');
+        mkdirSync(workspace, { recursive: true });
+        const homeSpy = vi.mocked(homedir).mockReturnValue(fakeHome);
+        vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+        const { facade, ruleStore, dataDir } = freshFacade({
+          policyOwner, permissionMode: 'default', sessionWorkspaceDir: workspace,
+        });
+        try {
+          const paths = [
+            'skills/fixture-skill/references/guide.txt',
+            '.builtin-skills/fixture-skill/references/guide.txt',
+            'agents/fixture-agent/skills/fixture-skill/references/guide.txt',
+            'agents/fixture-agent/workspace/notes.txt',
+            'agents/fixture-agent/memory/notes.txt',
+            'memory/notes.txt',
+            'config.yaml',
+          ];
+          for (const relative of paths) {
+            const target = path.join(fakeHome, '.minimax', relative);
+            mkdirSync(path.dirname(target), { recursive: true });
+            writeFileSync(target, 'synthetic legacy runtime data');
+            for (const toolName of ['read', 'grep', 'glob', 'list']) {
+              const result = await facade.checkPermission({
+                toolName, agentName: 'fixture-agent', sessionId: 'isolation',
+                input: { path: toolName === 'read' ? target : path.dirname(target), pattern: '*' },
+              });
+              expect(result.behavior, `${toolName}: ${relative}`).toBe('ask');
+              expect(result.hookAutoApprovalEligible).toBeUndefined();
+            }
+          }
+          for (const relative of paths.slice(0, 3)) {
+            const target = path.join(dataDir, relative);
+            mkdirSync(path.dirname(target), { recursive: true });
+            writeFileSync(target, 'synthetic Talos skill asset');
+            for (const toolName of ['read', 'grep', 'glob', 'list']) {
+              const result = await facade.checkPermission({
+                toolName, agentName: 'fixture-agent', sessionId: 'isolation',
+                input: { path: toolName === 'read' ? target : path.dirname(target), pattern: '*' },
+              });
+              expect(result.behavior, `${toolName}: ${relative}`).toBe('allow');
+            }
+          }
+          // Home is the historical missing-session fallback. Legacy data still
+          // requires approval even when it is inside that implicit workspace.
+          expect((await facade.checkPermission({ toolName: 'read',
+            input: { path: path.join(fakeHome, '.minimax', paths[0]) },
+          })).behavior).toBe('ask');
+          expect((await facade.checkPermission({ toolName: 'grep',
+            input: { path: fakeHome, pattern: 'synthetic' },
+          })).behavior).toBe('ask');
+          const alias = path.join(workspace, 'legacy-runtime');
+          symlinkSync(path.join(fakeHome, '.minimax'), alias, process.platform === 'win32' ? 'junction' : 'dir');
+          expect((await facade.checkPermission({ toolName: 'read', sessionId: 'isolation',
+            input: { path: path.join(alias, paths[0]) },
+          })).behavior).toBe('ask');
+          expect((await facade.checkPermission({ toolName: 'grep', sessionId: 'isolation',
+            input: { path: alias, pattern: 'synthetic' },
+          })).behavior).toBe('ask');
+          const approved = path.join(fakeHome, '.minimax', paths[0]);
+          await ruleStore.applyUpdate({ type: 'addRules', source: 'global', destination: 'global',
+            behavior: 'allow', rules: [{ tool_name: 'read', rule_content: approved }],
+          });
+          expect((await facade.checkPermission({ toolName: 'read', sessionId: 'isolation',
+            input: { path: approved },
+          })).behavior).toBe('allow');
+        } finally {
+          homeSpy.mockRestore(); vi.unstubAllEnvs(); cleanup(dataDir); cleanup(fixture);
+        }
+      },
+    );
+
+    it('honors an explicitly selected data directory within the legacy tree', async () => {
+      const fakeHome = mkdtempSync(path.join(tmpdir(), 'talos-explicit-data-'));
+      const legacyRoot = path.join(fakeHome, '.minimax');
+      mkdirSync(legacyRoot, { recursive: true });
+      const homeSpy = vi.mocked(homedir).mockReturnValue(fakeHome);
+      vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+      const { facade, dataDir } = freshFacade({ dataDirParent: legacyRoot,
+        sessionWorkspaceDir: path.join(fakeHome, 'workspace'),
+      });
+      try {
+        const selected = path.join(dataDir, 'skills', 'selected', 'SKILL.md');
+        const sibling = path.join(legacyRoot, 'skills', 'legacy', 'SKILL.md');
+        for (const target of [selected, sibling]) {
+          mkdirSync(path.dirname(target), { recursive: true });
+          writeFileSync(target, 'synthetic skill');
+        }
+        expect((await facade.checkPermission({ toolName: 'read', sessionId: 'explicit',
+          input: { path: selected },
+        })).behavior).toBe('allow');
+        expect((await facade.checkPermission({ toolName: 'read', sessionId: 'explicit',
+          input: { path: sibling },
+        })).behavior).toBe('ask');
+      } finally {
+        homeSpy.mockRestore(); vi.unstubAllEnvs(); cleanup(dataDir); cleanup(fakeHome);
+      }
+    });
+
+    it('preserves the non-neutral legacy read exception', async () => {
+      const fakeHome = mkdtempSync(path.join(tmpdir(), 'legacy-home-'));
+      const target = path.join(fakeHome, '.minimax', 'skills', 'legacy', 'SKILL.md');
+      mkdirSync(path.dirname(target), { recursive: true });
+      writeFileSync(target, 'synthetic legacy skill');
+      const homeSpy = vi.mocked(homedir).mockReturnValue(fakeHome);
+      vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '0');
+      const { facade, dataDir } = freshFacade({ sessionWorkspaceDir: path.join(fakeHome, 'workspace') });
+      try {
+        expect((await facade.checkPermission({ toolName: 'read', sessionId: 'legacy',
+          input: { path: target },
+        })).behavior).toBe('allow');
+      } finally {
+        homeSpy.mockRestore(); vi.unstubAllEnvs(); cleanup(dataDir); cleanup(fakeHome);
+      }
+    });
+  });
+
   describe('turn-scoped trusted exact writes', () => {
-    it('allows only the supplied exact Plan target without persisting a rule', async () => {
-      const { facade, ruleStore, dataDir } = freshFacade({ permissionMode: 'default' });
+    it.each(['default', 'auto'] as const)('keeps the documented home fallback independent of an exact-write allowance in %s', async (permissionMode) => {
+      const { facade, ruleStore, dataDir } = freshFacade({ permissionMode });
+      try {
+        // This contrast pins the existing fallback, not an implicit temp write grant.
+        const target = path.join(homedir(), 'talos-synthetic-workspace', 'plan.md.bak');
+        const result = await facade.checkPermission({
+          toolName: 'write', input: { path: target, content: '# Synthetic check only' },
+          sessionId: 'missing-session', trustedExactWritePaths: [target.slice(0, -4)],
+        });
+        expect(result.behavior).toBe('allow');
+        await expect(ruleStore.listRules({ sessionId: 'missing-session' })).resolves.toEqual([]);
+      } finally { cleanup(dataDir); }
+    });
+
+    it.each(['default', 'auto'] as const)('allows only the supplied exact Plan target outside the session workspace in %s without persisting a rule', async (permissionMode) => {
+      const sessionWorkspaceDir = path.join(tmpdir(), 'talos-selected-workspace');
+      const { facade, ruleStore, dataDir } = freshFacade({ permissionMode, sessionWorkspaceDir });
       const planPath = path.join(dataDir, 'v2', 'sessions', 'session-a', 'artifacts', 'plan.md');
       try {
+        expect(path.relative(sessionWorkspaceDir, dataDir).startsWith('..')).toBe(true);
         await expect(
           facade.checkPermission({
             toolName: 'write',
@@ -2137,6 +2373,9 @@ describe('LocalPermissionFacade', () => {
             trustedExactWritePaths: [planPath],
           }),
         ).resolves.toMatchObject({ behavior: 'ask' });
+        await expect(facade.checkPermission({
+          toolName: 'write', input: { path: planPath, content: '# Untrusted retry' }, sessionId: 'session-a',
+        })).resolves.toMatchObject({ behavior: 'ask' });
         await expect(ruleStore.listRules({ sessionId: 'session-a' })).resolves.toEqual([]);
       } finally {
         cleanup(dataDir);
@@ -2197,7 +2436,7 @@ describe('LocalPermissionFacade', () => {
   });
 
   describe('rewrittenInput (rm → mavis-trash)', () => {
-    it('preserves rewrittenInput and exposes the complete production execution plan', async () => {
+    it.runIf(isPosixHost)('preserves rewrittenInput and exposes the complete production execution plan', async () => {
       const { facade, dataDir } = freshFacade({ permissionMode: 'default' });
       try {
         const r = await facade.checkPermission({
@@ -2237,7 +2476,7 @@ describe('LocalPermissionFacade', () => {
       }
     });
 
-    it('resolves tilde targets with the same home context used by the permission checker', async () => {
+    it.runIf(isPosixHost)('resolves tilde targets with the same home context used by the permission checker', async () => {
       const { facade, dataDir } = freshFacade({
         permissionMode: 'default',
         workspaceDir: '/workspace',
@@ -2266,6 +2505,42 @@ describe('LocalPermissionFacade', () => {
   });
 
   describe('cloud gateway (auto mode)', () => {
+    it.each(['engine', 'core'] as const)('keeps neutral Auto undecided actions on user confirmation with %s policy owner', async (policyOwner) => {
+      vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+      const classify = vi.fn(async () => ({ kind: 'allow' as const, reasonLocalized: 'synthetic cloud allow' }));
+      configurePermissionHost({ runtimeConfigProvider: {
+        getConfig: () => ({}), getRuntimeRegion: () => 'en', getRuntimeBuildEnv: () => 'prod', isManagedRuntime: () => true,
+      } });
+      const { facade, dataDir } = freshFacade({ permissionMode: 'auto', policyOwner, cloudGateway: { classify } });
+      try {
+        await expect(facade.checkPermission({ toolName: 'bash', input: { command: 'npm publish' } }))
+          .resolves.toMatchObject({ behavior: 'ask' });
+        expect(classify).not.toHaveBeenCalled();
+      } finally { cleanup(dataDir); resetPermissionHostForTesting(); vi.unstubAllEnvs(); }
+    });
+
+    it('preserves explicit local allow/deny rules and non-bypassable hard denial in neutral Auto', async () => {
+      vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+      const classify = vi.fn(async () => ({ kind: 'allow' as const, reasonLocalized: 'synthetic cloud allow' }));
+      configurePermissionHost({ runtimeConfigProvider: {
+        getConfig: () => ({}), getRuntimeRegion: () => 'en', getRuntimeBuildEnv: () => 'prod', isManagedRuntime: () => true,
+      } });
+      const { facade, ruleStore, dataDir } = freshFacade({ permissionMode: 'auto', cloudGateway: { classify } });
+      try {
+        await ruleStore.applyUpdate({ type: 'addRules', source: 'session', destination: 'synthetic-permission-session',
+          behavior: 'allow', rules: [{ tool_name: 'bash', rule_content: 'npm publish' }] });
+        await expect(facade.checkPermission({ toolName: 'bash', sessionId: 'synthetic-permission-session',
+          input: { command: 'npm publish' } })).resolves.toMatchObject({ behavior: 'allow' });
+        await ruleStore.applyUpdate({ type: 'addRules', source: 'session', destination: 'synthetic-permission-session',
+          behavior: 'deny', rules: [{ tool_name: 'bash', rule_content: 'npm publish' }] });
+        await expect(facade.checkPermission({ toolName: 'bash', sessionId: 'synthetic-permission-session',
+          input: { command: 'npm publish' } })).resolves.toMatchObject({ behavior: 'deny' });
+        await expect(facade.checkPermission({ toolName: 'bash', input: { command: 'rm -rf /' } }))
+          .resolves.toMatchObject({ behavior: 'deny' });
+        expect(classify).not.toHaveBeenCalled();
+      } finally { cleanup(dataDir); resetPermissionHostForTesting(); vi.unstubAllEnvs(); }
+    });
+
     // We exercise the cloud-gateway branch by forcing shouldUseCloudClassify
     // via an injected gateway and a managed-runtime fixture. Since
     // shouldUseCloudClassify() reads runtime host state and we cannot easily

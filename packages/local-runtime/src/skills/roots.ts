@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 
 import {
   DEFAULT_SKILLS_CONFIG,
@@ -82,13 +82,16 @@ function readExternalWorkspaceSkillRoots(
   return roots.flatMap((rootPath, index) => {
     const nearestPriorityBonus = (rootCount - index) / 1000;
     return [
-      externalSkillRoot(
-        'workspace-minimax',
-        join(rootPath, '.minimax', 'skills'),
-        'workspace',
-        skillsConfig,
-        nearestPriorityBonus,
-      ),
+      // Parent scanning must not turn the old home runtime into project skills.
+      process.env.TALOS_NEUTRAL_RUNTIME === '1' && relative(homedir(), rootPath) === ''
+        ? undefined
+        : externalSkillRoot(
+            'workspace-minimax',
+            join(rootPath, '.minimax', 'skills'),
+            'workspace',
+            skillsConfig,
+            nearestPriorityBonus,
+          ),
       externalSkillRoot(
         'workspace-cc',
         join(rootPath, '.claude', 'skills'),

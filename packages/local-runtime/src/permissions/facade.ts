@@ -997,7 +997,13 @@ export class LocalPermissionFacade {
 
     const candidates: string[] = [];
     const dataDir = this.deps.configGetter().dataDir;
-    for (const root of [dataDir, path.join(homedir(), '.minimax')]) {
+    // Only the active Talos data directory supplies implicit skill read roots.
+    // Explicit external workspace sources are handled by the skill registry.
+    const runtimeRoots =
+      process.env.TALOS_NEUTRAL_RUNTIME === '1'
+        ? [dataDir]
+        : [dataDir, path.join(homedir(), '.minimax')];
+    for (const root of runtimeRoots) {
       if (!root) continue;
       candidates.push(path.resolve(root, 'skills'), path.resolve(root, '.builtin-skills'));
       if (agentName) candidates.push(path.resolve(root, 'agents', agentName, 'skills'));

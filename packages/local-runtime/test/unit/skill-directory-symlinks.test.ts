@@ -1,5 +1,6 @@
 import { mkdtemp, mkdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -7,6 +8,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_SKILLS_CONFIG } from '@mavis/config';
 import { createSkillRegistry, type SkillRegistryWatcher } from '@mavis/skills';
 import { readConfiguredSkillRoots } from '../../src/skills/roots.js';
+
+// Fake only the home locator; keep the real filesystem and host platform.
+vi.mock('node:os', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:os')>();
+  return { ...actual, homedir: vi.fn(actual.homedir) };
+});
 
 let fixture: string;
 let workspace: string;
@@ -21,6 +28,9 @@ beforeEach(async () => {
 afterEach(async () => {
   watcher?.close();
   watcher = undefined;
+  vi.mocked(homedir).mockRestore();
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
   await rm(fixture, { recursive: true, force: true });
 });
 
@@ -48,6 +58,66 @@ async function linkDirectory(target: string, link: string, relativeTarget = fals
     process.platform === 'win32' ? 'junction' : 'dir',
   );
 }
+
+describe('Talos skill source isolation', () => {
+  it('registers selected Talos skills without importing the legacy home runtime', async () => {
+    const fakeHome = join(fixture, 'home');
+    const dataDir = join(fakeHome, '.talos');
+    const nestedWorkspace = join(fakeHome, 'projects', 'sample');
+    await mkdir(nestedWorkspace, { recursive: true });
+    // An ancestor repository makes walkUp include home among project roots.
+    await mkdir(join(fixture, '.git'), { recursive: true });
+    vi.mocked(homedir).mockReturnValue(fakeHome);
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    for (const [root, name] of [
+      [join(fakeHome, '.minimax', 'skills'), 'legacy-home-skill'],
+      [join(fakeHome, '.minimax', '.builtin-skills'), 'legacy-home-builtin'],
+      [join(fakeHome, '.minimax', 'agents', 'mavis', 'skills'), 'legacy-home-agent'],
+      [join(dataDir, 'skills'), 'talos-user-skill'],
+      [join(dataDir, '.builtin-skills'), 'talos-seeded-skill'],
+      [join(dataDir, 'agents', 'mavis', 'skills'), 'talos-agent-skill'],
+    ] as const) {
+      await writeSkill(join(root, name), name);
+    }
+    const roots = readConfiguredSkillRoots({ dataDir, provider: {} }, 'mavis', nestedWorkspace);
+    expect(roots.some((root) => root.rootPath.startsWith(join(fakeHome, '.minimax')))).toBe(false);
+    const registry = await createSkillRegistry(roots);
+    const names = registry.getAvailableSkills().map((skill) => skill.name);
+    expect(names).toEqual(expect.arrayContaining(['talos-user-skill', 'talos-seeded-skill', 'talos-agent-skill']));
+    for (const name of ['legacy-home-skill', 'legacy-home-builtin', 'legacy-home-agent']) {
+      expect(names).not.toContain(name);
+    }
+    for (const name of ['talos-user-skill', 'talos-seeded-skill', 'talos-agent-skill']) {
+      const skill = registry.getAvailableSkills().find((entry) => entry.name === name)!;
+      expect(registry.readByLocationUri(skill.locationUri)).toContain('Initial instructions');
+    }
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '0');
+    const legacyRegistry = await createSkillRegistry(
+      readConfiguredSkillRoots({ dataDir, provider: {} }, 'mavis', nestedWorkspace),
+    );
+    expect(legacyRegistry.getAvailableSkills().map((skill) => skill.name)).toContain('legacy-home-skill');
+  });
+
+  it('keeps workspace compatibility subject to both external-source switches in neutral mode', async () => {
+    vi.mocked(homedir).mockReturnValue(join(fixture, 'home'));
+    vi.stubEnv('TALOS_NEUTRAL_RUNTIME', '1');
+    await writeSkill(join(workspace, '.minimax', 'skills', 'workspace-compat'), 'workspace-compat');
+    const config = { dataDir: join(fixture, '.talos'), provider: {}, skills: {
+      external: { ...DEFAULT_SKILLS_CONFIG.external, sources: { ...DEFAULT_SKILLS_CONFIG.external.sources } },
+    } };
+    const scan = async () => {
+      const roots = readConfiguredSkillRoots(config, 'mavis', workspace);
+      const registry = await createSkillRegistry(roots);
+      return registry.getAvailableSkills().map((skill) => skill.name);
+    };
+    expect(await scan()).toContain('workspace-compat');
+    config.skills.external.sources['workspace-minimax'] = { enabled: false, priority: 65 };
+    expect(await scan()).not.toContain('workspace-compat');
+    config.skills.external.sources['workspace-minimax'] = { enabled: true, priority: 65 };
+    config.skills.external.enabled = false;
+    expect(await scan()).not.toContain('workspace-compat');
+  });
+});
 
 describe('configured workspace skill directory links', () => {
   it.each(['.agents', '.claude', '.minimax'])(
