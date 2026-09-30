@@ -835,3 +835,221 @@ function cancellationTest(cancellation) {
     );
   };
 }
+
+
+// Exercise the installed SDK over real stdio and a real local Runtime. No model
+// service is contacted: only the explicitly permitted loopback fixture is used.
+test('ACP real Runtime approves, cancels and loads the same saved Session', { timeout: 120000 }, async (t) => {
+  const acp = await import('@agentclientprotocol/sdk');
+  const { Readable, Writable } = await import('node:stream');
+  const { setTimeout: delay } = await import('node:timers/promises');
+  const fixture = mkdtempSync(path.join(tmpdir(), 'talos-acp-state-'));
+  const home = path.join(fixture, 'home');
+  const workspace = path.join(fixture, 'workspace');
+  const otherWorkspace = path.join(fixture, 'other');
+  const dataDir = path.join(fixture, 'data');
+  for (const directory of [home, workspace, otherWorkspace, dataDir]) mkdirSync(directory);
+  const audit = path.join(fixture, 'network.log');
+  const children = [];
+  const requests = [];
+  const failures = [];
+  const pendingResponses = new Set();
+  let permissionMode = 'deny';
+  let permissionSeen = 0;
+  let pendingPermission;
+  let releasePending;
+  const deniedTarget = path.join(workspace, '.env');
+  const cancelledTarget = path.join(workspace, '.env.cancelled');
+  const approvedContent = 'TALOS_SYNTHETIC_APPROVAL=ok';
+  const server = createServer(async (req, res) => {
+    try {
+      let raw = '';
+      for await (const chunk of req) raw += chunk;
+      const body = JSON.parse(raw);
+      requests.push(body);
+      assert.ok(req.url.endsWith('/chat/completions'), req.url);
+      assert.equal(req.headers.authorization, 'Bearer fixture-state-key');
+      if (!body.stream) {
+        res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({
+          id: 'fixture', object: 'chat.completion', model: 'fixture-state',
+          choices: [{ index: 0, message: { role: 'assistant', content: 'STATE_OK' }, finish_reason: 'stop' }],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        }));
+        return;
+      }
+      res.writeHead(200, { 'content-type': 'text/event-stream' });
+      const emit = (delta, finishReason = null) => res.write('data: ' + JSON.stringify({
+        id: 'fixture', object: 'chat.completion.chunk', created: 1, model: 'fixture-state',
+        choices: [{ index: 0, delta, finish_reason: finishReason }],
+      }) + '
+
+');
+      const lastUser = body.messages.findLast((message) => message.role === 'user');
+      const text = JSON.stringify(lastUser?.content ?? '');
+      const last = body.messages.at(-1);
+      if (text.includes('STREAM_CANCEL') && last?.role !== 'tool') {
+        emit({ role: 'assistant', content: 'STATE_STREAM_STARTED' });
+        pendingResponses.add(res);
+        res.once('close', () => pendingResponses.delete(res));
+        return; // Hold the stream until the product's cancel action aborts it.
+      }
+      if (text.includes('WRITE_') && last?.role !== 'tool') {
+        assert.ok(body.tools.some((tool) => tool.function?.name === 'write'));
+        emit({ role: 'assistant', tool_calls: [{ index: 0, id: 'fixture-write', type: 'function',
+          function: { name: 'write', arguments: JSON.stringify({
+            path: text.includes('WRITE_PENDING') ? cancelledTarget : deniedTarget,
+            content: approvedContent,
+          }) },
+        }] });
+        emit({}, 'tool_calls');
+      } else {
+        emit({ role: 'assistant', content: 'STATE_OK' });
+        emit({}, 'stop');
+      }
+      res.end('data: [DONE]
+
+');
+    } catch (error) {
+      failures.push(error);
+      res.destroy(error);
+    }
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const origin = 'http://127.0.0.1:' + server.address().port;
+  writeFileSync(path.join(dataDir, 'config.yaml'), stringifyYaml({
+    permissionMode: 'default',
+    custom_provider: { fixture: { name: 'State fixture', enabled: true, api: 'openai-completions',
+      options: { apiKey: 'fixture-state-key', baseURL: origin + '/v1' },
+      models: { 'fixture-state': { limit: { context: 32768, output: 4096 } } },
+    } },
+    defaultModel: 'custom_provider:fixture/fixture-state',
+  }));
+  async function waitFor(predicate, description, timeout = 15000) {
+    const end = Date.now() + timeout;
+    while (!predicate()) {
+      if (Date.now() > end) throw new Error(description + ' timed out: ' + children.map((c) => c.stderr).join('
+'));
+      await delay(20);
+    }
+  }
+  async function bounded(promise, label, timeout = 20000) {
+    let timer;
+    try { return await Promise.race([promise, new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(label + ' timed out: ' + children.map((c) => c.stderr).join('
+'))), timeout);
+    })]); } finally { clearTimeout(timer); }
+  }
+  async function start() {
+    const child = spawn(process.execPath, [cli, 'acp'], { cwd: workspace,
+      env: { ...withoutProxyEnvironment(), HOME: home, USERPROFILE: home,
+        MINIMAX_DATA_DIR: dataDir, MAVIS_DATA_DIR: dataDir,
+        MCODE_TEST_ALLOWED_ORIGIN: origin, MCODE_TEST_NETWORK_AUDIT: audit,
+        MCODE_TEST_CATALOG_OFFLINE: '1', MCODE_TEST_MANAGED_OFFLINE: '1',
+        NODE_OPTIONS: '--import=' + new URL('./network-deny.mjs', import.meta.url).href,
+      }, stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    const record = { child, stderr: '', updates: [] };
+    children.push(record);
+    child.stderr.on('data', (chunk) => { record.stderr += chunk; });
+    record.exited = new Promise((resolve, reject) => {
+      child.once('error', reject);
+      child.once('exit', (code) => resolve(code));
+    });
+    record.connection = acp.client({ name: 'talos-state-fixture' })
+      .onNotification(acp.methods.client.session.update, ({ params }) => record.updates.push(params))
+      .onRequest(acp.methods.client.session.requestPermission, async ({ params, signal }) => {
+        permissionSeen++;
+        assert.ok(params.options.some((option) => option.kind === 'reject_once'));
+        if (permissionMode === 'pending') {
+          pendingPermission = params;
+          await new Promise((resolve) => {
+            releasePending = resolve;
+            if (signal.aborted) resolve();
+            else signal.addEventListener('abort', resolve, { once: true });
+          });
+          return { outcome: { outcome: 'cancelled' } };
+        }
+        const kind = permissionMode === 'allow' ? 'allow_once' : 'reject_once';
+        const selected = params.options.find((option) => option.kind === kind);
+        assert.ok(selected, 'Use only an engine-provided permission option');
+        return { outcome: { outcome: 'selected', optionId: selected.optionId } };
+      })
+      .connect(acp.ndJsonStream(Writable.toWeb(child.stdin), Readable.toWeb(child.stdout)));
+    record.agent = record.connection.agent;
+    const initialized = await bounded(record.agent.request(acp.methods.agent.initialize, {
+      protocolVersion: acp.PROTOCOL_VERSION, clientCapabilities: {},
+    }), 'initialize');
+    assert.equal(initialized.protocolVersion, 1);
+    assert.equal(initialized.agentCapabilities.loadSession, true);
+    return record;
+  }
+  async function stop(record) {
+    record.child.stdin.end();
+    assert.equal(await bounded(record.exited, 'EOF shutdown', 10000), 0, record.stderr);
+  }
+  const newSession = (record) => bounded(record.agent.request(acp.methods.agent.session.new,
+    { cwd: workspace, mcpServers: [] }), 'session/new');
+  const prompt = (record, sessionId, text) => record.agent.request(acp.methods.agent.session.prompt,
+    { sessionId, prompt: [{ type: 'text', text }] });
+  t.after(async () => {
+    releasePending?.();
+    for (const record of children) {
+      record.connection.close();
+      if (record.child.exitCode === null) record.child.kill('SIGTERM');
+      await record.exited.catch(() => undefined);
+    }
+    for (const response of pendingResponses) response.destroy();
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+    try {
+      assert.deepEqual(failures, []);
+      assert.equal(existsSync(audit), false, 'Unknown external network must stay blocked');
+      assert.equal(existsSync(audit + '.managed') ? readFileSync(audit + '.managed', 'utf8') : '', '',
+        'No managed-service request is allowed');
+    } finally { rmSync(fixture, { recursive: true, force: true }); }
+  });
+  const first = await start();
+  const denied = await newSession(first);
+  assert.deepEqual(await bounded(prompt(first, denied.sessionId, 'WRITE_DENY'), 'denied write'), { stopReason: 'end_turn' });
+  assert.equal(permissionSeen, 1, 'The real default policy must ask');
+  assert.equal(existsSync(deniedTarget), false, 'Denied write must not create the file');
+  permissionMode = 'allow';
+  const approved = await newSession(first);
+  assert.deepEqual(await bounded(prompt(first, approved.sessionId, 'WRITE_ALLOW'), 'approved write'), { stopReason: 'end_turn' });
+  assert.equal(permissionSeen, 2);
+  assert.equal(readFileSync(deniedTarget, 'utf8'), approvedContent);
+  const streaming = await newSession(first);
+  const run = prompt(first, streaming.sessionId, 'STREAM_CANCEL');
+  run.catch(() => undefined);
+  await waitFor(() => first.updates.some((n) => n.sessionId === streaming.sessionId &&
+    n.update.sessionUpdate === 'agent_message_chunk' && n.update.content?.text?.includes('STATE_STREAM_STARTED')), 'actual stream chunk');
+  await first.agent.notify(acp.methods.agent.session.cancel, { sessionId: streaming.sessionId });
+  assert.deepEqual(await bounded(run, 'stream cancellation'), { stopReason: 'cancelled' });
+  permissionMode = 'pending';
+  const waiting = await newSession(first);
+  const pendingRun = prompt(first, waiting.sessionId, 'WRITE_PENDING');
+  pendingRun.catch(() => undefined);
+  await waitFor(() => pendingPermission?.sessionId === waiting.sessionId, 'pending approval');
+  await first.agent.notify(acp.methods.agent.session.cancel, { sessionId: waiting.sessionId });
+  assert.deepEqual(await bounded(pendingRun, 'pending approval cancellation'), { stopReason: 'cancelled' });
+  releasePending?.();
+  assert.equal(existsSync(cancelledTarget), false);
+  await stop(first);
+  permissionMode = 'deny';
+  const second = await start();
+  await assert.rejects(bounded(second.agent.request(acp.methods.agent.session.load,
+    { sessionId: approved.sessionId, cwd: otherWorkspace, mcpServers: [] }), 'wrong cwd'), /cwd|workspace/i);
+  const loaded = await bounded(second.agent.request(acp.methods.agent.session.load,
+    { sessionId: approved.sessionId, cwd: workspace, mcpServers: [] }), 'session/load');
+  assert.equal('sessionId' in loaded, false, 'Load echoes controls, not a new Session identity');
+  const replayedUsers = second.updates.filter((n) => n.sessionId === approved.sessionId &&
+    n.update.sessionUpdate === 'user_message_chunk').map((n) => n.update.content?.text ?? '').join('');
+  assert.equal(replayedUsers.split('WRITE_ALLOW').length - 1, 1, 'History user command replays once');
+  const beforeContinue = requests.length;
+  assert.deepEqual(await bounded(prompt(second, approved.sessionId, 'CONTINUE_AFTER_LOAD'), 'continued prompt'), { stopReason: 'end_turn' });
+  assert.ok(requests.slice(beforeContinue).some((body) => JSON.stringify(body.messages).includes('WRITE_ALLOW')));
+  assert.equal(readFileSync(deniedTarget, 'utf8'), approvedContent);
+  assert.equal(existsSync(cancelledTarget), false);
+  await stop(second);
+  t.diagnostic('Verified real approval effects, streaming/pending cancellation, EOF shutdown, cwd rejection and same-session load/continue');
+});
