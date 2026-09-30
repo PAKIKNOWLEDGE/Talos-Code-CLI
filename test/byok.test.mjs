@@ -1083,6 +1083,9 @@ test('ACP real Runtime approves, cancels and loads the same saved Session', { ti
   const lostReply = await bounded(crashOutcome, 'rejected outstanding prompt');
   assert.ok(lostReply.error, 'Connection loss must not become a successful prompt response');
   assert.equal(lostReply.response, undefined);
+  const streamCrashRequests = () => requests.filter((body) => body.stream === true &&
+    JSON.stringify(body.messages?.findLast((message) => message.role === 'user')?.content ?? '').includes('STREAM_CRASH')).length;
+  const requestsBeforeRestart = streamCrashRequests();
   const afterRestart = await start();
   await waitFor(() => ingress()[0]?.status === 'failed', 'persisted restart recovery');
   const recoveredIngress = ingress();
@@ -1098,13 +1101,17 @@ test('ACP real Runtime approves, cancels and loads the same saved Session', { ti
   const history = afterRestart.updates.filter((n) => n.sessionId === interrupted.sessionId &&
     n.update.sessionUpdate === 'user_message_chunk').map((n) => n.update.content?.text ?? '').join('');
   assert.equal(history.split('STREAM_CRASH').length - 1, 1, 'Interrupted instruction must replay once');
+  assert.equal(streamCrashRequests(), requestsBeforeRestart, 'Restart/load must not silently resend the interrupted prompt');
   const oldUpdateCount = crashing.updates.length;
   const beforeRecoveryPrompt = requests.length;
   assert.deepEqual(await bounded(prompt(afterRestart, interrupted.sessionId, 'CONTINUE_AFTER_PROCESS_EXIT'),
     'continue interrupted session'), { stopReason: 'end_turn' });
   assert.ok(requests.slice(beforeRecoveryPrompt).some((body) => JSON.stringify(body.messages ?? []).includes('STREAM_CRASH')));
-  assert.deepEqual(ingress().map((row) => ({ turnId: row.turn_id, status: row.status })),
-    [{ turnId: lostTurnId, status: 'failed' }, { turnId: ingress()[1].turn_id, status: 'completed' }]);
+  const continuedIngress = ingress();
+  assert.equal(continuedIngress.length, 2);
+  assert.equal(continuedIngress[0].turn_id, lostTurnId);
+  assert.notEqual(continuedIngress[1].turn_id, lostTurnId);
+  assert.deepEqual(continuedIngress.map((row) => row.status), ['failed', 'completed']);
   assert.equal(crashing.updates.length, oldUpdateCount, 'The closed client does not receive new-generation events');
   assert.equal(existsSync(cancelledTarget), false);
   assert.equal(readFileSync(deniedTarget, 'utf8'), approvedContent);
