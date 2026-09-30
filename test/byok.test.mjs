@@ -867,6 +867,11 @@ test('ACP real Runtime approves, cancels and loads the same saved Session', { ti
       for await (const chunk of req) raw += chunk;
       const body = JSON.parse(raw);
       requests.push(body);
+      // The runtime also performs token-count and helper requests on loopback.
+      if (req.url.endsWith('/responses/input_tokens')) {
+        res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ input_tokens: 1 }));
+        return;
+      }
       assert.ok(req.url.endsWith('/chat/completions'), req.url);
       assert.equal(req.headers.authorization, 'Bearer fixture-state-key');
       if (!body.stream) {
@@ -881,9 +886,7 @@ test('ACP real Runtime approves, cancels and loads the same saved Session', { ti
       const emit = (delta, finishReason = null) => res.write('data: ' + JSON.stringify({
         id: 'fixture', object: 'chat.completion.chunk', created: 1, model: 'fixture-state',
         choices: [{ index: 0, delta, finish_reason: finishReason }],
-      }) + '
-
-');
+      }) + String.fromCharCode(10, 10));
       const lastUser = body.messages.findLast((message) => message.role === 'user');
       const text = JSON.stringify(lastUser?.content ?? '');
       const last = body.messages.at(-1);
@@ -893,8 +896,10 @@ test('ACP real Runtime approves, cancels and loads the same saved Session', { ti
         res.once('close', () => pendingResponses.delete(res));
         return; // Hold the stream until the product's cancel action aborts it.
       }
-      if (text.includes('WRITE_') && last?.role !== 'tool') {
-        assert.ok(body.tools.some((tool) => tool.function?.name === 'write'));
+      // Helper completions have no write capability; only the actual tool turn
+      // receives this call. The observed approval and file assertions prove it ran.
+      if (text.includes('WRITE_') && last?.role !== 'tool' &&
+          body.tools?.some((tool) => tool.function?.name === 'write')) {
         emit({ role: 'assistant', tool_calls: [{ index: 0, id: 'fixture-write', type: 'function',
           function: { name: 'write', arguments: JSON.stringify({
             path: text.includes('WRITE_PENDING') ? cancelledTarget : deniedTarget,
@@ -906,9 +911,7 @@ test('ACP real Runtime approves, cancels and loads the same saved Session', { ti
         emit({ role: 'assistant', content: 'STATE_OK' });
         emit({}, 'stop');
       }
-      res.end('data: [DONE]
-
-');
+      res.end('data: [DONE]' + String.fromCharCode(10, 10));
     } catch (error) {
       failures.push(error);
       res.destroy(error);
@@ -927,16 +930,14 @@ test('ACP real Runtime approves, cancels and loads the same saved Session', { ti
   async function waitFor(predicate, description, timeout = 15000) {
     const end = Date.now() + timeout;
     while (!predicate()) {
-      if (Date.now() > end) throw new Error(description + ' timed out: ' + children.map((c) => c.stderr).join('
-'));
+      if (Date.now() > end) throw new Error(description + ' timed out: ' + children.map((c) => c.stderr).join(String.fromCharCode(10)));
       await delay(20);
     }
   }
   async function bounded(promise, label, timeout = 20000) {
     let timer;
     try { return await Promise.race([promise, new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error(label + ' timed out: ' + children.map((c) => c.stderr).join('
-'))), timeout);
+      timer = setTimeout(() => reject(new Error(label + ' timed out: ' + children.map((c) => c.stderr).join(String.fromCharCode(10)))), timeout);
     })]); } finally { clearTimeout(timer); }
   }
   async function start() {
@@ -1047,9 +1048,14 @@ test('ACP real Runtime approves, cancels and loads the same saved Session', { ti
   assert.equal(replayedUsers.split('WRITE_ALLOW').length - 1, 1, 'History user command replays once');
   const beforeContinue = requests.length;
   assert.deepEqual(await bounded(prompt(second, approved.sessionId, 'CONTINUE_AFTER_LOAD'), 'continued prompt'), { stopReason: 'end_turn' });
-  assert.ok(requests.slice(beforeContinue).some((body) => JSON.stringify(body.messages).includes('WRITE_ALLOW')));
+  assert.ok(requests.slice(beforeContinue).some((body) => JSON.stringify(body.messages ?? []).includes('WRITE_ALLOW')));
   assert.equal(readFileSync(deniedTarget, 'utf8'), approvedContent);
   assert.equal(existsSync(cancelledTarget), false);
+  await bounded(second.agent.request(acp.methods.agent.session.load,
+    { sessionId: waiting.sessionId, cwd: workspace, mcpServers: [] }), 'load cancelled approval');
+  assert.deepEqual(await bounded(prompt(second, waiting.sessionId, 'CONTINUE_AFTER_CANCEL'),
+    'continue after cancelled approval'), { stopReason: 'end_turn' });
+  assert.equal(existsSync(cancelledTarget), false, 'Cancelled write must not resume on the next prompt');
   await stop(second);
   t.diagnostic('Verified real approval effects, streaming/pending cancellation, EOF shutdown, cwd rejection and same-session load/continue');
 });
