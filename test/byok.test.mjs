@@ -890,7 +890,7 @@ test('ACP real Runtime approves, cancels and loads the same saved Session', { ti
       const lastUser = body.messages.findLast((message) => message.role === 'user');
       const text = JSON.stringify(lastUser?.content ?? '');
       const last = body.messages.at(-1);
-      if (text.includes('STREAM_CANCEL') && last?.role !== 'tool') {
+      if ((text.includes('STREAM_CANCEL') || text.includes('STREAM_CRASH')) && last?.role !== 'tool') {
         emit({ role: 'assistant', content: 'STATE_STREAM_STARTED' });
         pendingResponses.add(res);
         res.once('close', () => pendingResponses.delete(res));
@@ -1057,5 +1057,57 @@ test('ACP real Runtime approves, cancels and loads the same saved Session', { ti
     'continue after cancelled approval'), { stopReason: 'end_turn' });
   assert.equal(existsSync(cancelledTarget), false, 'Cancelled write must not resume on the next prompt');
   await stop(second);
-  t.diagnostic('Verified real approval effects, streaming/pending cancellation, EOF shutdown, cwd rejection and same-session load/continue');
+  // Distinct from EOF shutdown: force only this fixture-owned engine to exit
+  // after an actual stream chunk, leaving an accepted turn in persistent storage.
+  const crashing = await start();
+  const interrupted = await newSession(crashing);
+  const crashRun = prompt(crashing, interrupted.sessionId, 'STREAM_CRASH');
+  const crashOutcome = crashRun.then((response) => ({ response }), (error) => ({ error }));
+  await waitFor(() => crashing.updates.some((n) => n.sessionId === interrupted.sessionId &&
+    n.update.sessionUpdate === 'agent_message_chunk' && n.update.content?.text?.includes('STATE_STREAM_STARTED')), 'stream before forced exit');
+  const dbPath = path.join(dataDir, 'v2', 'sqlite', 'runtime-state.sqlite');
+  function ingress() {
+    const db = new Database(dbPath, { readonly: true });
+    try {
+      return db.prepare('SELECT turn_id, status, completed_at_ms FROM local_runtime_turn_ingress WHERE session_id = ? ORDER BY accepted_sequence').all(interrupted.sessionId);
+    } finally { db.close(); }
+  }
+  const activeIngress = ingress();
+  assert.equal(activeIngress.length, 1);
+  assert.equal(activeIngress[0].status, 'accepted');
+  assert.equal(activeIngress[0].completed_at_ms, null);
+  const lostTurnId = activeIngress[0].turn_id;
+  assert.equal(crashing.child.kill('SIGKILL'), true, 'Only terminate the fixture child PID');
+  const forcedExit = await bounded(crashing.exited, 'forced engine exit', 10000);
+  assert.notEqual(forcedExit, 0, 'This must not be a successful EOF shutdown');
+  const lostReply = await bounded(crashOutcome, 'rejected outstanding prompt');
+  assert.ok(lostReply.error, 'Connection loss must not become a successful prompt response');
+  assert.equal(lostReply.response, undefined);
+  const afterRestart = await start();
+  await waitFor(() => ingress()[0]?.status === 'failed', 'persisted restart recovery');
+  const recoveredIngress = ingress();
+  assert.equal(recoveredIngress.length, 1);
+  assert.equal(recoveredIngress[0].turn_id, lostTurnId);
+  assert.ok(recoveredIngress[0].completed_at_ms !== null);
+  const lockDb = new Database(dbPath, { readonly: true });
+  try {
+    assert.equal(lockDb.prepare('SELECT count(*) AS count FROM local_runtime_session_locks WHERE session_id = ?').get(interrupted.sessionId).count, 0);
+  } finally { lockDb.close(); }
+  await bounded(afterRestart.agent.request(acp.methods.agent.session.load,
+    { sessionId: interrupted.sessionId, cwd: workspace, mcpServers: [] }), 'load interrupted session');
+  const history = afterRestart.updates.filter((n) => n.sessionId === interrupted.sessionId &&
+    n.update.sessionUpdate === 'user_message_chunk').map((n) => n.update.content?.text ?? '').join('');
+  assert.equal(history.split('STREAM_CRASH').length - 1, 1, 'Interrupted instruction must replay once');
+  const oldUpdateCount = crashing.updates.length;
+  const beforeRecoveryPrompt = requests.length;
+  assert.deepEqual(await bounded(prompt(afterRestart, interrupted.sessionId, 'CONTINUE_AFTER_PROCESS_EXIT'),
+    'continue interrupted session'), { stopReason: 'end_turn' });
+  assert.ok(requests.slice(beforeRecoveryPrompt).some((body) => JSON.stringify(body.messages ?? []).includes('STREAM_CRASH')));
+  assert.deepEqual(ingress().map((row) => ({ turnId: row.turn_id, status: row.status })),
+    [{ turnId: lostTurnId, status: 'failed' }, { turnId: ingress()[1].turn_id, status: 'completed' }]);
+  assert.equal(crashing.updates.length, oldUpdateCount, 'The closed client does not receive new-generation events');
+  assert.equal(existsSync(cancelledTarget), false);
+  assert.equal(readFileSync(deniedTarget, 'utf8'), approvedContent);
+  await stop(afterRestart);
+  t.diagnostic('Verified real approval/cancel/load plus forced process exit: rejected old prompt, failed ingress, released lock, single replay and continued new turn');
 });
