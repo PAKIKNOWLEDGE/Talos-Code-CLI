@@ -23,9 +23,14 @@ function assertSuccessfulChild(result) {
 const version = cliBuildVersion(root);
 function fixture(t, environment = process.env) {
   const dataDir = mkdtempSync(path.join(tmpdir(), "minimax-code-smoke-"));
+  const home = path.join(dataDir, "home");
+  mkdirSync(home);
   const audit = path.join(dataDir, "network-attempts.log");
   t.after(() => {
     try {
+      const managedAudit = audit + ".managed";
+      assert.equal(existsSync(managedAudit) ? readFileSync(managedAudit, "utf8") : "", "",
+        "Neutral startup must not attempt upstream services");
       assert.equal(
         existsSync(audit),
         false,
@@ -41,6 +46,8 @@ function fixture(t, environment = process.env) {
     cwd: dataDir,
     env: {
       ...withoutProxyEnvironment(environment),
+      HOME: home,
+      USERPROFILE: home,
       MINIMAX_DATA_DIR: dataDir,
       MAVIS_DATA_DIR: dataDir,
       MCODE_TEST_NETWORK_AUDIT: audit,
@@ -66,46 +73,44 @@ test("CLI version and command help work outside the source directory", (t) => {
     assert.ok(result.stdout.includes(expected), result.stdout);
   }
 });
-test("CLI defaults to the shared user config without migrating the old source directory", (t) => {
+test("CLI defaults to Talos data without inheriting legacy home configuration", (t) => {
   const options = fixture(t);
   const home = options.cwd;
-  const config = path.join(home, ".minimax", "config.yaml");
+  const config = path.join(home, ".talos", "config.yaml");
+  const legacyConfig = path.join(home, ".minimax", "config.yaml");
   const oldConfig = path.join(home, ".minimax-code", "config.yaml");
-  for (const file of [config, oldConfig]) mkdirSync(path.dirname(file));
-  writeFileSync(config, "telemetry:\n  enabled: true\n", { mode: 0o600 });
-  const oldContents = "telemetry:\n  enabled: false\n";
+  for (const file of [legacyConfig, oldConfig]) mkdirSync(path.dirname(file));
+  const legacyContents = "telemetry: { enabled: true }";
+  const oldContents = "telemetry: { enabled: false }";
+  writeFileSync(legacyConfig, legacyContents, { mode: 0o600 });
   writeFileSync(oldConfig, oldContents, { mode: 0o600 });
   for (const name of Object.keys(options.env)) {
     if (name.startsWith("__MAVIS_RUNTIME")) delete options.env[name];
   }
   delete options.env.MINIMAX_DATA_DIR;
   delete options.env.MAVIS_DATA_DIR;
-  Object.assign(options.env, {
-    HOME: home,
-    USERPROFILE: home,
-    MCODE_DISABLE_TELEMETRY: "1",
-  });
+  Object.assign(options.env, { HOME: home, USERPROFILE: home, MCODE_DISABLE_TELEMETRY: "1" });
   const result = spawnSync(process.execPath, [cli, "telemetry", "status"], {
-    ...options,
-    encoding: "utf8",
-    timeout: runtimeTimeoutMs,
+    ...options, encoding: "utf8", timeout: runtimeTimeoutMs,
   });
   assertSuccessfulChild(result);
   const status = JSON.parse(result.stdout);
   assert.equal(status.configFile, config);
-  assert.equal(status.configured, true);
+  assert.equal(status.configured, false, "Legacy opt-in must not become Talos configuration");
+  assert.equal(status.enabled, false);
+  assert.equal(status.blockedBy, "TALOS_NEUTRAL_RUNTIME");
+  assert.equal(readFileSync(legacyConfig, "utf8"), legacyContents);
   assert.equal(readFileSync(oldConfig, "utf8"), oldContents);
+  const raw = parseYaml(readFileSync(config, "utf8"));
+  assert.equal(raw.defaultModel, undefined);
+  assert.equal(raw.provider?.minimax, undefined);
 });
-test("provider configuration loads from an isolated data directory", (t) => {
-  const result = spawnSync(process.execPath, [cli, "provider", "list"], {
-    ...fixture(t),
-    encoding: "utf8",
-    timeout: runtimeTimeoutMs,
+test("neutral provider list is empty in an isolated data directory", (t) => {
+  const result = spawnSync(process.execPath, [cli, "provider", "list", "--json"], {
+    ...fixture(t), encoding: "utf8", timeout: runtimeTimeoutMs,
   });
   assertSuccessfulChild(result);
-  assert.match(result.stdout, /minimax/);
-
-  assert.doesNotMatch(result.stdout, /custom_provider:/);
+  assert.deepEqual(JSON.parse(result.stdout).providers, []);
 });
 test("config permission failures preserve private reads and terminate unsafe startup", {
   skip: process.platform !== "darwin",
@@ -183,13 +188,13 @@ test("offline smoke children ignore ambient proxy variables", async (t) => {
       });
       const options = fixture(t, environment);
       for (const key of proxyNames) assert.equal(options.env[key], "");
-      const result = spawnSync(process.execPath, [cli, "provider", "list"], {
+      const result = spawnSync(process.execPath, [cli, "provider", "list", "--json"], {
         ...options,
         encoding: "utf8",
         timeout: runtimeTimeoutMs,
       });
       assertSuccessfulChild(result);
-      assert.match(result.stdout, /minimax/);
+      assert.deepEqual(JSON.parse(result.stdout).providers, []);
       // Catalog requests are optional; the fixture still rejects any real network access.
       assert.equal(environment[name], proxyValue);
     });

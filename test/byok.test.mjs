@@ -29,7 +29,9 @@ test(
     const fixtureDir = mkdtempSync(path.join(tmpdir(), "minimax-code-byok-"));
     const dataDir = path.join(fixtureDir, "data");
     const workspaceDir = path.join(fixtureDir, "workspace");
+    const homeDir = path.join(fixtureDir, "home");
     mkdirSync(workspaceDir);
+    mkdirSync(homeDir);
     const dbPath = path.join(dataDir, "v2", "sqlite", "runtime-state.sqlite");
     mkdirSync(path.dirname(dbPath), { recursive: true });
     const legacyDb = new Database(dbPath);
@@ -159,6 +161,8 @@ test(
     });
     const baseUrl = `http://127.0.0.1:${server.address().port}/v1`;
     const env = {
+      HOME: homeDir,
+      USERPROFILE: homeDir,
       MINIMAX_DATA_DIR: dataDir,
       MAVIS_DATA_DIR: dataDir,
       MCODE_PROVIDER_API_KEY: "fixture-only-key",
@@ -244,12 +248,13 @@ test(
     const snapshot = JSON.parse(await run(["provider", "list", "--json"]));
     assert.equal(
       snapshot.providers.some((p) => p.kind === "minimax-oauth"),
-      true,
+      false,
     );
     const selected = snapshot.providers.find(
       (p) => p.kind === "custom" && p.name === "Fixture",
     );
     assert.ok(selected?.hasApiKey);
+    assert.equal(snapshot.providers.length, 1, "Only the explicitly saved provider is available");
     const proxyNames = [
       "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
       "http_proxy", "https_proxy", "all_proxy", "no_proxy",
@@ -279,22 +284,21 @@ test(
       assert.equal(isolated.PATH, environment.PATH);
       const beforeRequests = requests.length;
       const managedAudit = `${networkAudit}.managed`;
-      const beforeManaged = readFileSync(managedAudit, "utf8").length;
+      assert.equal(existsSync(managedAudit) ? readFileSync(managedAudit, "utf8") : "", "",
+        "Neutral startup must not attempt managed services");
       await run([
         "provider", "test", selected.providerId, "--model", "fixture-model",
       ], environment);
       assert.ok(requests.length > beforeRequests, "The local provider must receive the request");
       assert.equal(requests[beforeRequests].body.model, "fixture-model");
-      assert.match(
-        readFileSync(managedAudit, "utf8").slice(beforeManaged),
-        /https:\/\/models\.dev\/api\.json|\/mavis\/api\/v1\/models-dev\/catalog/,
-      );
+      assert.equal(existsSync(managedAudit) ? readFileSync(managedAudit, "utf8") : "", "",
+        "Provider connectivity must not query an upstream catalog");
       assert.equal(existsSync(networkAudit), false, "No outbound network attempt is allowed");
       for (const [name, value] of Object.entries(proxies)) assert.equal(environment[name], value);
     }
     const configPath = path.join(dataDir, "config.yaml");
     const savedConfig = () => parseYaml(readFileSync(configPath, "utf8"));
-    assert.equal(savedConfig().defaultModel, "minimax/MiniMax-M3");
+    assert.equal(savedConfig().defaultModel, undefined, "Adding without --use must not seed a default model");
     assert.equal(savedConfig().custom_provider.fixture.models["fixture-model"].limit, undefined);
     assert.equal(selected.active, false);
     assert.equal(selected.models[0].contextLimit, undefined);
