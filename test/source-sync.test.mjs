@@ -1257,7 +1257,7 @@ test('Runtime startup leaves host shell PATH integration disabled by default', a
   // Any attempted host file/registry operation fails the regression. This
   // exercises the function, without trusting a fixture HOME to isolate HKCU.
   const failModule = 'data:text/javascript,' + encodeURIComponent(
-    'export function appendFileSync(){throw Error("host write attempted")} export function existsSync(){throw Error("host read attempted")} export function readFileSync(){throw Error("host read attempted")} export function execFileSync(){throw Error("registry command attempted")}',
+    'export const attempts=[]; export function appendFileSync(){attempts.push("write");throw Error("host write attempted")} export function existsSync(){attempts.push("read");throw Error("host read attempted")} export function readFileSync(){attempts.push("read");throw Error("host read attempted")} export function execFileSync(){attempts.push("registry");throw Error("registry command attempted")}',
   );
   const isolated = compiled.replaceAll('"node:fs"', JSON.stringify(failModule))
     .replaceAll('"node:child_process"', JSON.stringify(failModule));
@@ -1268,6 +1268,7 @@ test('Runtime startup leaves host shell PATH integration disabled by default', a
     module.ensurePathIntegration(path.join(tmpdir(), 'talos-host-isolation-fixture'));
     process.env.TALOS_ENABLE_SHELL_PATH_INTEGRATION = '0';
     module.ensurePathIntegration(path.join(tmpdir(), 'talos-host-isolation-fixture'));
+    assert.deepEqual((await import(failModule)).attempts, []);
   } finally {
     if (previous === undefined) delete process.env.TALOS_ENABLE_SHELL_PATH_INTEGRATION;
     else process.env.TALOS_ENABLE_SHELL_PATH_INTEGRATION = previous;
