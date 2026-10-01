@@ -58,9 +58,11 @@ Configuration and sessions are stored in `~/.talos` by default (`%USERPROFILE%\.
 
 Run `talos update` or enter `/update` to check for a new version. Talos shows the upgrade command; installation is always manual. To upgrade, run the npm install command above again.
 
+Release notes: [0.1.1](docs/releases/0.1.1.md).
+
 ## Release status
 
-Talos **0.1.0** is a CLI preview. Windows x64 installation and the existing release checks have passed. NixOS testing is pending; cross-platform validation is not yet complete.
+Talos **0.1.1** is a CLI preview. Windows x64 installation and the existing release checks have passed. NixOS testing is pending; cross-platform validation is not yet complete.
 
 The desktop GUI is separate work. Default web search is not included in this release.
 
