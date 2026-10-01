@@ -34,7 +34,7 @@ try {
     if (/^npm_config_/i.test(name)) delete env[name];
   }
   Object.assign(env, {
-    npm_config_cache: path.join(temporary, 'npm-cache'),
+    npm_config_cache: process.env.TALOS_VERIFY_NPM_CACHE ?? path.join(temporary, 'npm-cache'),
     npm_config_userconfig: path.join(home, '.npmrc'),
   });
   delete env.NODE_PATH;
@@ -44,7 +44,7 @@ try {
   const npm = (...args) => execFileSync(process.execPath, [npmCli, ...args],
     { cwd: home, env, stdio: "inherit", timeout: 300000, windowsHide: true });
   npm("install", "--global", "--prefix", prefix, "--include=optional", "--ignore-scripts=false",
-    "--allow-scripts=better-sqlite3", "--no-audit", "--no-fund", archive);
+    "--no-audit", "--no-fund", archive);
   const installed = path.join(prefix, ...(windows ? ["node_modules"] : ["lib", "node_modules"]), ...packageName.split("/"));
   const installedManifest = JSON.parse(readFileSync(path.join(installed, "package.json"), "utf8"));
   assert.equal(installedManifest.name, packageName);
@@ -58,10 +58,10 @@ try {
   const launcher = path.join(prefix, ...(windows ? [] : ["bin"]), windows ? "talos.cmd" : "talos");
   assert.equal(existsSync(launcher), true, "npm generated launcher is present");
   const versionArgs = windows
-    ? ["/d", "/s", "/c", `"${launcher}" --version`]
+    ? ["/d", "/s", "/c", `""${launcher}" --version"`]
     : ["--version"];
   const executable = windows ? process.env.ComSpec ?? "C:/Windows/System32/cmd.exe" : launcher;
-  const result = execFileSync(executable, versionArgs, { cwd: home, env, encoding: "utf8", timeout: 30000, windowsHide: true });
+  const result = execFileSync(executable, versionArgs, { cwd: home, env, encoding: "utf8", timeout: 30000, windowsHide: true, ...(windows ? { windowsVerbatimArguments: true } : {}) });
   assert.equal(result.trim(), version);
   const require = createRequire(path.join(installed, 'package.json'));
   const Database = require('better-sqlite3');
@@ -74,7 +74,7 @@ try {
   // Reinstall the same candidate to exercise prefix replacement, then uninstall.
   // Cross-version upgrade needs a second version and is not claimed here.
   npm("install", "--global", "--prefix", prefix, "--include=optional", "--ignore-scripts=false",
-    "--allow-scripts=better-sqlite3", "--no-audit", "--no-fund", archive);
+    "--no-audit", "--no-fund", archive);
   assert.equal(JSON.parse(readFileSync(path.join(installed, "package.json"), "utf8")).version, version);
   npm("uninstall", "--global", "--prefix", prefix, "--no-audit", "--no-fund", packageName);
   assert.equal(existsSync(installed), false);
