@@ -121,7 +121,8 @@ upstream license and attribution files.
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const [tag, out] = process.argv.slice(2);
+  const [tag, out, flag] = process.argv.slice(2);
+  if (flag !== undefined && flag !== "--publishable") throw new Error("Unknown package preparation flag.");
   if (!tag || !out) throw new Error('Usage: node scripts/package-cli-release.mjs vX.Y.Z /path/to/output');
-  await packageCliRelease({ tag, out: path.resolve(out) });
+  await packageCliRelease({ tag, out: path.resolve(out), publishable: flag === "--publishable" });
 }

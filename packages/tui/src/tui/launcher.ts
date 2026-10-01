@@ -331,11 +331,7 @@ export async function launchTui(
           workspaceDir,
           version: options.version,
           surface: 'tui',
-          checkForUpdate: async () => {
-          const result = await checkTalosNpmVersion();
-          return result.kind === "available" ? { latestVersion: result.latestVersion } : undefined;
-        },
-        observability,
+          observability,
           ...(bedrockLane ? { lane: bedrockLane } : {}),
         },
         { sharedAuthCore },
@@ -404,6 +400,10 @@ export async function launchTui(
           (dependencies.writeTuiTheme ?? writeTuiThemeSetting)(dataDir, value),
         persistStatusLineItems: (items) => writeTuiStatusLineSetting(dataDir, items),
         externalEditorCommand: options.externalEditorCommand,
+        checkForUpdate: async () => {
+          const result = await checkTalosNpmVersion();
+          return result.kind === "available" ? { latestVersion: result.latestVersion } : undefined;
+        },
         observability,
         incidentReporter,
         ...(businessTelemetry ? { businessTelemetry } : {}),

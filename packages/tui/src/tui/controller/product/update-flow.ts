@@ -1,4 +1,5 @@
 import { checkTalosNpmVersion, formatTalosNpmStatus, type TalosNpmStatus } from "../../../update/npm-version.js";
+
 type AppendUpdateNotice = (content: string, kind?: 'warning' | 'error') => void;
 
 export interface TuiUpdateOptions {
