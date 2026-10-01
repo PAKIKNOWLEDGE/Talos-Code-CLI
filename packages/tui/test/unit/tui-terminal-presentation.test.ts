@@ -22,14 +22,14 @@ describe('terminal title ownership', () => {
       workspace: '/workspace',
       status: 'perm' as const,
     };
-    expect(formatTuiTerminalTitle(input)).toBe('Needs approval | 修复 登录 | MCode');
+    expect(formatTuiTerminalTitle(input)).toBe('Needs approval | 修复 登录 | Talos');
     expect(
       formatTuiTerminalTitle(input, ['session-name', 'status', 'status', 'unknown', 'toString']),
     ).toBe('修复 登录 | Needs approval');
     expect(formatTuiTerminalTitle(input, null)).toBeUndefined();
     expect(formatTuiTerminalTitle(input, [])).toBeUndefined();
     expect(formatTuiTerminalTitle({ ...input, title: 'New session' })).toBe(
-      'Needs approval | workspace (session-) | MCode',
+      'Needs approval | workspace (session-) | Talos',
     );
     const long = formatTuiTerminalTitle({ ...input, title: '😀'.repeat(300) })!;
     expect(Array.from(long)).toHaveLength(240);

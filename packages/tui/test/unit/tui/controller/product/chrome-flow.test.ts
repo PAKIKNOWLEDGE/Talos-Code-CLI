@@ -256,7 +256,7 @@ describe("TuiChromeFlow agent status sequence", () => {
 
     flow.update(snapshot("session-1"));
     flow.update(snapshot("session-1"));
-    expect(setTerminalTitle).toHaveBeenLastCalledWith("Ready | workspace (session-) | MCode");
+    expect(setTerminalTitle).toHaveBeenLastCalledWith("Ready | workspace (session-) | Talos");
     expect(shells.at(-1)).toMatchObject({
       agentSeq: "0",
       agentStatus: "ready",
@@ -283,7 +283,7 @@ describe("TuiChromeFlow agent status sequence", () => {
       activeTurnId: "turn-1",
     };
     flow.update(interactingSnapshot);
-    expect(setTerminalTitle).toHaveBeenLastCalledWith("Needs approval | workspace (session-) | MCode");
+    expect(setTerminalTitle).toHaveBeenLastCalledWith("Needs approval | workspace (session-) | Talos");
     expect(shells.at(-1)).toMatchObject({
       agentSeq: "2",
       agentStatus: "perm",
@@ -293,7 +293,7 @@ describe("TuiChromeFlow agent status sequence", () => {
     interaction = { ...interaction, submitting: true };
     flow.update(interactingSnapshot);
     flow.update(interactingSnapshot);
-    expect(setTerminalTitle).toHaveBeenLastCalledWith("Working | workspace (session-) | MCode");
+    expect(setTerminalTitle).toHaveBeenLastCalledWith("Working | workspace (session-) | Talos");
     expect(shells.at(-1)).toMatchObject({
       agentSeq: "3",
       agentStatus: "run",
@@ -336,7 +336,7 @@ describe("TuiChromeFlow agent status sequence", () => {
       agentStatus: "done",
       agentRunId: "turn-queued",
     });
-    expect(setTerminalTitle).toHaveBeenLastCalledWith("Done | workspace (session-) | MCode");
+    expect(setTerminalTitle).toHaveBeenLastCalledWith("Done | workspace (session-) | Talos");
 
     flow.update({
       ...snapshot("session-2"),
