@@ -32,3 +32,16 @@ runtime ownership migrations or private service integrations. Keep the existing
 three-way baseline until the entire target revision has been reviewed; record
 the selected revision, included behavior and excluded boundaries separately.
 See the [0.5.5 review](source-sync-0.5.5.md) for the current selective update.
+
+
+## Talos branch ownership
+
+`origin/main` is the single Talos product branch. Work on short-lived feature, fix, or documentation branches; integrate accepted work into main before declaring delivery complete, unless the owner explicitly requested a draft branch. Delete a work branch only after confirming its commits are reachable from main. Published-version tags identify exact source commits and must not move.
+
+`upstream` refers only to the official public MiniMax Code repository. It is a read-only source of candidates, not a second Talos development branch. Select public PRs explicitly in separate sync work; do not merge the entire upstream main by default. A standalone public commit may be cherry-picked with source attribution after reviewing dependencies; adapted changes must record their original PR/commit and any omitted prerequisites. The internal-to-public extraction contract above remains separate: do not change extraction sourceRevision merely because a public PR was selected.
+
+### Initial main promotion (2026-10-01)
+
+The owner authorized promoting the accepted Talos development tree to main without importing upstream PRs. Preserve the former remote main at tag `backup/upstream-main-20261001` (c593d3d52c2544faeed1753a486434739b741bd3); rename the old remote branch temporarily, promote the Talos branch, then remove the temporary branch after verifying the tag. This is a branch-name transition, not an upstream merge.
+
+The following former-main commits remain deferred, not integrated or rejected: c593d3d (#381), e3d7855 (#380), ec4a611 (#379), c7935eb (#378), 3ba8169 (#376). Review them only in a separately authorized sync task. The tag preserves their history. Tag `v0.1.0` identifies the published source commit 63bd98ee0d7500f9c172718fb65c125e54e35014, not the later README commit.
