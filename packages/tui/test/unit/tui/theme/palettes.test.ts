@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BUILT_IN_THEMES,
   DEFAULT_THEME_ID,
+  DEFAULT_THEME,
   MINIMAX_CODE_DARK_THEME,
   MINIMAX_CODE_LIGHT_THEME,
 } from '../../../../src/tui/theme/palettes.js';
@@ -21,8 +22,8 @@ const ALL_PALETTES = BUILT_IN_THEMES.flatMap((theme) => [
 ]);
 
 describe('built-in TUI themes', () => {
-  it('keeps the default MCode palette byte-identical to the pre-theme implementation', () => {
-    // The default theme is what every existing user sees, so it must not move.
+  it('preserves the legacy palette while selecting Talos as the default', () => {
+    // Keep the legacy exported asset intact; Talos selects a different default.
     expect(MINIMAX_CODE_DARK_THEME.colors).toEqual({
       brand: '#68C0FF',
       wordmarkHighlight: '#93D2FF',
@@ -46,7 +47,11 @@ describe('built-in TUI themes', () => {
       error: '#FF5E6C',
     });
     expect(MINIMAX_CODE_LIGHT_THEME.colors.text).toBe('#303030');
-    expect(DEFAULT_THEME_ID).toBe('minimax');
+    expect(DEFAULT_THEME_ID).toBe('talos');
+    expect(DEFAULT_THEME.id).toBe('talos');
+    expect(DEFAULT_THEME.label).toBe('Talos');
+    expect(DEFAULT_THEME.dark.colors.brand).toBe('#F4EB16');
+    expect(BUILT_IN_THEMES[0]).toBe(DEFAULT_THEME);
   });
 
   it.each(ALL_PALETTES)(

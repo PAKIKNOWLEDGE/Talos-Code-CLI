@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TuiMainScreen } from '../../src/tui/engine/tui-main-screen.js';
 import { TuiOverlayRegularFeaturePresenter } from '../../src/tui/shell/regular-feature-presenter.js';
 import { VirtualTerminal } from '../pi-084-upstream/virtual-terminal.js';
@@ -22,6 +22,15 @@ import type {
   TuiSessionInputSummary,
   TuiRewindScope,
 } from '../../src/runtime/port.js';
+
+// These interaction/viewport fixtures assert English copy independently of host locale.
+const actualResolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
+beforeEach(() => {
+  vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(function (this: Intl.DateTimeFormat) {
+    return { ...actualResolvedOptions.call(this), locale: 'en-US' };
+  });
+});
+afterEach(() => vi.restoreAllMocks());
 
 const NOW_MS = 1_700_000_000_000;
 

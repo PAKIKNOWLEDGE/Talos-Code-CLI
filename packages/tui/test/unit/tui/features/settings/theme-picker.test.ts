@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { TuiThemePicker } from '../../../../../src/tui/features/settings/theme-picker.js';
 import { stripAnsi } from '../../../../../src/tui/rendering/text.js';
-import { BUILT_IN_THEMES } from '../../../../../src/tui/theme/palettes.js';
+import { BUILT_IN_THEMES, DEFAULT_THEME_ID } from '../../../../../src/tui/theme/palettes.js';
 import type { TuiThemeDefinition } from '../../../../../src/tui/theme/contracts.js';
 
 const CUSTOM: TuiThemeDefinition = {
@@ -24,7 +24,7 @@ function build(overrides: Partial<ConstructorParameters<typeof TuiThemePicker>[0
   const requestRender = vi.fn();
   const picker = new TuiThemePicker({
     themes: THEMES,
-    currentThemeId: 'minimax',
+    currentThemeId: DEFAULT_THEME_ID,
     currentAppearance: 'dark',
     appearanceOverride: undefined,
     preview,
@@ -44,14 +44,14 @@ describe('TuiThemePicker', () => {
     const rendered = stripAnsi(picker.render(100).join('\n'));
 
     expect(rendered).toContain('Theme');
-    expect(rendered).toContain('MCode');
+    expect(rendered).toContain('Talos');
     expect(rendered).toContain('Midnight');
     expect(rendered).toContain('Aurora');
-    expect(rendered).toContain('Talos');
+    expect(rendered).not.toContain('MCode');
     expect(rendered).toContain('Mine');
     expect(rendered).toContain('current');
     // The cursor starts on the theme that is already active.
-    expect(rendered).toContain('› MCode');
+    expect(rendered).toContain('› Talos');
   });
 
   it('previews the focused theme while navigating', () => {
@@ -62,7 +62,7 @@ describe('TuiThemePicker', () => {
     expect(requestRender).toHaveBeenCalled();
 
     picker.handleInput('\u001b[A');
-    expect(preview).toHaveBeenLastCalledWith('minimax');
+    expect(preview).toHaveBeenLastCalledWith(DEFAULT_THEME_ID);
   });
 
   it('wraps around at both ends of the list', () => {
@@ -72,7 +72,7 @@ describe('TuiThemePicker', () => {
     expect(preview).toHaveBeenLastCalledWith(CUSTOM.id);
 
     picker.handleInput('\u001b[B');
-    expect(preview).toHaveBeenLastCalledWith('minimax');
+    expect(preview).toHaveBeenLastCalledWith(DEFAULT_THEME_ID);
   });
 
   it('selects light, auto, and dark with the left and right arrows', () => {
@@ -139,7 +139,7 @@ describe('TuiThemePicker', () => {
     preview.mockClear();
     picker.handleInput('\u001b');
 
-    expect(preview).toHaveBeenCalledWith('minimax');
+    expect(preview).toHaveBeenCalledWith(DEFAULT_THEME_ID);
     expect(setAppearance).toHaveBeenLastCalledWith('auto');
     expect(save).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalled();

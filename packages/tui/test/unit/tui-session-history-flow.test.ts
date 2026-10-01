@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TuiMainScreen } from '../../src/tui/engine/tui-main-screen.js';
 import { TuiOverlayRegularFeaturePresenter } from '../../src/tui/shell/regular-feature-presenter.js';
@@ -8,6 +8,15 @@ import { VirtualTerminal } from '../pi-084-upstream/virtual-terminal.js';
 import type { TuiSessionInputSummary } from '../../src/runtime/port.js';
 import { TuiSessionMutationFlow } from '../../src/tui/controller/product/session-mutation-flow.js';
 import { stripAnsi } from '../../src/tui/rendering/text.js';
+
+// These interaction/viewport fixtures assert English copy independently of host locale.
+const actualResolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
+beforeEach(() => {
+  vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(function (this: Intl.DateTimeFormat) {
+    return { ...actualResolvedOptions.call(this), locale: 'en-US' };
+  });
+});
+afterEach(() => vi.restoreAllMocks());
 
 const SESSION_ID = 'session-history';
 const SUMMARY: TuiSessionInputSummary = {

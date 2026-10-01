@@ -1,8 +1,11 @@
 import { stripVTControlCharacters } from 'node:util';
+import { TuiThemeRegistry } from '../../../../src/tui/theme/registry.js';
 import { describe, expect, it, vi } from 'vitest';
 import {
   MINIMAX_CODE_DARK_THEME,
   MINIMAX_CODE_LIGHT_THEME,
+  DEFAULT_THEME,
+  DEFAULT_THEME_ID,
 } from '../../../../src/tui/theme/palettes.js';
 import {
   MINIMAX_CODE_THEME_CONTRAST_POLICY,
@@ -55,7 +58,7 @@ describe('MCode terminal theme palettes', () => {
   it('uses explicit ANSI16 semantics instead of nearest-RGB collisions', () => {
     const original = getTuiThemeSnapshot();
     const originalPalette =
-      original.appearance === 'light' ? MINIMAX_CODE_LIGHT_THEME : MINIMAX_CODE_DARK_THEME;
+      new TuiThemeRegistry().palette(original.name, original.appearance);
 
     try {
       applyTuiRenderTheme(MINIMAX_CODE_DARK_THEME, 1);
@@ -211,7 +214,7 @@ describe('TuiThemeController', () => {
 
     expect(controller.snapshot()).toMatchObject({ appearance: 'light', source: 'colorfgbg' });
     expect(getTuiThemeSnapshot()).toMatchObject({ appearance: 'light' });
-    expect(tuiColors.text).toBe(MINIMAX_CODE_LIGHT_THEME.colors.text);
+    expect(tuiColors.text).toBe(DEFAULT_THEME.light.colors.text);
     expect(tuiChalk.hex(tuiColors.text)('body')).toContain('38;2;48;48;48');
     controller.dispose();
   });
@@ -411,7 +414,7 @@ describe('TuiThemeController theme selection', () => {
   const restoreTheme = () => {
     const snapshot = getTuiThemeSnapshot();
     applyTuiRenderTheme(
-      snapshot.appearance === 'light' ? MINIMAX_CODE_LIGHT_THEME : MINIMAX_CODE_DARK_THEME,
+      snapshot.appearance === 'light' ? DEFAULT_THEME.light : DEFAULT_THEME.dark,
       snapshot.colorLevel,
     );
   };
@@ -442,7 +445,7 @@ describe('TuiThemeController theme selection', () => {
       theme: 'not-a-real-theme',
     });
 
-    expect(controller.selectedThemeId()).toBe('minimax');
+    expect(controller.selectedThemeId()).toBe(DEFAULT_THEME_ID);
     controller.dispose();
     restoreTheme();
   });
@@ -487,7 +490,7 @@ describe('TuiThemeController theme selection', () => {
     controller.previewTheme('aurora');
     expect(getTuiThemeSnapshot().name).toBe('aurora');
 
-    controller.previewTheme('minimax');
+    controller.previewTheme(DEFAULT_THEME_ID);
     expect(tuiColors.brand).toBe(original);
     controller.dispose();
     restoreTheme();
@@ -540,7 +543,7 @@ describe('TuiThemeController theme selection', () => {
     expect(controller.appearanceOverrideValue()).toBeUndefined();
     expect(controller.snapshot().appearance).toBe('light');
     expect(getTuiThemeSnapshot().appearance).toBe('light');
-    expect(tuiColors.text).toBe(MINIMAX_CODE_LIGHT_THEME.colors.text);
+    expect(tuiColors.text).toBe(DEFAULT_THEME.light.colors.text);
     controller.dispose();
     restoreTheme();
   });
@@ -558,7 +561,7 @@ describe('TuiThemeController theme selection', () => {
     controller.setAppearanceOverride(undefined);
 
     expect(controller.snapshot().appearance).toBe('dark');
-    expect(tuiColors.text).toBe(MINIMAX_CODE_DARK_THEME.colors.text);
+    expect(tuiColors.text).toBe(DEFAULT_THEME.dark.colors.text);
     controller.dispose();
     restoreTheme();
   });
@@ -689,7 +692,7 @@ describe('TuiThemeController theme selection', () => {
         dataDir,
       });
 
-      expect(controller.listThemes().map((theme) => theme.id)).toContain('minimax');
+      expect(controller.listThemes().map((theme) => theme.id)).toContain(DEFAULT_THEME_ID);
       expect(controller.themeIssues()).toHaveLength(1);
       controller.dispose();
     } finally {

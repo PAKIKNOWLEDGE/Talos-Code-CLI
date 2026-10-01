@@ -8,6 +8,7 @@ import {
   loadCustomThemes,
   watchCustomThemes,
 } from '../../../../src/tui/theme/custom-themes.js';
+import { readTuiThemeSetting } from '../../../../src/host/tui-settings.js';
 import { TuiThemeRegistry } from '../../../../src/tui/theme/registry.js';
 import type { TuiThemeDefinition } from '../../../../src/tui/theme/contracts.js';
 import {
@@ -209,7 +210,7 @@ describe('custom TUI theme files', () => {
 
   it('refuses to shadow a built-in theme id', async () => {
     const dataDir = await themesDataDir({
-      'minimax.json': { name: 'minimax', appearance: 'dark', colors: { brand: '#010101' } },
+      'talos.json': { name: 'talos', appearance: 'dark', colors: { brand: '#010101' } },
     });
 
     const { themes, issues } = loadCustomThemes(dataDir);
@@ -230,6 +231,23 @@ describe('custom TUI theme files', () => {
   });
 });
 
+describe('saved legacy theme compatibility', () => {
+  it.each(['minimax', 'MINIMAX/light', 'minimax/dark'])(
+    'maps saved %s to Talos without rewriting the user file', async (selection) => {
+      const dataDir = await themesDataDir({});
+      const file = join(dataDir, 'tui', 'tui-settings.json');
+      const document = JSON.stringify({ theme: selection, tuiMode: 'regular' });
+      await writeFile(file, document, 'utf8');
+      const selected = readTuiThemeSetting(dataDir);
+      const registry = new TuiThemeRegistry();
+      const resolved = registry.resolveSelection(selected);
+      expect(resolved.themeId).toBe('talos');
+      expect(resolved.appearanceOverride).toBe(selection.includes('/') ? selection.split('/')[1] : undefined);
+      expect(await readFile(file, 'utf8')).toBe(document);
+    },
+  );
+});
+
 describe('TuiThemeRegistry', () => {
   it('lists built-ins first and layers custom themes after them', async () => {
     const dataDir = await themesDataDir({
@@ -242,7 +260,7 @@ describe('TuiThemeRegistry', () => {
     const ids = registry.list().map((theme) => theme.id);
     expect(ids[0]).toBe(DEFAULT_THEME_ID);
     expect(ids).toContain('mine');
-    expect(ids.filter((id) => id === 'minimax')).toHaveLength(1);
+    expect(ids.filter((id) => id === DEFAULT_THEME_ID)).toHaveLength(1);
   });
 
   it('keeps a valid selection when unrelated custom themes reload', async () => {
