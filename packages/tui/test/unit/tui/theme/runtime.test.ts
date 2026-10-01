@@ -215,7 +215,7 @@ describe('TuiThemeController', () => {
     expect(controller.snapshot()).toMatchObject({ appearance: 'light', source: 'colorfgbg' });
     expect(getTuiThemeSnapshot()).toMatchObject({ appearance: 'light' });
     expect(tuiColors.text).toBe(DEFAULT_THEME.light.colors.text);
-    expect(tuiChalk.hex(tuiColors.text)('body')).toContain('38;2;48;48;48');
+    expect(tuiChalk.hex(tuiColors.text)('body')).toContain('38;2;36;36;36');
     controller.dispose();
   });
 
