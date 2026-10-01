@@ -25,7 +25,7 @@ function resolvePackage(name, importer) {
 function copyLicenses(stage) {
   const licenses = path.join(stage, 'licenses');
   mkdirSync(licenses);
-  for (const name of ['LICENSE', 'NOTICE', 'LICENSE-STATUS.md', 'THIRD_PARTY_NOTICES.md']) copyFileSync(path.join(root, name), path.join(stage, name));
+  for (const name of ['LICENSE', 'NOTICE', 'LEGAL.md', 'THIRD_PARTY_NOTICES.md']) copyFileSync(path.join(root, name), path.join(stage, name));
   copyFileSync(path.join(root, dependencyLicensesPath), path.join(licenses, 'dependency-licenses.json'));
   for (const directory of ['third_party/pi-mono', 'third_party/sandbox-runtime']) {
     copyFileSync(path.join(root, directory, 'LICENSE'), path.join(licenses, `${path.basename(directory)}-LICENSE`));
@@ -71,7 +71,7 @@ export function releaseManifest(importers, version, { packageName, publishable =
     description: 'Talos coding agent CLI with provider-neutral configuration.',
     bin: { talos: 'cli.js' },
     engines: json(path.join(root, 'package.json')).engines,
-    repository: { type: 'git', url: 'https://github.com/PAKIKNOWLEDGE/Talos.git' },
+    repository: { type: 'git', url: 'https://github.com/PAKIKNOWLEDGE/Talos-Code-CLI.git' },
     dependencies, optionalDependencies,
   };
 }

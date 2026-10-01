@@ -1,6 +1,6 @@
 # Agent guide
 
-This checkout is the Talos engine fork maintained by `PAKIKNOWLEDGE/Talos`. The companion product repository is `C:\DEV\develop\T3rra-C0d3-Talos`; it owns the GUI, product documentation, and Endfield-inspired visual layer. This repository owns the CLI/TUI, provider and authentication flow, engine data directories, and the ACP endpoint used by Talos. Keep that boundary explicit: Talos must integrate through ACP and must not import internal engine modules directly.
+This checkout is the Talos engine fork maintained by `PAKIKNOWLEDGE/Talos-Code-CLI`. The companion product repository is `C:\DEV\develop\T3rra-C0d3-Talos`; it owns the GUI, product documentation, and Endfield-inspired visual layer. This repository owns the CLI/TUI, provider and authentication flow, engine data directories, and the ACP endpoint used by Talos. Keep that boundary explicit: Talos must integrate through ACP and must not import internal engine modules directly.
 
 The fork remains a public-source repository with the existing source inventory, license, and synchronization rules below. A Talos-specific change must be isolated, reviewed, and kept small enough to audit against the public upstream baseline. Do not remove LICENSE, NOTICE, third-party attributions, sandbox boundaries, or permission checks merely to remove product branding. Upstream synchronization is a reviewed operation; do not fetch, merge, push, or open a sync PR unless the current task explicitly authorizes it.
 

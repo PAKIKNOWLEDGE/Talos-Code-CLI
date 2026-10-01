@@ -64,7 +64,7 @@ Talos **0.1.0** is a CLI preview. Windows x64 installation and the existing rele
 
 The desktop GUI is separate work. Default web search is not included in this release.
 
-If you encounter a problem, [open an issue](https://github.com/PAKIKNOWLEDGE/Talos/issues) with your OS, Node.js version, Talos version, and the error message. Remove API keys and private project content before sharing logs.
+If you encounter a problem, [open an issue](https://github.com/PAKIKNOWLEDGE/Talos-Code-CLI/issues) with your OS, Node.js version, Talos version, and the error message. Remove API keys and private project content before sharing logs.
 
 ## Build from source
 
@@ -78,4 +78,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development and verification, and [so
 
 ## License and acknowledgements
 
-Talos builds on open-source work from [MiniMax Code](https://github.com/MiniMax-AI/minimax-code), [pi-mono](https://github.com/badlogic/pi-mono), and other contributors. Copyright and license notices are retained in [LICENSE](LICENSE), [NOTICE](NOTICE), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and [LICENSE-STATUS.md](LICENSE-STATUS.md).
+Talos builds on open-source work from [MiniMax Code](https://github.com/MiniMax-AI/minimax-code), [pi-mono](https://github.com/badlogic/pi-mono), and other contributors. Copyright and license notices are retained in [LICENSE](LICENSE), [NOTICE](NOTICE), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and [LEGAL.md](LEGAL.md).

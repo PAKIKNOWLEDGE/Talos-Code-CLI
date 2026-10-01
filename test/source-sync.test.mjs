@@ -455,7 +455,7 @@ test('npm release manifests require native SQLite and pin installed external dep
   const manifest = releaseManifest([f.root], '0.4.13', { packageName: '@fixture/talos-cli' });
   assert.equal(manifest.version, '0.4.13');
   assert.equal(manifest.name, '@fixture/talos-cli');
-  assert.equal(manifest.repository.url, 'https://github.com/PAKIKNOWLEDGE/Talos.git');
+  assert.equal(manifest.repository.url, 'https://github.com/PAKIKNOWLEDGE/Talos-Code-CLI.git');
   assert.throws(() => releaseManifest([f.root], '0.4.13'), /explicit Talos npm package/);
   assert.throws(() => releaseManifest([f.root], '0.4.13', { packageName: '@minimax-ai/code' }), /upstream package/);
   assert.equal(releaseManifest([f.root], '0.4.13', { packageName: '@fixture/talos-cli', publishable: true }).private, false);

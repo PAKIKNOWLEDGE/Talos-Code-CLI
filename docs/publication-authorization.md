@@ -18,4 +18,4 @@ The published source does not include the Desktop application's source, internal
 
 For each source release, maintainers record the selected commit, source-candidate receipt, archive SHA-256, inventory digest, verification results, known limits, and reviewer. Preserve the root MIT license, `NOTICE`, third-party notices, and package-level exceptions. Any confidential approval records remain outside the repository.
 
-See [License status](../LICENSE-STATUS.md), [Releasing](releasing.md), and [Maintainers](maintainers.md) for the corresponding license, verification, and review steps.
+See [License status](../LEGAL.md), [Releasing](releasing.md), and [Maintainers](maintainers.md) for the corresponding license, verification, and review steps.

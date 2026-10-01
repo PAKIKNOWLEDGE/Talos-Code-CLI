@@ -21,6 +21,6 @@
 
 - [Source synchronization](source-sync.md): shared implementation and standalone distribution adaptations.
 - [Release process](releasing.md) · [Historical release audit](release-audit.md) · [Source status](open-source-status.md)
-- [License status](../LICENSE-STATUS.md) · [Publication scope](publication-authorization.md) · [Third-party notices](../THIRD_PARTY_NOTICES.md)
+- [License status](../LEGAL.md) · [Publication scope](publication-authorization.md) · [Third-party notices](../THIRD_PARTY_NOTICES.md)
 
 Project documentation is primarily in English. Translations are labeled separately. Engineering review and live-service acceptance records describe evidence and limits; passing CI does not mean every external service has been tested.

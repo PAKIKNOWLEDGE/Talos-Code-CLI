@@ -64,7 +64,7 @@ Talos **0.1.0** 是 CLI 预览版。Windows x64 安装及现有发行检查已�
 
 桌面 GUI 单独开发，本版不包含默认联网搜索。
 
-遇到问题时，可以[提交 issue](https://github.com/PAKIKNOWLEDGE/Talos/issues)，附上系统、Node.js 版本、Talos 版本和错误信息。分享日志前请移除 API key 及私人项目内容。
+遇到问题时，可以[提交 issue](https://github.com/PAKIKNOWLEDGE/Talos-Code-CLI/issues)，附上系统、Node.js 版本、Talos 版本和错误信息。分享日志前请移除 API key 及私人项目内容。
 
 ## 从源码运行
 
@@ -78,4 +78,4 @@ pnpm start
 
 ## 许可与致谢
 
-Talos 基于 [MiniMax Code](https://github.com/MiniMax-AI/minimax-code)、[pi-mono](https://github.com/badlogic/pi-mono) 等开源项目的工作构建。原作者版权与许可声明保留在 [LICENSE](LICENSE)、[NOTICE](NOTICE)、[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 和 [LICENSE-STATUS.md](LICENSE-STATUS.md) 中。
+Talos 基于 [MiniMax Code](https://github.com/MiniMax-AI/minimax-code)、[pi-mono](https://github.com/badlogic/pi-mono) 等开源项目的工作构建。原作者版权与许可声明保留在 [LICENSE](LICENSE)、[NOTICE](NOTICE)、[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 和 [LEGAL.md](LEGAL.md) 中。
