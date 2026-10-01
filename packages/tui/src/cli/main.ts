@@ -1,3 +1,4 @@
+import { checkTalosNpmVersion, formatTalosNpmStatus } from "../update/npm-version.js";
 import {
   MINIMAX_CODE_SUPPORTED_NODE_VERSIONS,
   MINIMAX_CODE_VERSION,
@@ -151,7 +152,7 @@ export async function runTuiCli(dependencies: RunTuiCliDependencies = {}): Promi
       },
       runUpdate: async () => {
         completedCommandExitMode = 'natural';
-        processRef.stdout.write(`${talosUpdateStatus(MINIMAX_CODE_VERSION)}\n`);
+        processRef.stdout.write(`${await talosUpdateStatus(MINIMAX_CODE_VERSION)}\n`);
       },
       runProvider: async (request, lane) => {
         const runProvider = dependencies.runProvider ?? defaultRunProvider;
@@ -274,8 +275,10 @@ async function defaultRunLogout(region?: MavisRegion): Promise<string> {
   return runTuiLogout({ region });
 }
 
-function talosUpdateStatus(version: string): string {
-  return `Talos ${version}: this build has no Talos npm update source configured. Use the current source build; Talos does not install updates automatically.`;
+async function talosUpdateStatus(version: string): Promise<string> {
+  const status = await checkTalosNpmVersion();
+  const details = formatTalosNpmStatus(status);
+  return status.kind === "unconfigured" ? `Talos ${version}: ${details.charAt(0).toLowerCase()}${details.slice(1)}` : details;
 }
 
 async function defaultRunProvider(

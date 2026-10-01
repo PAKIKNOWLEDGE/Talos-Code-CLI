@@ -1,3 +1,4 @@
+import { checkTalosNpmVersion, formatTalosNpmStatus, type TalosNpmStatus } from "../../../update/npm-version.js";
 type AppendUpdateNotice = (content: string, kind?: 'warning' | 'error') => void;
 
 export interface TuiUpdateOptions {
@@ -12,14 +13,16 @@ export function createTuiUpdateFlow(append: AppendUpdateNotice): TuiUpdateFlow {
 export class TuiUpdateFlow {
   private stopped = false;
 
-  constructor(private readonly append: AppendUpdateNotice) {}
+  constructor(
+    private readonly append: AppendUpdateNotice,
+    private readonly check: () => Promise<TalosNpmStatus> = () => checkTalosNpmVersion(),
+  ) {}
 
   async show(): Promise<void> {
     if (this.stopped) return;
-    this.append(
-      'This build has no Talos npm update source configured. Use the current source build; Talos does not install updates automatically.',
-      'warning',
-    );
+    const status = await this.check();
+    if (this.stopped) return;
+    this.append(formatTalosNpmStatus(status), "warning");
   }
 
   stop(): void {

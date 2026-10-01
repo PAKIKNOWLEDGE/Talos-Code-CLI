@@ -1,3 +1,4 @@
+import { checkTalosNpmVersion } from "../update/npm-version.js";
 import { spawn } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -330,7 +331,11 @@ export async function launchTui(
           workspaceDir,
           version: options.version,
           surface: 'tui',
-          observability,
+          checkForUpdate: async () => {
+          const result = await checkTalosNpmVersion();
+          return result.kind === "available" ? { latestVersion: result.latestVersion } : undefined;
+        },
+        observability,
           ...(bedrockLane ? { lane: bedrockLane } : {}),
         },
         { sharedAuthCore },
