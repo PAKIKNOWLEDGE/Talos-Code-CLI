@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { versionFromTag } from './lib/cli-release.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -67,6 +67,15 @@ try {
   const executable = windows ? process.env.ComSpec ?? "C:/Windows/System32/cmd.exe" : launcher;
   const result = execFileSync(executable, versionArgs, { cwd: home, env, encoding: "utf8", timeout: 30000, windowsHide: true, ...(windows ? { windowsVerbatimArguments: true } : {}) });
   assert.equal(result.trim(), version);
+  if (process.env.TALOS_VERIFY_UPDATE_PRELOAD) {
+    const update = execFileSync(process.execPath, [path.join(installed, "cli.js"), "update"], {
+      cwd: home, env: { ...env, NODE_OPTIONS: `--import=${pathToFileURL(process.env.TALOS_VERIFY_UPDATE_PRELOAD).href}` },
+      encoding: "utf8", timeout: 30000, windowsHide: true,
+    });
+    assert.match(update, /Upgrade manually: npm install --global/);
+    assert.ok(update.includes(`${packageName}@latest`), "Installed identity must generate its own update command");
+    assert.match(update, /does not install updates automatically/);
+  }
   const require = createRequire(path.join(installed, 'package.json'));
   // Windows keeps loaded .node DLLs mapped even after db.close(). Validate in a
   // short-lived process so reinstall/uninstall can replace the native file.
