@@ -54,7 +54,10 @@ test('Windows source preflight requires a local NTFS checkout', () => {
 test('Windows source preflight rejects unsupported volumes clearly', () => {
   const run = (driveType, volumeInfo, cwd = 'C:\\repo', allowNonFixed = false) => checkWindowsSourceLocation({
     platform: 'win32', cwd, allowNonFixed,
-    execFile: (_command, args) => args[1] === 'drivetype' ? driveType : volumeInfo,
+    execFile: (command, args) => command === "fsutil"
+      ? (args[1] === "drivetype" ? driveType : volumeInfo)
+      : JSON.stringify({ DeviceID: "C:", DriveType: /DRIVE_REMOTE/.test(driveType) ? 4 : 3,
+        FileSystem: /NTFS/.test(volumeInfo) ? "NTFS" : "exFAT" }),
   });
   assert.match(run('Drive type is : DRIVE_REMOTE\n', 'File System Name : NTFS\n').reason, /not a local fixed drive/);
   assert.deepEqual(
@@ -1218,3 +1221,16 @@ for (const forbidden of [
       error.message.includes('Forbidden source') && error.message.includes(forbidden));
   });
 }
+
+test("Windows volume fallback validates structured filesystem and rejects incomplete metadata", () => {
+  const run = (value) => checkWindowsSourceLocation({ platform: "win32", cwd: "C:/repo",
+    execFile: (command) => { if (command === "fsutil") throw new Error("Access denied"); return value; },
+  });
+  assert.equal(run(JSON.stringify({ DeviceID: "C:", DriveType: 3, FileSystem: "NTFS" })).ok, true);
+  assert.equal(run(JSON.stringify([{ DeviceID: "D:", DriveType: 3, FileSystem: "exFAT" }, { DeviceID: "C:", DriveType: 3, FileSystem: "NTFS" }])).ok, true);
+  assert.match(run(JSON.stringify({ DeviceID: "C:", DriveType: 4, FileSystem: "NTFS" })).reason, /not a local fixed drive/);
+  assert.match(run(JSON.stringify({ DeviceID: "C:", DriveType: 3, FileSystem: "exFAT" })).reason, /not formatted as NTFS/);
+  assert.equal(run("not-json").ok, false);
+  assert.equal(run(JSON.stringify({ DeviceID: "D:", DriveType: 3, FileSystem: "NTFS" })).ok, false);
+  assert.equal(run(JSON.stringify({ DeviceID: "C:" })).ok, false);
+});

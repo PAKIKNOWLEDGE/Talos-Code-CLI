@@ -32,29 +32,38 @@ export function checkWindowsSourceLocation({
   // trailing backslash across Windows runner images.
   const volume = root.slice(0, 2);
 
-  let driveType;
-  let volumeInfo;
+  let fixed;
+  let filesystem;
   try {
-    driveType = execFile("fsutil", ["fsinfo", "drivetype", volume], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    volumeInfo = execFile("fsutil", ["fsinfo", "volumeinfo", volume], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-  } catch (error) {
-    const detail = error instanceof Error ? ` (${error.message})` : "";
-    return fail(`Windows could not verify the checkout volume${detail}.`);
+    const options = { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], windowsHide: true };
+    const driveType = execFile("fsutil", ["fsinfo", "drivetype", volume], options);
+    const volumeInfo = execFile("fsutil", ["fsinfo", "volumeinfo", volume], options);
+    fixed = /(?:DRIVE_FIXED|Fixed Drive)(?:[.]?)(?:\r?\n|$)/iu.test(driveType.trim());
+    filesystem = /[:：]\s*NTFS(?:\r?\n|$)/iu.test(volumeInfo) ? "NTFS" : undefined;
+    if (!fixed || !filesystem) throw new Error("fsutil output requires structured verification");
+  } catch {
+    // WMI returns structured fields and works without fsutil volume privileges.
+    // Query is read-only; a failed or incomplete result still fails closed.
+    try {
+      const shell = path.win32.join(process.env.SystemRoot ?? "C:/Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+      const output = execFile(shell, ["-NoProfile", "-NonInteractive", "-Command",
+        "Get-CimInstance -ClassName Win32_LogicalDisk | Select-Object DeviceID,DriveType,FileSystem | ConvertTo-Json -Compress"],
+        { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], windowsHide: true, timeout: 10000 });
+      const parsed = JSON.parse(output);
+      const disks = Array.isArray(parsed) ? parsed : [parsed];
+      const disk = disks.find((item) => item?.DeviceID?.toUpperCase() === volume.toUpperCase());
+      if (!disk || typeof disk.DriveType !== "number" || typeof disk.FileSystem !== "string") {
+        throw new Error("The checkout volume was not reported by Win32_LogicalDisk");
+      }
+      fixed = disk.DriveType === 3;
+      filesystem = disk.FileSystem.toUpperCase();
+    } catch (error) {
+      const detail = error instanceof Error ? ` (${error.message})` : "";
+      return fail(`Windows could not verify the checkout volume${detail}.`);
+    }
   }
-
-  if (!allowNonFixed && !/:\s*DRIVE_FIXED(?:\r?\n|$)/iu.test(driveType)) {
-    return fail("The checkout volume is not a local fixed drive.");
-  }
-  if (!/:\s*NTFS(?:\r?\n|$)/iu.test(volumeInfo)) {
-    return fail("The checkout volume is not formatted as NTFS.");
-  }
-
+  if (!allowNonFixed && !fixed) return fail("The checkout volume is not a local fixed drive.");
+  if (filesystem !== "NTFS") return fail("The checkout volume is not formatted as NTFS.");
   return { ok: true, skipped: false };
 }
 
