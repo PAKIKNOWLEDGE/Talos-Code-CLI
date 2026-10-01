@@ -64,9 +64,11 @@ try {
   const result = execFileSync(executable, versionArgs, { cwd: home, env, encoding: "utf8", timeout: 30000, windowsHide: true, ...(windows ? { windowsVerbatimArguments: true } : {}) });
   assert.equal(result.trim(), version);
   const require = createRequire(path.join(installed, 'package.json'));
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  try { assert.equal(db.prepare('select 42 as value').get().value, 42); } finally { db.close(); }
+  // Windows keeps loaded .node DLLs mapped even after db.close(). Validate in a
+  // short-lived process so reinstall/uninstall can replace the native file.
+  execFileSync(process.execPath, ["--input-type=commonjs", "--eval",
+    "const {createRequire}=require(\"node:module\"); const load=createRequire(process.argv[1]); const Database=load(\"better-sqlite3\"); const db=new Database(\":memory:\"); if(db.prepare(\"select 42 as value\").get().value!==42)process.exitCode=1; db.close();",
+    path.join(installed, "package.json")], { cwd: home, env, stdio: "inherit", timeout: 30000, windowsHide: true });
   assert.match(execFileSync(require('@vscode/ripgrep').rgPath, ['--version'], { encoding: 'utf8' }), /ripgrep/);
   execFileSync(process.execPath, ['--test', 'test/smoke.test.mjs', 'test/byok.test.mjs'], {
     cwd: root, env: { ...env, MCODE_TEST_CLI: path.join(installed, 'cli.js') }, stdio: 'inherit', timeout: 240000,
@@ -87,5 +89,5 @@ try {
   }
   console.log(`Verified npm installation of ${path.basename(archive)} (${sha256}).`);
 } finally {
-  rmSync(temporary, { recursive: true, force: true });
+  rmSync(temporary, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
 }
