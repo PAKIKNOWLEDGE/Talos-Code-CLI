@@ -16,7 +16,7 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 import { cliBuildVersion, cliExternalModules, cliReleaseTargets, versionFromTag } from '../scripts/lib/cli-release.mjs';
-import { releaseManifest } from '../scripts/package-cli-release.mjs';
+import { releaseManifest, shouldIncludeCliReleasePath } from '../scripts/package-cli-release.mjs';
 import { validateReleaseReports } from '../scripts/publish-cli-release.mjs';
 import { compareVersions, releaseCli } from '../scripts/release-cli.mjs';
 import { compareRuns, exitCodeForStatus, renderReport, spread, validateRun, validateRequest, validateToolOutput, median, selectScenarios } from '../scripts/perf/report.mjs';
@@ -452,8 +452,13 @@ test('npm release manifests require native SQLite and pin installed external dep
     mkdirSync(directory, { recursive: true });
     writeFileSync(path.join(directory, 'package.json'), JSON.stringify({ name, version: '1.2.3' }));
   }
-  const manifest = releaseManifest([f.root], '0.4.13');
+  const manifest = releaseManifest([f.root], '0.4.13', { packageName: '@fixture/talos-cli' });
   assert.equal(manifest.version, '0.4.13');
+  assert.equal(manifest.name, '@fixture/talos-cli');
+  assert.equal(manifest.repository.url, 'https://github.com/PAKIKNOWLEDGE/Talos.git');
+  assert.throws(() => releaseManifest([f.root], '0.4.13'), /explicit Talos npm package/);
+  assert.throws(() => releaseManifest([f.root], '0.4.13', { packageName: '@minimax-ai/code' }), /upstream package/);
+  assert.equal(releaseManifest([f.root], '0.4.13', { packageName: '@fixture/talos-cli', publishable: true }).private, false);
   assert.equal(manifest.private, true);
   assert.deepEqual(manifest.bin, { talos: 'cli.js' });
   assert.equal(manifest.dependencies['better-sqlite3'], '1.2.3');
@@ -463,7 +468,7 @@ test('npm release manifests require native SQLite and pin installed external dep
   const conflicting = path.join(f.source, 'node_modules/better-sqlite3');
   mkdirSync(conflicting, { recursive: true });
   writeFileSync(path.join(conflicting, 'package.json'), JSON.stringify({ name: 'better-sqlite3', version: '9.9.9' }));
-  assert.throws(() => releaseManifest([f.root, f.source], '0.4.13'), /Expected one installed version/);
+  assert.throws(() => releaseManifest([f.root, f.source], '0.4.13', { packageName: '@fixture/talos-cli' }), /Expected one installed version/);
 });
 
 test('CLI publication requires every supported installation receipt for the exact archive and revision', t => {
@@ -1233,4 +1238,13 @@ test("Windows volume fallback validates structured filesystem and rejects incomp
   assert.equal(run("not-json").ok, false);
   assert.equal(run(JSON.stringify({ DeviceID: "D:", DriveType: 3, FileSystem: "NTFS" })).ok, false);
   assert.equal(run(JSON.stringify({ DeviceID: "C:" })).ok, false);
+});
+
+test("Talos release excludes retired cloud entry resources but retains runtime assets and licenses", () => {
+  for (const file of ["mcode-tools.js", "matrix-mcp-stdio.js", "internal-bin", "internal-bin/mcode-tools", "embedded/mcode-tools", "embedded/mcode-tools/cli.mjs", "metafile.json"]) {
+    assert.equal(shouldIncludeCliReleasePath(file), false, file);
+  }
+  for (const file of ["cli.js", "image-preview-worker.js", "assets/agents/mavis/agent.json", "native/helper.exe", "vendor/srt-win/helper.exe", "LICENSE", "NOTICE", "licenses/pi-mono-LICENSE", "chunks/runtime.js"]) {
+    assert.equal(shouldIncludeCliReleasePath(file), true, file);
+  }
 });

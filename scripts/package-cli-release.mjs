@@ -52,7 +52,12 @@ function copyLicenses(stage) {
   }
 }
 
-export function releaseManifest(importers, version) {
+export function releaseManifest(importers, version, { packageName, publishable = false } = {}) {
+  // Identity is explicitly provided by the owner; never inherit the upstream npm scope.
+  if (typeof packageName !== "string" || !new RegExp("^(?:@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]*$").test(packageName) ||
+      packageName === "@minimax-ai/code" || packageName.includes("..")) {
+    throw new Error("An explicit Talos npm package name is required; the upstream package identity is forbidden.");
+  }
   const dependencies = {}, optionalDependencies = {};
   for (const name of cliExternalModules) {
     const versions = new Set(importers.map(importer => resolvePackage(name, importer)).filter(Boolean)
@@ -62,16 +67,22 @@ export function releaseManifest(importers, version) {
     target[name] = [...versions][0];
   }
   return {
-    name: '@minimax-ai/code', version, private: true, type: 'module', license: 'MIT',
-    description: 'MiniMax Code CLI built from the tagged public source.',
+    name: packageName, version, private: !publishable, type: 'module', license: 'MIT',
+    description: 'Talos coding agent CLI with provider-neutral configuration.',
     bin: { talos: 'cli.js' },
     engines: json(path.join(root, 'package.json')).engines,
-    repository: { type: 'git', url: 'https://github.com/MiniMax-AI/minimax-code.git' },
+    repository: { type: 'git', url: 'https://github.com/PAKIKNOWLEDGE/Talos.git' },
     dependencies, optionalDependencies,
   };
 }
 
-export async function packageCliRelease({ tag, out }) {
+export function shouldIncludeCliReleasePath(relativePath) {
+  const relative = relativePath.split(path.sep).join("/");
+  return relative !== "metafile.json" && !["mcode-tools.js", "matrix-mcp-stdio.js", "internal-bin", "embedded/mcode-tools"]
+    .some((retired) => relative === retired || relative.startsWith(retired + "/"));
+}
+
+export async function packageCliRelease({ tag, out, packageName = process.env.TALOS_NPM_PACKAGE_NAME, publishable = false }) {
   const version = cliBuildVersion(root, tag);
   const dist = path.join(root, 'dist');
   if (json(path.join(dist, 'package.json')).version !== version) throw new Error('Build version does not match the release tag. Build with MCODE_RELEASE_TAG first.');
@@ -81,8 +92,11 @@ export async function packageCliRelease({ tag, out }) {
   const temporary = mkdtempSync(path.join(tmpdir(), 'mcode-release-'));
   try {
     const stage = path.join(temporary, 'package');
-    cpSync(dist, stage, { recursive: true, filter: file => path.basename(file) !== 'metafile.json' });
-    const manifest = releaseManifest(readExtraction(root).packageRoots.map(directory => path.join(root, directory)), version);
+    cpSync(dist, stage, { recursive: true, filter: (file) => {
+      const relative = path.relative(dist, file).split(path.sep).join("/");
+      return shouldIncludeCliReleasePath(relative);
+    } });
+    const manifest = releaseManifest(readExtraction(root).packageRoots.map(directory => path.join(root, directory)), version, { packageName, publishable });
     writeFileSync(path.join(stage, 'package.json'), JSON.stringify(manifest, null, 2) + '\n');
     copyLicenses(stage);
     writeFileSync(path.join(stage, 'release.json'), JSON.stringify({ version, tag, revision, buildNode: process.version }, null, 2) + '\n');
@@ -95,7 +109,7 @@ The primary and only published command is talos. The archive still preserves
 upstream license and attribution files.
 `);
     mkdirSync(out, { recursive: true });
-    const archive = path.join(out, `minimax-code-${version}.tar.gz`);
+    const archive = path.join(out, `${manifest.name.replaceAll("@", "").replaceAll("/", "-")}-${version}.tar.gz`);
     if (existsSync(archive) || existsSync(`${archive}.sha256`)) throw new Error(`Output already exists: ${archive}`);
     await createTar({ file: archive, gzip: true, cwd: temporary, portable: true }, ['package']);
     writeFileSync(`${archive}.sha256`, `${digest(readFileSync(archive))}  ${path.basename(archive)}\n`, { flag: 'wx' });

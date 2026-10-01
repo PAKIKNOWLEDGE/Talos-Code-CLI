@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,7 +11,9 @@ import { versionFromTag } from './lib/cli-release.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const version = versionFromTag(process.env.MCODE_RELEASE_TAG);
 if (!process.env.MCODE_RELEASE_ARCHIVE) throw new Error('MCODE_RELEASE_ARCHIVE is required.');
-if (!['linux', 'darwin'].includes(process.platform)) throw new Error('Package validation currently supports Linux and macOS.');
+if (!['win32', 'linux', 'darwin'].includes(process.platform)) throw new Error('Unsupported package validation platform.');
+const packageName = process.env.TALOS_NPM_PACKAGE_NAME;
+if (!packageName || !new RegExp("^(?:@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]*$").test(packageName) || packageName === '@minimax-ai/code') throw new Error('Explicit Talos package identity is required.');
 const archive = path.resolve(process.env.MCODE_RELEASE_ARCHIVE);
 const sha256 = createHash('sha256').update(readFileSync(archive)).digest('hex');
 assert.equal(readFileSync(`${archive}.sha256`, 'utf8'), `${sha256}  ${path.basename(archive)}\n`, 'Release archive checksum mismatch');
@@ -37,16 +39,29 @@ try {
   });
   delete env.NODE_PATH;
   delete env.NODE_OPTIONS;
-  execFileSync('npm', ['install', '--global', '--prefix', prefix,
-    '--registry=https://registry.npmjs.org/', '--include=optional', '--ignore-scripts=false',
-    '--allow-scripts=better-sqlite3', '--no-audit', '--no-fund', archive],
-  { cwd: home, env, stdio: 'inherit', timeout: 300000 });
-  const installed = path.join(prefix, 'lib/node_modules/@minimax-ai/code');
+  const windows = process.platform === "win32";
+  const npmCli = path.join(path.dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js");
+  const npm = (...args) => execFileSync(process.execPath, [npmCli, ...args],
+    { cwd: home, env, stdio: "inherit", timeout: 300000, windowsHide: true });
+  npm("install", "--global", "--prefix", prefix, "--include=optional", "--ignore-scripts=false",
+    "--allow-scripts=better-sqlite3", "--no-audit", "--no-fund", archive);
+  const installed = path.join(prefix, ...(windows ? ["node_modules"] : ["lib", "node_modules"]), ...packageName.split("/"));
+  const installedManifest = JSON.parse(readFileSync(path.join(installed, "package.json"), "utf8"));
+  assert.equal(installedManifest.name, packageName);
+  assert.deepEqual(installedManifest.bin, { talos: "cli.js" });
+  assert.equal(existsSync(path.join(installed, "embedded", "mcode-tools")), false);
+  assert.equal(existsSync(path.join(installed, "internal-bin")), false);
   const release = JSON.parse(readFileSync(path.join(installed, 'release.json'), 'utf8'));
   assert.equal(release.version, version);
   assert.equal(release.tag, process.env.MCODE_RELEASE_TAG);
   assert.equal(release.revision, revision);
-  const result = execFileSync(path.join(prefix, 'bin/talos'), ['--version'], { cwd: home, env, encoding: 'utf8', timeout: 30000 });
+  const launcher = path.join(prefix, ...(windows ? [] : ["bin"]), windows ? "talos.cmd" : "talos");
+  assert.equal(existsSync(launcher), true, "npm generated launcher is present");
+  const versionArgs = windows
+    ? ["/d", "/s", "/c", `"${launcher}" --version`]
+    : ["--version"];
+  const executable = windows ? process.env.ComSpec ?? "C:/Windows/System32/cmd.exe" : launcher;
+  const result = execFileSync(executable, versionArgs, { cwd: home, env, encoding: "utf8", timeout: 30000, windowsHide: true });
   assert.equal(result.trim(), version);
   const require = createRequire(path.join(installed, 'package.json'));
   const Database = require('better-sqlite3');
@@ -56,10 +71,18 @@ try {
   execFileSync(process.execPath, ['--test', 'test/smoke.test.mjs', 'test/byok.test.mjs'], {
     cwd: root, env: { ...env, MCODE_TEST_CLI: path.join(installed, 'cli.js') }, stdio: 'inherit', timeout: 240000,
   });
+  // Reinstall the same candidate to exercise prefix replacement, then uninstall.
+  // Cross-version upgrade needs a second version and is not claimed here.
+  npm("install", "--global", "--prefix", prefix, "--include=optional", "--ignore-scripts=false",
+    "--allow-scripts=better-sqlite3", "--no-audit", "--no-fund", archive);
+  assert.equal(JSON.parse(readFileSync(path.join(installed, "package.json"), "utf8")).version, version);
+  npm("uninstall", "--global", "--prefix", prefix, "--no-audit", "--no-fund", packageName);
+  assert.equal(existsSync(installed), false);
+  assert.equal(existsSync(launcher), false);
   if (process.env.MCODE_VERIFY_REPORT_DIR) {
     mkdirSync(process.env.MCODE_VERIFY_REPORT_DIR, { recursive: true });
     writeFileSync(path.join(process.env.MCODE_VERIFY_REPORT_DIR, 'package-install.json'), JSON.stringify({
-      status: 'PASS', version, revision, sha256, platform: process.platform, arch: process.arch, node: process.version,
+      status: 'PASS', packageName, version, revision, sha256, reinstall: true, uninstall: true, crossVersionUpgrade: false, platform: process.platform, arch: process.arch, node: process.version,
     }, null, 2) + '\n');
   }
   console.log(`Verified npm installation of ${path.basename(archive)} (${sha256}).`);
