@@ -195,7 +195,10 @@
       "packages/tui/test/unit/tui-stream-events.test.ts",
       "packages/tui/test/unit/tui/controller/projection/turn-output-rate.test.ts",
       "packages/local-runtime-v2/src/application/session/content-timing.test.ts",
-      "packages/tui/test/unit/npm-version.test.ts"
+      "packages/tui/test/unit/npm-version.test.ts",
+      "packages/local-runtime-v2/test/integration/compaction-openai-transport.integration.test.ts",
+      "packages/tui/test/unit/tui/transcript/panel-literal-user-text.test.ts",
+      "packages/tui/test/unit/tui/transcript/presentation/literal-text.test.ts"
     ],
     "status-contract": [
       "packages/tui/test/unit/tui-build-mode-contract.test.ts"
