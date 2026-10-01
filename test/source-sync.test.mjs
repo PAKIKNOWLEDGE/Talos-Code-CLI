@@ -1248,3 +1248,28 @@ test("Talos release excludes retired cloud entry resources but retains runtime a
     assert.equal(shouldIncludeCliReleasePath(file), true, file);
   }
 });
+
+
+test('Runtime startup leaves host shell PATH integration disabled by default', async () => {
+  const { transformSync } = await import('esbuild');
+  const source = readFileSync(new URL('../packages/local-runtime/src/infra/ensure-path-integration.ts', import.meta.url), 'utf8');
+  const compiled = transformSync(source, { loader: 'ts', format: 'esm' }).code;
+  // Any attempted host file/registry operation fails the regression. This
+  // exercises the function, without trusting a fixture HOME to isolate HKCU.
+  const failModule = 'data:text/javascript,' + encodeURIComponent(
+    'export function appendFileSync(){throw Error("host write attempted")} export function existsSync(){throw Error("host read attempted")} export function readFileSync(){throw Error("host read attempted")} export function execFileSync(){throw Error("registry command attempted")}',
+  );
+  const isolated = compiled.replaceAll('"node:fs"', JSON.stringify(failModule))
+    .replaceAll('"node:child_process"', JSON.stringify(failModule));
+  const previous = process.env.TALOS_ENABLE_SHELL_PATH_INTEGRATION;
+  try {
+    delete process.env.TALOS_ENABLE_SHELL_PATH_INTEGRATION;
+    const module = await import('data:text/javascript,' + encodeURIComponent(isolated));
+    module.ensurePathIntegration(path.join(tmpdir(), 'talos-host-isolation-fixture'));
+    process.env.TALOS_ENABLE_SHELL_PATH_INTEGRATION = '0';
+    module.ensurePathIntegration(path.join(tmpdir(), 'talos-host-isolation-fixture'));
+  } finally {
+    if (previous === undefined) delete process.env.TALOS_ENABLE_SHELL_PATH_INTEGRATION;
+    else process.env.TALOS_ENABLE_SHELL_PATH_INTEGRATION = previous;
+  }
+});

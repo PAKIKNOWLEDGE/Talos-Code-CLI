@@ -14,6 +14,10 @@ import { homedir } from 'node:os';
 const PATH_MARKER = '# Added by MiniMax Code';
 
 export function ensurePathIntegration(dataDir: string): void {
+  // npm owns CLI command installation; tool shims are added to this process
+  // separately. Starting an agent must not implicitly edit the host profile.
+  // Temporary HOME/data directories do not isolate the Windows user registry.
+  if (process.env.TALOS_ENABLE_SHELL_PATH_INTEGRATION !== '1') return;
   const binDir = join(dataDir, 'bin');
 
   try {
