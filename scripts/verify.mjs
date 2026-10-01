@@ -29,8 +29,8 @@ if (!["full", "platform", "windows", "docs", "archive", "package"].includes(prof
   throw new Error(`Unknown verification profile: ${profile}`);
 if (profile === "windows" && process.platform !== "win32")
   throw new Error("Windows verification profile requires a Windows host");
-if (profile === 'package' && !['darwin', 'linux'].includes(process.platform))
-  throw new Error('Package verification currently supports Linux and macOS only.');
+if (profile === 'package' && !['win32', 'darwin', 'linux'].includes(process.platform))
+  throw new Error('Package verification supports Windows, Linux and macOS.');
 // Listing must not leave a temporary export directory behind.
 const temporary = values.list
   ? undefined
@@ -74,7 +74,7 @@ const steps = [
     name: "test:release-package",
     command: ['scripts/verify-cli-release.mjs'],
     packageOnly: true,
-    platforms: ['darwin', 'linux'],
+    platforms: ['win32', 'darwin', 'linux'],
   },
 ];
 
