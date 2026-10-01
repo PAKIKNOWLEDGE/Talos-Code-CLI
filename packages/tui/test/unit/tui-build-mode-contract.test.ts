@@ -1,6 +1,8 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { resolveTuiPackageVersion } from '../../src/build-info.js';
 
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
@@ -170,4 +172,19 @@ describe('Vela build-mode status-line contract', () => {
       ).toBeUndefined();
     },
   );
+});
+
+describe("Talos package version identity", () => {
+  it("reads the owner-selected scoped package using its only talos entry", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "talos-package-version-"));
+    roots.push(directory);
+    await writeFile(join(directory, "package.json"), JSON.stringify({ name: "@fixture/talos-cli", version: "1.2.3", bin: { talos: "cli.js" } }), "utf8");
+    expect(resolveTuiPackageVersion(pathToFileURL(join(directory, "cli.js")))).toBe("1.2.3");
+  });
+  it("does not accept an unrelated ancestor manifest as the CLI version", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "talos-package-version-"));
+    roots.push(directory);
+    await writeFile(join(directory, "package.json"), JSON.stringify({ name: "unrelated-package", version: "9.9.9" }), "utf8");
+    expect(() => resolveTuiPackageVersion(pathToFileURL(join(directory, "cli.js")))).toThrow("Cannot resolve Talos package version");
+  });
 });

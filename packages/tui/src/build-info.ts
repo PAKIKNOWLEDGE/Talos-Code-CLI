@@ -9,6 +9,7 @@ const TALOS_CLI_PACKAGE_NAME = 'talos-cli';
 interface PackageManifest {
   name: string;
   version: string;
+  bin?: Record<string, string>;
 }
 
 export function resolveTuiPackageVersion(moduleUrl: string | URL = import.meta.url): string {
@@ -20,7 +21,8 @@ export function resolveTuiPackageVersion(moduleUrl: string | URL = import.meta.u
       if (
         (manifest.name === MINIMAX_CODE_PACKAGE_NAME ||
           manifest.name === '@minimax/code' ||
-          manifest.name === TALOS_CLI_PACKAGE_NAME) &&
+          manifest.name === TALOS_CLI_PACKAGE_NAME ||
+          (typeof manifest.name === 'string' && manifest.bin?.talos === 'cli.js')) &&
         typeof manifest.version === 'string' &&
         manifest.version.length > 0
       ) {
@@ -30,7 +32,7 @@ export function resolveTuiPackageVersion(moduleUrl: string | URL = import.meta.u
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     }
   }
-  throw new Error(`Cannot resolve ${MINIMAX_CODE_PACKAGE_NAME} package version`);
+  throw new Error(`Cannot resolve Talos package version`);
 }
 
 function parseVersion(version: string): number[] | undefined {
