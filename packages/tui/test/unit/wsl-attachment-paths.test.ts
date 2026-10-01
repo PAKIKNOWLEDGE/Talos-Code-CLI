@@ -147,7 +147,12 @@ describe("WSL attachment paths", () => {
     },
   );
 
-  it("keeps native attachment resolution working in WSL without a subprocess", async () => {
+  it("keeps native attachment resolution on the actual host without a subprocess", async () => {
+    // The fixture creates real host paths; do not label a Windows home as Linux/WSL.
+    if (process.platform === "win32") {
+      host.platform.mockReturnValue("win32");
+      host.release.mockReturnValue("generic-kernel");
+    }
     await expect(
       resolveTuiAttachment("截图.png", { workspaceDir }),
     ).resolves.toMatchObject({ filePath: imagePath });
