@@ -1,292 +1,86 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/wordmark-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="docs/assets/wordmark-light.svg">
-    <img src="docs/assets/wordmark-light.svg" alt="MiniMax Code" width="760">
-  </picture>
-</p>
+# Talos CLI
 
-<h1 align="center">MiniMax Code</h1>
-<p align="center">A terminal coding agent with MiniMax, your own models, and tools beyond code.</p>
-<p align="center">
-  <a href="#quick-start">Get started</a> ·
-  <a href="docs/README.md">Documentation</a> ·
-  <a href="docs/examples.md">Examples</a> ·
-  <a href="CONTRIBUTING.md">Contributing</a>
-</p>
-<p align="center"><strong>English</strong> · <a href="README_ZH.md">简体中文</a></p>
-<p align="center">
-  <img src="docs/assets/source-preview.svg" alt="Source preview">
-  <img src="docs/assets/node.svg" alt="Compatibility: Node.js 22.19+, 24.2+, 25, and 26">
-  <a href="LICENSE-STATUS.md"><img src="docs/assets/license.svg" alt="First-party default license: MIT"></a>
-</p>
+[简体中文](README_ZH.md) · [npm](https://www.npmjs.com/package/@pakiknowledge/tal0s-code) · [Contributing](CONTRIBUTING.md)
 
-Understand a project, make changes, and run tests from your terminal. Use your MiniMax account or bring your own model, with search, plugins, and multimodal tools in the same workflow.
+A terminal coding agent with an Endfield-inspired interface, provider-neutral model configuration, and a workspace you control. Built on the MiniMax Code engine; published under its own package name and command.
 
-> **Talos fork note:** this checkout is also maintained as the engine fork for [Talos](https://github.com/PAKIKNOWLEDGE/Talos). The companion GUI lives in `C:\DEV\develop\T3rra-C0d3-Talos` and connects through ACP. Talos-specific provider, authentication, data-directory, branding, and TUI changes are reviewed in small commits and must preserve the repository's source inventory, licenses, third-party notices, sandbox boundaries, and permission checks.
+![Talos 0.1.0 welcome screen](docs/assets/talos-welcome.png)
 
-### Talos local fork check
+> **0.1.0 preview.** Windows x64 has passed the existing source and installed-package checks. NixOS installation testing is still pending. This release is the CLI; the companion GUI and Tauri desktop shell are not included.
 
-For the Talos fork, build and launch the local `talos` entry explicitly:
+## Install
 
-```powershell
-$env:PATH="C:\Program Files\nodejs;$env:PATH"
-pnpm build
-pnpm talos
+Node.js **22.19–22.x, 24.2–24.x, 25.x, or 26.x** is required. Keep dependency install scripts and optional dependencies enabled so native SQLite and clipboard support can install.
+
+```sh
+npm install -g @pakiknowledge/tal0s-code@latest --registry=https://registry.npmjs.org/ --ignore-scripts=false --include=optional
+talos --version
 ```
 
-The build should identify itself as `talos-cli@0.5.7` and `Built Talos CLI 0.5.7`. The `0.5.7` version is the inherited source baseline; it is not yet a Talos npm release version.
+The command is `talos`. There is no `mcode` compatibility alias.
 
-[![Real MiniMax Code TUI output: fixing clamp, inspecting the diff, and running tests](docs/assets/tui-demo.png)](docs/demo.md)
+## Start in your project
 
-<p align="center"><a href="docs/demo.md">Watch the 20-second demo →</a> · Real terminal output, with pauses shortened</p>
-
-## Quick start
-
-### 1. Install MCode
-
-Use the official installer for your platform. It installs the latest CLI, prepares a compatible Node.js runtime when needed, and does not require `sudo` or administrator privileges. Alpine / musl Linux is not supported by the one-command installer.
-
-**macOS / Linux / WSL**
-
-```bash
-curl -fsSL https://filecdn.minimax.chat/public/install.sh | bash
-```
-
-**Windows (PowerShell)**
-
-```powershell
-irm https://filecdn.minimax.chat/public/install.ps1 | iex
-```
-
-The scripts install into `~/.minimax-code` on macOS / Linux / WSL and `%USERPROFILE%\.minimax-code` on Windows. The launchers are `bin/mcode` and `bin/mcode-tools` on POSIX, or `mcode.cmd` / `mcode.ps1` and `mcode-tools.cmd` / `mcode-tools.ps1` on Windows. Set `MCODE_INSTALL_DIR` before installation to choose a different location. See [Uninstall](#uninstall) to remove the CLI.
-
-**npm** — if you already have **Node.js 22.19+ (22.x), 24.2+ (24.x), 25, or 26**:
-
-```bash
-npm install -g @minimax-ai/code@latest --registry=https://registry.npmjs.org/ --ignore-scripts=false --include=optional --allow-scripts=@minimax-ai/code,better-sqlite3
-```
-
-The npm command uses the public registry, includes the optional SQLite dependency, and permits the package and SQLite installation scripts. See the [installation guide](docs/installation.md) for version pinning and Node.js compatibility.
-
-Reopen your terminal and check the installation:
-
-```bash
-mcode --version
-mcode --help
-```
-
-See the official [quick start](https://agent.minimax.io/docs/cli/quick-start), [features](https://agent.minimax.io/docs/cli/features), and [troubleshooting](https://agent.minimax.io/docs/cli/faq).
-
-### 2. Sign in or bring your own API key
-
-For a mainland China account:
-
-```bash
-mcode login
-```
-
-For a Global account:
-
-```bash
-mcode login --region global
-```
-
-Complete sign-in in your browser, then open `mcode` and use `/status` to check your account and `/provider` to choose a model. Run `mcode logout` to sign out.
-
-Token Plan requires an account with available credits. Builds from this repository and the published npm CLI `@minimax-ai/code@0.4.12` default to `~/.minimax` for user data (or `~/.minimax-<profile>` when a profile is selected). `MINIMAX_DATA_DIR` or `MAVIS_DATA_DIR` can override the data directory. The installer's `~/.minimax-code` installation directory is separate from this choice. See [Accounts and data](docs/installation.md#accounts-and-data) before locating or removing configuration and sessions.
-
-<details>
-<summary>Use your own API key (BYOK)</summary>
-
-BYOK does not require a MiniMax login. Set `MCODE_PROVIDER_API_KEY` in your current shell, then add a provider. Replace the example URL and model name with your provider's values:
-
-```bash
-mcode provider add --name my-provider --base-url https://example.com/v1 \
-  --api-format openai-completions --model my-model \
-  --api-key-env MCODE_PROVIDER_API_KEY --use
-mcode
-```
-
-`--use` tests the first listed model before saving and selecting it. A failed connection test saves nothing. Omit `--use` to save without testing or changing the default model. For custom/local models, add `--context-limit 32768 --output-limit 4096` (use your server's actual limits). Each value must be a positive safe integer and applies to every repeated `--model`. Inspect configured limits with `mcode provider list --json`. Omitting these flags preserves the existing model-limit defaults.
-
-Supported API formats: `openai-completions`, `openai-responses`, and `anthropic-messages`. See the [model examples](docs/examples.md#2-choose-your-own-model) for environment variable setup, connection checks, and model overrides for a single run.
-
-Providers added this way are stored under `custom_provider` in the active profile's `config.yaml`; this is the supported path for third-party or self-hosted endpoints, while `minimax_api` stays reserved for the official MiniMax API. Relays that require `Authorization: Bearer` on an Anthropic-compatible endpoint can set custom headers in `config.yaml`; see [Third-party relays and custom auth headers](docs/examples.md#third-party-relays-and-custom-auth-headers).
-
-</details>
-
-### 3. Run your first task
-
-Open the project you want to work on:
-
-```bash
+```sh
 cd /path/to/your/project
-mcode
+talos
 ```
 
-Describe your task in the TUI, or submit it directly when you launch MCode:
+Open `/provider` to add or select a model connection. Choose a provider preset or configure a custom API-compatible endpoint, model, and API key. Provider connections use the same setup flow; no MiniMax account is required. API usage is billed by your chosen provider.
 
-```bash
-mcode "Find a failing test, fix the implementation, and run the relevant tests."
-```
+Describe the task, its boundaries, and how to verify the result. Review tool output and permission requests as the agent works.
 
-Use `mcode init .` to generate or update project guidance in `AGENTS.md`. Describe the expected result, allowed changes, and how to verify the task.
+![Talos conversation and tool activity](docs/assets/talos-session.png)
 
-| Entry point | Command | Use it for |
-| --- | --- | --- |
-| Interactive TUI | `mcode [prompt]` | Explore code, continue a conversation, and review changes or permissions. |
-| Headless | `mcode exec [prompt]` | Shell scripts, CI, batch work, and evaluations. |
-| ACP | `mcode acp` | Editors and clients supporting Agent Client Protocol. |
+The screenshots show a user-configured terminal background and transparency. Talos supplies the yellow terminal interface and text banner, not the wallpaper or terminal settings.
 
-### Continue your work
+## Everyday commands
 
-```bash
-# Resume the latest session in the current workspace
-mcode --continue
-
-# Open the session picker
-mcode --session
-```
-
-Inside the TUI, use `/sessions` to find previous sessions and `/help` to see all commands and shortcuts.
-
-| Action | Shortcut |
+| Command | Purpose |
 | --- | --- |
-| Send a message or steer the running task | `Enter` |
-| Queue a follow-up while a task is running | `Alt+Enter` |
-| Insert a newline | `Shift+Enter` |
-| Reference a workspace file or directory | `@` |
-| Toggle Plan Mode | `Shift+Tab` |
-| Switch permission modes | `Alt+M` |
-| Close a panel or interrupt a running task; interrupting before the model replies returns the message to the composer | `Esc` |
+| `talos` | Open the interactive terminal interface in the current directory. |
+| `talos "Explain this repository"` | Start with an initial task. |
+| `talos --continue` | Continue the latest session in the current workspace. |
+| `talos --session` | Open the session picker. |
+| `talos exec "Explain this repository"` | Execute a task without the interactive interface. |
+| `talos acp` | Connect an Agent Client Protocol client. |
+| `talos update` | Check for a new version and show a manual npm upgrade command. |
+| `talos --help` | Inspect available commands and options. |
 
-## Uninstall
+In the TUI, `/provider` manages model connections, `/sessions` opens history, and `/help` lists commands and shortcuts.
 
-Close running MCode sessions, including editor integrations, before uninstalling. First locate the command with `command -v mcode` (macOS / Linux / WSL) or `Get-Command mcode -All` (PowerShell), then follow the matching installation method below. The current official install scripts do **not** provide an uninstall flag.
+## Data and updates
 
-### Installed with the script
+Default configuration and sessions live in `~/.talos` (`%USERPROFILE%\.talos` on Windows). Uninstalling the npm package does not remove this data. Keep API keys and private sessions out of Git.
 
-The commands below remove the default installation directory, including both launchers, downloaded releases, and any installer-managed Node.js runtime. If you used `MCODE_INSTALL_DIR`, substitute the actual installation directory. Inspect it first: earlier source builds used `~/.minimax-code` for user data, and a custom data directory can overlap the installation. Back up any configuration or sessions you want to keep before deleting it.
+Updates are advisory: Talos does not download or run an installer. Upgrade yourself with the install command above. Startup adds tool directories to the running process; persistent shell PATH integration is disabled unless explicitly enabled with `TALOS_ENABLE_SHELL_PATH_INTEGRATION=1`.
 
-**macOS / Linux / WSL**
+## Troubleshooting installation
 
-```bash
-rm -rf -- "$HOME/.minimax-code"
-```
-
-Remove the `# MiniMax Code CLI` comment and its following PATH line from the shell file the installer updated: `~/.zshrc` for zsh; the first existing file among `~/.bashrc`, `~/.bash_profile`, and `~/.profile` for bash (or a newly created `~/.bashrc`); `~/.config/fish/config.fish` for fish; or `~/.profile` for other shells. The line is `export PATH="/absolute/install/path/bin:$PATH"`, or `fish_add_path -g "/absolute/install/path/bin"` for fish. Remove only the MCode entry, preserving other PATH settings. The installer skips this edit when `MCODE_NO_MODIFY_PATH` is set or the path is already present.
-
-**Windows (PowerShell)**
+- **Missing SQLite native bindings:** ensure dependency scripts were enabled. First check that `talos` resolves to the installation you just created; a pnpm installation can shadow an npm installation. Use `Get-Command talos -All` in PowerShell or `command -v talos` on Unix.
+- **Windows cannot find `prebuild-install` or `node-gyp`:** an old terminal can retain an obsolete, overlong PATH. Completely close its host and reopen it. If needed, refresh only the current PowerShell environment before reinstalling:
 
 ```powershell
-Remove-Item -LiteralPath "$env:USERPROFILE\.minimax-code" -Recurse -Force
+$env:Path = 'C:\Program Files\nodejs;' + [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
+npm install -g @pakiknowledge/tal0s-code@latest --registry=https://registry.npmjs.org/ --ignore-scripts=false --include=optional
 ```
 
-Open **Edit environment variables for your account**, edit the user **Path**, and remove only the installation directory entry (by default `%USERPROFILE%\.minimax-code`, which may appear as an expanded absolute path). The Windows installer updates the user Path, not the PowerShell profile; `MCODE_NO_MODIFY_PATH` skips that persistent update.
+`--allow-scripts` is not recognized by the npm 11.12.1 installation used for Windows verification; it is not required by these instructions. A `prebuild-install` deprecation warning alone does not mean the install failed. If installation still fails, retain the final error and avoid deleting your profile or changing system permissions.
 
-### Installed with npm or from source
+## Preview scope
 
-For a global npm installation, use the same npm installation/prefix you used to install MCode:
+The terminal interface, provider configuration, tools, sessions, and ACP entry are included. Default web search is deferred; user-configured MCP search has not been live validated. GUI/Tauri work is separate. NixOS support is not yet verified; report native-library or executable-loading failures with the exact error.
 
-```bash
-npm uninstall -g @minimax-ai/code
-```
+## Develop
 
-For a source build, save any work and remove only the checkout you created; see [Update or remove](docs/installation.md#update-or-remove).
-
-After uninstalling, reopen your terminal (fully restart the editor for integrated terminals) and run `command -v mcode` or `Get-Command mcode -All` again. No result means the command is no longer on PATH. If another copy appears, identify its installation method before removing it.
-
-### Optional: delete user data
-
-Removing the program leaves separately stored user data in place. To also delete local login state, provider configuration, caches, and sessions, first confirm the selected directory using [Accounts and data](docs/installation.md#accounts-and-data) and back up anything you need. Other MCode installations can share this directory. For the default `~/.minimax` directory only:
-
-```bash
-# macOS / Linux / WSL — permanently deletes the default user data
-rm -rf -- "$HOME/.minimax"
-```
-
-```powershell
-# Windows — permanently deletes the default user data
-Remove-Item -LiteralPath "$env:USERPROFILE\.minimax" -Recurse -Force
-```
-
-A profile uses `~/.minimax-<profile>`; `MINIMAX_DATA_DIR` or `MAVIS_DATA_DIR` can select a different location. Remove only the specific directories you intend to discard, without wildcard deletion. Remove any MCode-specific environment variable assignments you added to shell profiles or user environment settings if you no longer need them.
-
-## What you can do
-
-| Task | Capabilities |
-| --- | --- |
-| **Edit and verify code** | Read files, inspect diffs, run shell commands and tests, and control tool execution with permissions and sandboxing. |
-| **Choose your model** | Use a MiniMax account / Token Plan, or custom providers with OpenAI- or Anthropic-compatible API formats. |
-| **Search and work with media** | Use built-in search, `mcode-tools` media tools, MCP, and managed connectors, subject to account access and service credits. |
-| **Keep work moving** | Resume sessions, plan tasks, use subagents, and extend the agent with official, local, or GitHub plugins and built-in skills. |
-| **Connect your workflow** | Run scripted tasks with the headless CLI, or connect compatible editors and clients through ACP. |
-
-Account features, updates, feedback, and diagnostics are also included. Managed tools require network access and the relevant authorization. See [capabilities and service boundaries](docs/tui-capabilities.md) for details.
-
-## Try it
-
-Start the TUI in a copy of the example project and enter:
-
-> Read clamp.mjs and clamp.test.mjs. Run node --test to reproduce the failure, fix clamp without changing the tests, then run the tests again.
-
-The [small, reproducible project](examples/clamp) is the same task used in the demo above. [More examples](docs/examples.md) cover switching models, calling real search, and using your own image inputs.
-
-## Build from source
-
-To develop MCode or run this source checkout, you need Git, **Node.js 22.19+ (22.x), 24.2+ (24.x), 25, or 26**, and **pnpm 9.12.0**. On Windows, keep the checkout on a local NTFS volume and outside cloud-synced folders; the preflight command below checks the volume before pnpm creates workspace links.
-```bash
-git clone https://github.com/MiniMax-AI/minimax-code.git
-cd minimax-code
-node scripts/check-windows-source-location.mjs
+```sh
 pnpm install --frozen-lockfile
 pnpm build
-pnpm mcode
+pnpm start
 ```
 
-The first build requires an internet connection. Dependencies and the integrity-checked `mcode-tools` bundle come from public npm. See the [source installation guide](docs/installation.md) for pnpm setup, system dependencies, and updates.
+The source workspace stays private to prevent accidental publication. Release packages are prepared separately. See [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md), and the [source synchronization contract](docs/source-sync.md) for repository boundaries, verification, and reviewed upstream updates. Some inherited technical documents still describe upstream MiniMax Code; this README describes the Talos distribution.
 
-From the source directory, use `pnpm mcode` in place of `mcode` in the examples above. To work on your own project, open its directory and launch the built CLI:
+## License and upstream
 
-```bash
-node /absolute/path/to/minimax-code/dist/cli.js
-```
-
-This repository targets the **0.4.12 source preview**. Installing the published package and building this checkout are separate paths. Matching versions do not prove identical build provenance; see the [version and evidence baseline](docs/open-source-status.md#version-and-evidence-baseline).
-
-## Documentation and contributing
-
-- [Installation and updates](docs/installation.md) · [Examples](docs/examples.md) · [TUI status line](packages/tui/docs/status-line-config.md)
-- [Contributor guide](CONTRIBUTING.md) · [Report a bug or propose an idea](https://github.com/MiniMax-AI/minimax-code/issues/new/choose) · [Report a security issue](SECURITY.md)
-- [All documentation](docs/README.md): architecture, capability coverage, verification records, source synchronization, and release preparation.
-
-English is the primary documentation language. The [Chinese README](README_ZH.md) mirrors this page.
-
-For now, code and documentation pull requests are accepted only from repository collaborators. If you are not a collaborator but have an idea or proposal, please [open an issue](https://github.com/MiniMax-AI/minimax-code/issues/new/choose) so we can discuss it. Remove secrets, account details, and private project content from reports.
-
-## Desktop app and support
-
-<a href="https://agent.minimax.io/download" title="Download MiniMax Code">
-  <img src="https://filecdn.minimax.chat/public/c3ebbd2e-f55b-48d7-adff-030abb63e06d.png" alt="MiniMax Code desktop app — click to download" width="100%" />
-</a>
-
-[Download for macOS or Windows](https://agent.minimax.io/download) · [Report a problem or ask a question](https://github.com/MiniMax-AI/minimax-code/issues/new/choose)
-
-This repository also hosts issue reporting for the MiniMax Code desktop app. The published source covers the terminal TUI, headless CLI, and ACP; it does not include the desktop application's source. Select the affected product when filing an issue. For a desktop bug, include the app version, operating system, and a log upload ID if available from **Settings → General → Upload logs**. For a CLI bug, include `mcode --version`, your interface, and a minimal reproduction. Remove credentials and private project content from reports.
-
-## Feedback and contact
-
-| Channel | Use it for |
-| --- | --- |
-| [GitHub Issues](https://github.com/MiniMax-AI/minimax-code/issues/new/choose) | Public bug reports, feature requests, and questions about the CLI or desktop app. |
-| [MiniMaxCode@minimax.io](mailto:MiniMaxCode@minimax.io) | General feedback and support inquiries. |
-| [security.mcode@minimax.io](mailto:security.mcode@minimax.io) | Private vulnerability reports. Send reproduction details and redacted evidence here; see [Security](SECURITY.md). |
-| [Discord](https://minimax.io/discord) | Community discussion and feedback. |
-| [Feishu feedback group QR code](https://cdn.hailuoai.com/hailuo-video-web/public_assets/minimax_code_feishu_group_url.png) | Chinese-language community feedback. Scan with Feishu, or find the QR code in the Chinese desktop app under the user menu → **Contact us → Feishu**. |
-
-Follow [MiniMax on X](https://x.com/MiniMaxAgent) for updates. Keep vulnerability details, credentials, and private project content out of public issues and community chats.
-
-## License
-
-First-party code defaults to [MIT](LICENSE). Existing file-level and package-level licenses remain in place. See [third-party notices](THIRD_PARTY_NOTICES.md) and [license status](LICENSE-STATUS.md) for dependencies, assets, and `mcode-tools`.
+Talos is a fork of [MiniMax Code](https://github.com/MiniMax-AI/minimax-code), incorporating [pi-mono](https://github.com/badlogic/pi-mono) and other components. Original copyright and attribution are retained. See [LICENSE](LICENSE), [NOTICE](NOTICE), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and [LICENSE-STATUS.md](LICENSE-STATUS.md) for the applicable licenses and exceptions.
