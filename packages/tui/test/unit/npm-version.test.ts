@@ -39,6 +39,11 @@ describe("Talos read-only npm updates", () => {
   it.each(["1.2.4-rc.1", "01.2.4", "invalid"])("does not treat invalid latest %s as confirmed", async (version) => {
     expect((await checkTalosNpmVersion({ identity, fetchImpl: async () => response(version) })).kind).toBe("unconfirmed");
   });
+  it.each(["@minimax-ai/code", "@minimax/code", "@fixture/bad;cmd", "@fixture/../escape"])("never queries rejected identity %s", async (name) => {
+    const fetchImpl = vi.fn<typeof fetch>();
+    expect((await checkTalosNpmVersion({ identity: { name, version: "1.2.3" }, fetchImpl })).kind).toBe("unconfigured");
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
   it("rejects mismatched metadata and fetch failure", async () => {
     expect((await checkTalosNpmVersion({ identity, fetchImpl: async () => response("9.0.0", "@other/package") })).kind).toBe("unconfirmed");
     expect((await checkTalosNpmVersion({ identity, fetchImpl: async () => { throw new Error("offline"); } })).kind).toBe("unconfirmed");

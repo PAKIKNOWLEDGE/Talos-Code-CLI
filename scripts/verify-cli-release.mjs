@@ -15,6 +15,10 @@ if (!['win32', 'linux', 'darwin'].includes(process.platform)) throw new Error('U
 const packageName = process.env.TALOS_NPM_PACKAGE_NAME;
 if (!packageName || !new RegExp("^(?:@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]*$").test(packageName) || packageName === '@minimax-ai/code') throw new Error('Explicit Talos package identity is required.');
 const archive = path.resolve(process.env.MCODE_RELEASE_ARCHIVE);
+const upgradeArchive = process.env.TALOS_VERIFY_UPGRADE_ARCHIVE;
+const upgradeVersion = process.env.TALOS_VERIFY_UPGRADE_VERSION;
+if (Boolean(upgradeArchive) !== Boolean(upgradeVersion)) throw new Error("Upgrade archive and version must be provided together.");
+if (upgradeVersion) versionFromTag(`v${upgradeVersion}`);
 const sha256 = createHash('sha256').update(readFileSync(archive)).digest('hex');
 assert.equal(readFileSync(`${archive}.sha256`, 'utf8'), `${sha256}  ${path.basename(archive)}\n`, 'Release archive checksum mismatch');
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
@@ -78,13 +82,34 @@ try {
   npm("install", "--global", "--prefix", prefix, "--include=optional", "--ignore-scripts=false",
     "--no-audit", "--no-fund", archive);
   assert.equal(JSON.parse(readFileSync(path.join(installed, "package.json"), "utf8")).version, version);
+  let upgradeSha256;
+  if (upgradeArchive && upgradeVersion) {
+    const bytes = readFileSync(upgradeArchive);
+    upgradeSha256 = createHash("sha256").update(bytes).digest("hex");
+    assert.equal(readFileSync(`${upgradeArchive}.sha256`, "utf8"), `${upgradeSha256}  ${path.basename(upgradeArchive)}${String.fromCharCode(10)}`);
+    assert.notEqual(upgradeVersion, version, "Upgrade needs a distinct candidate version");
+    // Keep a saved provider marker outside the package tree across replacement.
+    const configFile = path.join(home, "data", "config.yaml");
+    mkdirSync(path.dirname(configFile), { recursive: true });
+    writeFileSync(configFile, "logLevel: warn" + String.fromCharCode(10), { encoding: "utf8", mode: 0o600 });
+    const savedConfig = readFileSync(configFile, "utf8");
+    npm("install", "--global", "--prefix", prefix, "--include=optional", "--ignore-scripts=false",
+      "--no-audit", "--no-fund", upgradeArchive);
+    const upgraded = JSON.parse(readFileSync(path.join(installed, "package.json"), "utf8"));
+    assert.equal(upgraded.name, packageName);
+    assert.equal(upgraded.version, upgradeVersion);
+    assert.equal(execFileSync(executable, versionArgs, { cwd: home, env, encoding: "utf8", timeout: 30000, windowsHide: true,
+      ...(windows ? { windowsVerbatimArguments: true } : {}) }).trim(), upgradeVersion);
+    assert.equal(readFileSync(configFile, "utf8"), savedConfig, "Package replacement must preserve user data");
+    execFileSync(process.execPath, ["--test", "test/byok.test.mjs"], { cwd: root, env: { ...env, MCODE_TEST_CLI: path.join(installed, "cli.js") }, stdio: "inherit", timeout: 240000 });
+  }
   npm("uninstall", "--global", "--prefix", prefix, "--no-audit", "--no-fund", packageName);
   assert.equal(existsSync(installed), false);
   assert.equal(existsSync(launcher), false);
   if (process.env.MCODE_VERIFY_REPORT_DIR) {
     mkdirSync(process.env.MCODE_VERIFY_REPORT_DIR, { recursive: true });
     writeFileSync(path.join(process.env.MCODE_VERIFY_REPORT_DIR, 'package-install.json'), JSON.stringify({
-      status: 'PASS', packageName, version, revision, sha256, reinstall: true, uninstall: true, crossVersionUpgrade: false, platform: process.platform, arch: process.arch, node: process.version,
+      status: 'PASS', packageName, version, revision, sha256, reinstall: true, uninstall: true, crossVersionUpgrade: Boolean(upgradeArchive), upgradeVersion: upgradeVersion ?? null, upgradeSha256: upgradeSha256 ?? null, platform: process.platform, arch: process.arch, node: process.version,
     }, null, 2) + '\n');
   }
   console.log(`Verified npm installation of ${path.basename(archive)} (${sha256}).`);
