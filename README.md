@@ -62,7 +62,7 @@ Release notes: [0.1.1](docs/releases/0.1.1.md).
 
 ## Release status
 
-Talos **0.1.1** is a CLI preview. Windows x64 installation and the existing release checks have passed. NixOS testing is pending; cross-platform validation is not yet complete.
+Talos **0.1.1** is a CLI preview. Windows x64 installation and the existing release checks have passed. On NixOS (2026-10-03) the local full verification passed 12 of 14 gates; the two remaining failures are test-environment issues (a PATH-restricted launcher and a fixture timeout), not platform regressions — details in [verification records](docs/verification.md). Cross-platform validation is not yet complete.
 
 The desktop GUI is separate work. Default web search is not included in this release.
 

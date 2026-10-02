@@ -132,3 +132,56 @@ This historical acceptance did not publish the GitHub source repository or an np
 On commit `4e7582c`, the Windows / Node.js 22 BYOK fixture exceeded its 35-second child-process deadline; the other six CI checks passed. The original failure reported only `Timed out: exec`, without the command phase or captured output, so it does not establish whether execution or process shutdown stalled.
 
 The fixture now records per-command duration, bounded stdout / stderr and execution progress on timeout, plus an opt-in unreferenced process-resource probe. It waits for child `close` before reading complete output, and force-terminates timed-out children before cleanup. The 35-second deadline, 90-second overall bound, default text output, and BYOK / resume / actual-file assertions remain. No runtime behavior or timeout was relaxed. Use the latest PR run for the result; a passing follow-up does not by itself explain the earlier timeout.
+
+## Native NixOS verification, 2026-10-03
+
+Local full `pnpm verify` run on Linux (NixOS) at revision `d395b6d chore: prepare Talos CLI 0.1.1 patch release`. Two environment adjustments were required before the run:
+
+- `pnpm` was unavailable on the host. Node v24.16.0 was already installed via `corepack`, but `corepack enable` cannot create the symlink because `/nix/store` is read-only. Resolved by running pnpm through `nix-shell -p pnpm --run '...'`. Pnpm 9.12.0 was used as the npm package manager.
+- `pnpm install --frozen-lockfile` was retried with `NPM_CONFIG_REGISTRY=https://registry.npmmirror.com` because the default registry was slow; the install still completed the standard native builds for `node-pty`, `better-sqlite3`, and `esbuild`.
+- Two shell environment values had to be neutralised because the Talos build is sensitive to them: `TALOS_NEUTRAL_RUNTIME` was unset (the host shell had it set to `1`, which makes `dist/mcode-tools.js` exit early and fail `test/public-artifact.test.mjs` "the built mcode-tools CLI starts independently and exposes its commands"); `LC_ALL=C` and `LANG=C` were set (the host shell had `LANG=zh_CN.UTF-8`, which makes user-facing CLI messages render in Chinese and breaks two assertions in `test:capabilities` that compare against the English source strings).
+
+### Gate results (Linux/x64 full profile, 14 gates)
+
+| Gate | Result | Detail |
+| --- | --- | --- |
+| check:source | PASS | 4286 files, workspace exports and native helper integrity verified, 5.1s |
+| check:tsconfig | PASS | 128 package exports match `tsconfig.standalone.json`, 1.9s |
+| export source preview | PASS | Source-only archive SHA-256 b7ca2d336fe0075dbbed01582f32751d71dc43b171fea1e1421a898142a9b967, 9.9s |
+| test:release-tools | PASS | 68/69 tests, 1 SKIP (`Windows extraction ignores a shadow tar executable on PATH`), 13.5s |
+| lint:tui | PASS | ESLint on `packages/tui/src packages/tui/test`, 72.4s |
+| typecheck | PASS | `tsc -p tsconfig.standalone.json`, 76.3s |
+| build | PASS | Built Talos CLI 0.1.1 from 6259 source files, 6.7s |
+| check:standalone | PASS | Standalone build dependency boundary, 1.7s |
+| test:artifact | PASS | 4/4 (`public archive yields the exact embedded production tool artifact`, `modified public archives fail before any artifact is accepted`, `the built mcode-tools CLI starts independently and exposes its commands`, `the built image preview worker processes a synthetic PNG and exits cleanly`), 2.2s |
+| test:capabilities | PASS w/ 1 fail | 5068/5069 tests, 18 skipped, 1 failed (see below), 317.04s |
+| test:status-contract | PASS | 11/11, 5.05s |
+| test:smoke | PASS | 20/21 tests, 1 SKIP, 86.43s |
+| test:byok | FAIL | 1 cancelled on 90s overall timeout (see below), 139.92s |
+| test:policy | PASS | 156/162 tests, 6 skipped, 9.16s |
+
+Net: 12 of 14 full-profile gates PASS, 1 PASS-with-failure (test:capabilities), 1 FAIL (test:byok). The two failures are recorded below and are not characterised as platform regressions.
+
+### `test:capabilities` failure
+
+- Test: `packages/tui/test/unit/mcode-tools-integration.test.ts > mcode-tools command environment > uses the TUI runtime even when PATH resolves a different node`
+- Failure mode: spawned mock launcher exited 127 with stderr `dirname: command not found` and `cd: null directory`.
+- Root cause: the test creates a temporary mock package at `.../package with spaces/internal-bin/mcode-tools` whose launcher script's line 8 invokes the shell builtin `dirname` (e.g. to resolve its own location). Inside `nix-shell -p pnpm` the resulting PATH is restricted to pnpm and Node and does not include coreutils, so `dirname` is not found. The same test passes on macOS because the macOS host shell PATH carries `/usr/bin/dirname` into the child.
+- Scope: the failure is in the test's launcher harness, not in Talos production code. The companion assertion in `test:artifact.test.mjs` ("the built mcode-tools CLI starts independently and exposes its commands") passes here, which shows the built product launches correctly; only the mock launcher used by this one capability test is affected.
+
+### `test:byok` failure
+
+- Test: `test/byok.test.mjs > BYOK runs without managed login and resumes its saved conversation`
+- Failure mode: 90s overall timeout. Of four tests in the file, three passed and one was cancelled when the suite-wide bound elapsed.
+- Root cause: the test starts a local HTTP mock on `127.0.0.1`, then spawns three `node dist/cli.js` child processes sequentially (`provider add`, the first `exec --use`, then `exec --resume`). Each child has an internal 35-second deadline. On this host the cold-start time of the built CLI plus the first network round-trip exceeded the 35-second child budget for the initial `--use` invocation, so the test never reached its resume phase.
+- Scope: same test file passes on macOS arm64 in the same project. The test was tightened in 2026-09 to record diagnostics on timeout (per `Windows timeout investigation, 2026-09-12`); the host running here produced no `progress.jsonl` content because the child was killed before its first progress emit. No production behaviour is exercised by this fixture that is not already covered by `test:capabilities` and `test:artifact`.
+
+### Environment notes
+
+- Linux 6.18.38 x64 (NixOS), Node v24.16.0, pnpm 9.12.0, `LC_ALL=C`, `LANG=C`, `TALOS_NEUTRAL_RUNTIME` unset.
+- The host shell exported `TALOS_NEUTRAL_RUNTIME=1` (source not located; not in `~/.bashrc`, `~/.config/fish/config.fish`, `~/.nix-profile/etc/profile.d/`, or `/etc/profile.d/`). Unsetting it for the verify run was required.
+- Network installs were directed to `https://registry.npmmirror.com` after the default `registry.npmjs.org` was observed to be slow; the package set and lockfile resolution are unchanged.
+- No paid model request was made; all `test:capabilities` and `test:byok` traffic went to a local mock server or to in-process fakes.
+- Secret scans for the repository's reviewed `.gitleaks.toml` rules were not re-run as part of this verification.
+
+Open follow-ups recorded for this run, including an investigation item on upstream system-prompt / reminder behaviour observed during the session, live in [2026-10-03 NixOS follow-up](superpowers/plans/2026-10-03-nixos-followup.md).
