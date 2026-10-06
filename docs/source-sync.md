@@ -36,19 +36,19 @@ See the [0.5.5 review](source-sync-0.5.5.md) for the current selective update.
 
 ## Talos branch ownership
 
-`origin/main` is the single Talos product branch. Work on short-lived feature, fix, or documentation branches; integrate accepted work into main before declaring delivery complete, unless the owner explicitly requested a draft branch. Delete a work branch only after confirming its commits are reachable from main. Published-version tags identify exact source commits and must not move.
+`origin/main` is the single Talos product branch. Work on short-lived feature, fix, or documentation branches; integrate accepted work into main before declaring delivery complete, unless the deliverable is explicitly a draft branch. Delete a work branch only after confirming its commits are reachable from main. Published-version tags identify exact source commits and must not move.
 
 `upstream` refers only to the official public MiniMax Code repository. It is a read-only source of candidates, not a second Talos development branch. Select public PRs explicitly in separate sync work; do not merge the entire upstream main by default. A standalone public commit may be cherry-picked with source attribution after reviewing dependencies; adapted changes must record their original PR/commit and any omitted prerequisites. The internal-to-public extraction contract above remains separate: do not change extraction sourceRevision merely because a public PR was selected.
 
 ### Initial main promotion (2026-10-01)
 
-The owner authorized promoting the accepted Talos development tree to main without importing upstream PRs. Preserve the former remote main at tag `backup/upstream-main-20261001` (c593d3d52c2544faeed1753a486434739b741bd3); rename the old remote branch temporarily, promote the Talos branch, then remove the temporary branch after verifying the tag. This is a branch-name transition, not an upstream merge.
+The accepted Talos development tree became main without importing upstream PRs. The former remote main is preserved at tag `backup/upstream-main-20261001` (c593d3d52c2544faeed1753a486434739b741bd3). Temporary branches were removed after verifying the backup tag. This was a branch-name transition, not an upstream merge.
 
 The following former-main commits remain deferred, not integrated or rejected: c593d3d (#381), e3d7855 (#380), ec4a611 (#379), c7935eb (#378), 3ba8169 (#376). Review them only in a separately authorized sync task. The tag preserves their history. Tag `v0.1.0` identifies the published source commit 63bd98ee0d7500f9c172718fb65c125e54e35014, not the later README commit.
 
 
 ## Selected public PR intake (2026-10-02)
 
-Owner-approved scope: #199 (bf3916f57f5497c89c0ec4cb7006b51ca4ed3ea3), #388 (67a5c2ac522627d03a15f5f52824772b7512d7d5), and only literal user-text presentation from #410 (56834658777bdca51ca8778f389d84aaec8da2ac), all from MiniMax-AI/minimax-code. Patches retain upstream authorship in the public Git history and commit attribution.
+Accepted scope: #199 (bf3916f57f5497c89c0ec4cb7006b51ca4ed3ea3), #388 (67a5c2ac522627d03a15f5f52824772b7512d7d5), and only literal user-text presentation from #410 (56834658777bdca51ca8778f389d84aaec8da2ac), all from MiniMax-AI/minimax-code. Patches retain upstream authorship in the public Git history and commit attribution.
 
 #410 stale-run watchdog, lifecycle observation, and its associated tests are excluded. Talos branding, model defaults, permissions, data directories and version remain unchanged. Source/test inventories are regenerated locally; extraction sourceRevision is not advanced by this selective public intake. Other candidates remain discussion items in the companion product docs, not approved work.

@@ -62,7 +62,7 @@ talos
 
 ## 发行状态
 
-Talos **0.1.1** 是 CLI 预览版。Windows x64 安装及现有发行检查已通过；NixOS（2026-10-03）本地完整验证通过 14 个 gate 中的 12 个，其余两个失败属于测试环境问题（受限 PATH 的启动脚本与 fixture 超时），不是平台回归——详见[验证记录](docs/verification.md)。跨平台验证尚未齐备。
+Talos **0.1.1** 是 CLI 预览版。Windows x64 发行检查已通过；NixOS 上的模型驱动使用已确认正常，源码检查通过 14 项中的 12 项，另两项保留为验证限制。范围与结果见[验证记录](docs/verification.md#native-nixos-verification-2026-10-03)，完整平台矩阵尚未齐备。
 
 桌面 GUI 单独开发，本版不包含默认联网搜索。
 
