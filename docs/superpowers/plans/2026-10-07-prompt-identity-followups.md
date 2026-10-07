@@ -7,41 +7,38 @@ templates and the six persona assets. This document records what that pass
 deliberately deferred. None of the items below are scheduled; each needs its own
 task with functional verification before any rename is made.
 
-## 0. Verified blocking finding: the `mavis` tool (2026-10-07)
+## 0. Verified blocking finding: the `mavis` tool (2026-10-07) — REPAIRED
 
 Owner acceptance of the rebrand (recorded in
 [verification records](../../verification.md#talos-prompt-identity-rebrand-2026-10-07))
 failed on one point: the model calls itself Perlica/Talos correctly but still
-reports the session agent name as "Mavis". Root cause located:
+reports the session agent name as "Mavis". Root cause pinned by the session
+transcript:
 
-- `packages/agent-tools/src/desktop/builtin-defs.ts:946` defines a model-visible
-  tool named `mavis` (local agent/session/cron/MCP management). Tool names are
-  visible to the model on every request.
-- Its description says "the built-in mavis agent" twice (lines 966 and 971).
-- Prompt-asset examples call the tool as `mavis({ ... })` in
-  `_default/prompt-session-root.md.hbs`, `_default/prompt-base-all.md(.hbs)`,
-  and `mavis/features/cron.md.hbs`.
+- The user turn carried a `<agent-context>` reminder with
+  `agent: Mavis / agentName: mavis / agentRole: orchestrator`
+  (`packages/agent-modules/system-reminder/src/blocks.ts:105-114`); the display
+  name came from the seed `DEFAULT_LOCAL_AGENT_DISPLAY_NAME = "Mavis"`
+  (`packages/local-runtime/src/api/host.ts:290`).
+- The tool named `mavis` (`packages/agent-tools/src/desktop/builtin-defs.ts:946`)
+  said "the built-in mavis agent" twice in its description.
+- The greeting reminder's `agent_name:` fact used the internal routing key.
 
-The exact path that exposed the "orchestrator" role string to the model is
-unresolved; candidates are the memory provenance attributes
-(`packages/local-runtime/src/memory/local-data-collector.ts:207-211`) and tool
-data. Pin this down before repairing.
+**Repair (implemented, option B plus a guardrail):** the model-visible tool is
+renamed `talos` with the description scrubbed and all name-keyed consumers
+updated (native tool feature filter, V2 turn tool catalog gates, desktop
+output-limit continuation union, local-mavis continuation hint); the display
+name is seeded `Perlica`; the `<agent-context>` block marks agentName/agentRole
+as internal routing metadata; the greeting reminder prefers the display name;
+prompt-asset examples use `talos({ ... })`. Verification is recorded in
+[verification records](../../verification.md#talos-prompt-identity-rebrand-2026-10-07).
 
-Repair options, neither implemented:
-
-- **Option A (text only).** Replace "the built-in mavis agent" with neutral
-  wording. Likely insufficient: the tool name `mavis` itself remains in every
-  tool list, and the acceptance session shows the model reads tool names into
-  its self-description.
-- **Option B (rename, verified feasible).** Rename the model-visible tool to
-  `talos`, scrub the description, and update the `mavis({ ... })` examples and
-  the tests referencing the tool name. Verified during triage: the name is
-  request-level (not a storage or protocol contract); the implementation lives
-  in `packages/agent-tools/src/desktop/local-mavis.ts` and
-  `local-mavis-commands.ts`. Enumerate all references before editing; run the
-  focused tool tests plus a fresh owner acceptance session.
-
-This item blocks the identity acceptance and should be taken first.
+**Still open (routing contracts, unchanged on purpose):** the `mavis` agent key
+and `skills.mavis`/`features.mavis` flags, the built-in skill keyed `mavis`
+("load the `mavis` skill" prompt references), the `agentName: mavis # routing
+ID` line, `mavis-doctor`, `mavis-trash`, `MAVIS_SCRATCHPAD`, and the
+`lark-tools` CLI command references. The `minimax-code-product` skill rewrite
+remains its own task.
 
 ## 1. Model-visible functional names (verify the runtime name first)
 
