@@ -17,6 +17,7 @@
 - [Contributing](../CONTRIBUTING.md) · [Maintainers and review](maintainers.md) · [Security reporting](../SECURITY.md)
 - [Architecture](architecture.md) · [Verification records](verification.md)
 - [Conversation experience follow-up](superpowers/plans/2026-10-03-nixos-followup.md): recorded observations reserved for a later task.
+- [Prompt identity follow-ups](superpowers/plans/2026-10-07-prompt-identity-followups.md): deferred naming and skill-content work from the Talos identity pass.
 
 ## Maintain and release
 
