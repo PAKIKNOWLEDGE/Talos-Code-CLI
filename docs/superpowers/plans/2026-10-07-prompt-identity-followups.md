@@ -7,6 +7,42 @@ templates and the six persona assets. This document records what that pass
 deliberately deferred. None of the items below are scheduled; each needs its own
 task with functional verification before any rename is made.
 
+## 0. Verified blocking finding: the `mavis` tool (2026-10-07)
+
+Owner acceptance of the rebrand (recorded in
+[verification records](../../verification.md#talos-prompt-identity-rebrand-2026-10-07))
+failed on one point: the model calls itself Perlica/Talos correctly but still
+reports the session agent name as "Mavis". Root cause located:
+
+- `packages/agent-tools/src/desktop/builtin-defs.ts:946` defines a model-visible
+  tool named `mavis` (local agent/session/cron/MCP management). Tool names are
+  visible to the model on every request.
+- Its description says "the built-in mavis agent" twice (lines 966 and 971).
+- Prompt-asset examples call the tool as `mavis({ ... })` in
+  `_default/prompt-session-root.md.hbs`, `_default/prompt-base-all.md(.hbs)`,
+  and `mavis/features/cron.md.hbs`.
+
+The exact path that exposed the "orchestrator" role string to the model is
+unresolved; candidates are the memory provenance attributes
+(`packages/local-runtime/src/memory/local-data-collector.ts:207-211`) and tool
+data. Pin this down before repairing.
+
+Repair options, neither implemented:
+
+- **Option A (text only).** Replace "the built-in mavis agent" with neutral
+  wording. Likely insufficient: the tool name `mavis` itself remains in every
+  tool list, and the acceptance session shows the model reads tool names into
+  its self-description.
+- **Option B (rename, verified feasible).** Rename the model-visible tool to
+  `talos`, scrub the description, and update the `mavis({ ... })` examples and
+  the tests referencing the tool name. Verified during triage: the name is
+  request-level (not a storage or protocol contract); the implementation lives
+  in `packages/agent-tools/src/desktop/local-mavis.ts` and
+  `local-mavis-commands.ts`. Enumerate all references before editing; run the
+  focused tool tests plus a fresh owner acceptance session.
+
+This item blocks the identity acceptance and should be taken first.
+
 ## 1. Model-visible functional names (verify the runtime name first)
 
 These names appear in prompt text but are bound to real runtime features.

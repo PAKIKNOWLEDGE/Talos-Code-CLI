@@ -174,3 +174,27 @@ Disposition, 2026-10-06: retain both outcomes as known verification limitations.
 The automated run reports local fixtures and no paid model requests. The later real-use confirmation is a separate user observation; its provider, request counts and project contents are not recorded here. This record does not claim npm installation coverage, all-provider compatibility, or a complete platform matrix.
 
 Two conversation-experience observations are reserved for a later task: [follow-up scope](superpowers/plans/2026-10-03-nixos-followup.md). No prompt, runtime or test changes are part of accepting this record.
+
+## Talos prompt identity rebrand, 2026-10-07
+
+Scope: pull request #1 (branch `fix/prompt-talos-identity`, commit `cacce79fdd8c4282faa52ea87a426e533ef7fb20`) rebranded the bundled agent prompt identity. The agent persona is now **Perlica** (replacing Mavis, whose name was documented as "MiniMax As a Jarvis"), and runtime product references in the prompts now say **Talos** (replacing MiniMax Code). Ten asset files changed: the four `_v2` system/surface templates (`tui`/`coding`/`work` SYSTEM, `AGENT_CONTEXT`) and the six persona assets. Two test files updated their asset-content assertions in lockstep; one docs plan file was added and the source inventory was regenerated. Internal identifiers (`builtin-agents.json` roster, `@mavis/*` package names, `managed-prompts.json` path keys, capability flags) were deliberately not renamed.
+
+### Local verification
+
+`pnpm verify` (full profile) **PASS** at revision `cacce79` on Windows x64, Node v24.15.0, elapsed 598.9s: check:source (4,288 files), check:tsconfig, source export, release tools, lint, typecheck, build, standalone, artifact, capabilities, windows, windows-policy, status-contract, smoke, and byok all passed; `test:policy`, `test:sandbox`, and `test:release-package` were intentional platform/condition skips. Focused during iteration: catalog and agent repository suites (130 tests), `check:source`, `typecheck`.
+
+### Owner acceptance session (partial fail)
+
+The owner ran the built CLI from the branch with a real model and asked about identity. The rebranded prompt claims took effect: the model introduced itself as **Perlica**, a coding agent running in the Talos terminal. The session nevertheless leaked internal identifiers: the model additionally stated that the current session's agent name is "Mavis" with role "orchestrator".
+
+### Root cause (located, deliberately not fixed)
+
+The model-visible tool list contains a tool named `mavis` (`packages/agent-tools/src/desktop/builtin-defs.ts:946`, the local agent/session/cron/MCP management tool), and its description refers to "the built-in mavis agent" twice (lines 966 and 971). Prompt-asset examples also call this tool as `mavis({ ... })` in `_default/prompt-session-root.md.hbs`, `_default/prompt-base-all.md(.hbs)`, and `mavis/features/cron.md.hbs`. The model assembles its self-description from this tool surface, so the persona rebrand alone cannot stop the "Mavis" self-identification. The exact injection path of the "orchestrator" role statement is unresolved; candidate paths are the memory provenance attributes and tool data.
+
+### Disposition
+
+Per the owner's decision, the tool-name repair is **deferred to a separately reviewed task**: two options are recorded in [prompt identity follow-ups](superpowers/plans/2026-10-07-prompt-identity-followups.md) — (A) scrub the description text only, likely insufficient because the tool name itself is model-visible, and (B) rename the model-visible tool to `talos` together with the description scrub and example/test updates. Neither option is implemented in this pull request. The earlier conversation-experience follow-ups (standalone waiting replies; internal labels in documents) remain open and are now corroborated by this acceptance session.
+
+### Boundary
+
+This record covers offline suites plus one interactive owner-run acceptance session on Windows. It does not claim a live-service matrix, other-platform interactive acceptance, or that the installed npm release carries the new prompts (which requires the next release). The research background for the rebrand is recorded in [harness prompt research](superpowers/plans/2026-10-07-harness-prompt-research.md).
