@@ -79,7 +79,7 @@ export async function buildAgentGreetingReminder(
       promptReadContext,
     );
     const facts = [
-      `agent_name: ${view.exactOwnerName}`,
+      `agent_name: ${view.displayName ?? view.exactOwnerName}`,
       view.displayName ? `display_name: ${view.displayName}` : undefined,
       view.description ? `description: ${view.description}` : undefined,
       `persona_present: ${profile.persona?.trim() ? 'true' : 'false'}`,

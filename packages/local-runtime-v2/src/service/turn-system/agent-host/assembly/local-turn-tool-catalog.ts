@@ -331,7 +331,7 @@ function isProfileToolAllowed(
   if (profile.surface === 'task-child' && TASK_CHILD_BLOCKED_TOOL_NAMES.has(tool.def.name)) {
     return false;
   }
-  if (isBuiltinSubagentTaskChild(profile) && tool.def.name === 'mavis') return false;
+  if (isBuiltinSubagentTaskChild(profile) && tool.def.name === 'talos') return false;
   return isProfileCapabilityEnabled(profile.capabilityCeiling, tool.def.name, source);
 }
 
@@ -494,7 +494,7 @@ function isProfileCapabilityEnabled(
 }
 
 function isFeatureEnabled(ceiling: LocalAgentCapabilityCeiling, toolName: string): boolean {
-  if (toolName === 'mavis') return ceiling.features.mavis;
+  if (toolName === 'talos') return ceiling.features.mavis;
   if (DELEGATION_TOOL_NAMES.has(toolName)) return ceiling.features.delegation;
   if (toolName === 'web_search') return ceiling.features.webSearch;
   return true;

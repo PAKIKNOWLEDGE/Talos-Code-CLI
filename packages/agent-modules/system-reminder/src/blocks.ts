@@ -111,6 +111,10 @@ export function buildAgentContextBlock(env: AgentEnv, opts?: { teamModeOff?: boo
   if (!isCloud) {
     lines.push(`  agentName: ${env.agentName}  # routing ID`);
     lines.push(`  agentRole: ${env.agentRole}  # agent type`);
+    lines.push(
+      '  (agentName and agentRole are internal routing metadata, not your public identity;',
+      '   introduce yourself with your display name.)',
+    );
   }
   lines.push(`  SESSION ROLE: ${sessionRole}`, `  YOUR SESSION ID: ${env.sessionId}`);
   if (env.parentSessionId) {

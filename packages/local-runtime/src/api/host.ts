@@ -287,7 +287,7 @@ import {
 } from "./routes/permissions.js";
 
 const DEFAULT_LOCAL_AGENT_NAME = "mavis";
-const DEFAULT_LOCAL_AGENT_DISPLAY_NAME = "Mavis";
+const DEFAULT_LOCAL_AGENT_DISPLAY_NAME = "Perlica";
 export type { LocalRuntimeApiHostOptions };
 export class LocalRuntimeApiHost {
   public readonly controller: LocalSessionController;

@@ -192,12 +192,12 @@ describe('local native turn tools', () => {
       mavisAgentAdapter: {} as never,
     };
     const withoutCron = buildLocalNativeRuntimeTools(base).find(
-      (tool) => tool.def.name === 'mavis',
+      (tool) => tool.def.name === 'talos',
     );
     const withCron = buildLocalNativeRuntimeTools({
       ...base,
       mavisCronAdapter: {} as never,
-    }).find((tool) => tool.def.name === 'mavis');
+    }).find((tool) => tool.def.name === 'talos');
 
     expect(withoutCron?.def.description).toContain('agent — local desktop agent roster');
     expect(withoutCron?.def.description).toContain('session — local desktop conversations');
@@ -222,11 +222,11 @@ describe('local native turn tools', () => {
         .properties.args.properties;
 
     const withoutCron = argsOf(
-      buildLocalNativeRuntimeTools(base).find((tool) => tool.def.name === 'mavis'),
+      buildLocalNativeRuntimeTools(base).find((tool) => tool.def.name === 'talos'),
     );
     const withCron = argsOf(
       buildLocalNativeRuntimeTools({ ...base, mavisCronAdapter: {} as never }).find(
-        (tool) => tool.def.name === 'mavis',
+        (tool) => tool.def.name === 'talos',
       ),
     );
 
@@ -280,14 +280,14 @@ describe('local native turn tools', () => {
       mavisAgentAdapter: {} as never,
     };
     const withoutCron = buildLocalNativeRuntimeTools(base).find(
-      (tool) => tool.def.name === 'mavis',
+      (tool) => tool.def.name === 'talos',
     );
     if (!withoutCron) throw new Error('mavis tool not found');
     expect(withoutLocalMavisCronGuidance(withoutCron).def).toEqual(withoutCron.def);
     const stillHasCron = buildLocalNativeRuntimeTools({
       ...base,
       mavisCronAdapter: {} as never,
-    }).find((tool) => tool.def.name === 'mavis');
+    }).find((tool) => tool.def.name === 'talos');
 
     expect(stillHasCron?.def.description).toContain('cron — local desktop scheduled tasks');
     const schema = stillHasCron?.def.schema as {
@@ -805,7 +805,7 @@ describe('local native turn tools', () => {
         },
       });
 
-      const mavis = tools.find((tool) => tool.def.name === 'mavis');
+      const mavis = tools.find((tool) => tool.def.name === 'talos');
       expect(mavis).toBeDefined();
 
       const cronResult = await mavis!.impl.execute(

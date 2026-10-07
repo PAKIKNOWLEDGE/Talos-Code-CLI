@@ -400,7 +400,7 @@ export class LocalMavisTool implements ToolImpl<
     if (!limited.truncated) return result;
     const continuation = createDesktopOutputContinuation({
       continuation_hint: {
-        tool: 'mavis',
+        tool: 'talos',
         preserve_args: ['command', 'args'],
         instruction: mavisRecoveryInstruction(output.command),
       },

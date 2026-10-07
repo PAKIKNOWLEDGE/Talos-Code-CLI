@@ -187,13 +187,30 @@ Scope: pull request #1 (branch `fix/prompt-talos-identity`, commit `cacce79fdd8c
 
 The owner ran the built CLI from the branch with a real model and asked about identity. The rebranded prompt claims took effect: the model introduced itself as **Perlica**, a coding agent running in the Talos terminal. The session nevertheless leaked internal identifiers: the model additionally stated that the current session's agent name is "Mavis" with role "orchestrator".
 
-### Root cause (located, deliberately not fixed)
+### Root cause (resolved by transcript evidence)
 
-The model-visible tool list contains a tool named `mavis` (`packages/agent-tools/src/desktop/builtin-defs.ts:946`, the local agent/session/cron/MCP management tool), and its description refers to "the built-in mavis agent" twice (lines 966 and 971). Prompt-asset examples also call this tool as `mavis({ ... })` in `_default/prompt-session-root.md.hbs`, `_default/prompt-base-all.md(.hbs)`, and `mavis/features/cron.md.hbs`. The model assembles its self-description from this tool surface, so the persona rebrand alone cannot stop the "Mavis" self-identification. The exact injection path of the "orchestrator" role statement is unresolved; candidate paths are the memory provenance attributes and tool data.
+The owner's acceptance session transcript pinned the leak precisely. The user turn carried a `<agent-context>` system-reminder containing:
 
-### Disposition
+    agent: Mavis  # display name
+    agentName: mavis  # routing ID
+    agentRole: orchestrator  # agent type
 
-Per the owner's decision, the tool-name repair is **deferred to a separately reviewed task**: two options are recorded in [prompt identity follow-ups](superpowers/plans/2026-10-07-prompt-identity-followups.md) — (A) scrub the description text only, likely insufficient because the tool name itself is model-visible, and (B) rename the model-visible tool to `talos` together with the description scrub and example/test updates. Neither option is implemented in this pull request. The earlier conversation-experience follow-ups (standalone waiting replies; internal labels in documents) remain open and are now corroborated by this acceptance session.
+built by `packages/agent-modules/system-reminder/src/blocks.ts:105-114`, with the display name coming from the hardcoded seed `DEFAULT_LOCAL_AGENT_DISPLAY_NAME = "Mavis"` (`packages/local-runtime/src/api/host.ts:290`). Two further model-visible surfaces carried the same identity: the tool named `mavis` (`packages/agent-tools/src/desktop/builtin-defs.ts:946`, with "the built-in mavis agent" twice in its description), and the greeting reminder's `agent_name:` fact. The earlier conversation-experience follow-ups (standalone waiting replies; internal labels in documents) remain open and are corroborated by this acceptance session.
+
+### Repair (implemented the same day)
+
+Repair option B from [prompt identity follow-ups](superpowers/plans/2026-10-07-prompt-identity-followups.md), plus a guardrail:
+
+- The model-visible tool is renamed `mavis` → `talos` (`builtin-defs.ts`), its description scrubbed ("the built-in mavis agent" → "the primary agent"), and every name-keyed consumer updated: the native tool feature filter (`local-native-tool-filter.ts`), the V2 turn tool catalog gates (`local-turn-tool-catalog.ts`), the desktop output-limit continuation union, and the local-mavis continuation hint.
+- The display-name seed is now `Perlica`; the primary agent's display name is host-computed rather than persisted per installation, so existing data directories render `agent: Perlica` too.
+- The `<agent-context>` block gained a guardrail line: agentName/agentRole are internal routing metadata, not public identity; self-introduce with the display name. The greeting reminder's `agent_name` fact now prefers the display name.
+- Prompt-asset examples call the tool as `talos({ ... })`; low-risk skill prose ("Mavis runtime", "Mavis-managed", "normal Mavis agent execution") was neutralized.
+
+Remaining model-visible internal keys are deliberately unchanged (routing contracts): the `mavis` agent key, the `skills.mavis`/`features.mavis` flags and the built-in skill keyed `mavis`, the `agentName: mavis # routing ID` line, `mavis-doctor`, `mavis-trash`, `MAVIS_SCRATCHPAD`, and the `lark-tools` CLI command references. The `minimax-code-product` skill rewrite remains a separate task.
+
+### Repair verification
+
+Focused suites: local-native tools (28 tests), agent catalog + repository (130 tests), full typecheck. Full-profile result: see below. Final acceptance is the owner's interactive session: the identity answer must self-introduce Perlica/Talos without "Mavis" or "orchestrator".
 
 ### Boundary
 
