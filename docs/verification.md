@@ -215,7 +215,9 @@ Remaining model-visible internal keys are deliberately unchanged (routing contra
 
 ### Repair verification
 
-Offline: `blocks.identity.test.ts` asserts assembled local `<agent-context>` strings omit `agentName: mavis` and `agentRole: orchestrator` while keeping `agent: Perlica`. Focused iteration on this branch also passed local-native tools and agent catalog/repository suites. Owner re-acceptance after routing-field removal is recorded above (pass). Full-profile `pnpm verify` on the merged branch commits is recorded in the PR validation handoff when complete.
+Offline: `blocks.identity.test.ts` asserts assembled local `<agent-context>` strings omit `agentName: mavis` and `agentRole: orchestrator` while keeping `agent: Perlica`. Focused iteration on this branch also passed local-native tools and agent catalog/repository suites. Owner re-acceptance after routing-field removal is recorded above (pass).
+
+`pnpm verify` (full profile) **PASS** at revision `892bf9f` on Windows x64: 15 applicable gates green (`check:source` 4,290 files, tsconfig, export, release tools, lint, typecheck, build, standalone, artifact, capabilities, windows, windows-policy, status-contract, smoke, byok); intentional skips `test:policy`, `test:sandbox` (macOS-only), `test:release-package` (requires npm release archive). Elapsed ~13.6 minutes.
 
 ### Boundary
 
