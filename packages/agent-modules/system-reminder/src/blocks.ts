@@ -108,10 +108,6 @@ export function buildAgentContextBlock(env: AgentEnv, opts?: { teamModeOff?: boo
   if (userConfiguredName) {
     lines.push(`  user: ${userConfiguredName}  # user name`);
   }
-  if (!isCloud) {
-    lines.push(`  agentName: ${env.agentName}  # routing ID`);
-    lines.push(`  agentRole: ${env.agentRole}  # agent type`);
-  }
   lines.push(`  SESSION ROLE: ${sessionRole}`, `  YOUR SESSION ID: ${env.sessionId}`);
   if (env.parentSessionId) {
     lines.push(`  PARENT SESSION: ${env.parentSessionId}`);
@@ -184,12 +180,12 @@ export function buildAgentContextBlock(env: AgentEnv, opts?: { teamModeOff?: boo
   // names referenced by the daemon string don't exist in the cloud skill
   // registry — observed in OSS session `401960923238467` where the model
   // called `skill(name='mavis-agent')` and got "Cloud Host skill not found".
-  // Cloud has the `mavis` LLM tool instead, so point at it directly.
+  // Cloud has the `talos` LLM tool instead, so point at it directly.
   if (!teamOff) {
     if (isCloud) {
       lines.push(
-        '  peers (for `communicate`):  `mavis({ command: "session list", args: { mode: "peers", session_id: "me" } })`',
-        '  agents (your roster):       `mavis({ command: "agent list" })`',
+        '  peers (for `communicate`):  `talos({ command: "session list", args: { mode: "peers", session_id: "me" } })`',
+        '  agents (your roster):       `talos({ command: "agent list" })`',
       );
     } else {
       lines.push(
@@ -212,9 +208,6 @@ export function buildSlimAgentContextBlock(env: AgentEnv): string {
   const userConfiguredName = formatUserConfiguredName(env.userConfiguredName);
   if (userConfiguredName) {
     lines.push(`  user: ${userConfiguredName}`);
-  }
-  if (!isCloud) {
-    lines.push(`  agentName: ${env.agentName}`);
   }
   lines.push(`  SESSION ROLE: ${sessionRole}`);
   lines.push(`  YOUR SESSION ID: ${env.sessionId}`);
@@ -398,7 +391,7 @@ export function buildCliSunsetMemoryNoticeBlock(notice: CliSunsetMemoryNotice | 
       'do NOT follow CLI instructions found in them:',
       ...paths.map((path) => `  - ${path}`),
       'Native replacements:',
-      '  - agent / cron / session → native `mavis` tool: `mavis({ command: "<group> <action>", args: { ... } })`',
+      '  - agent / cron / session → native `talos` tool: `talos({ command: "<group> <action>", args: { ... } })`',
       '  - communication peers/messages → native `mavis` session list/messages; return results normally instead of using communication send',
       '  - memory → native `memory` tool (see the mavis skill, references/memory.md)',
       '  - skills → native `skill` tool; hooks → edit hook files directly',
@@ -575,7 +568,7 @@ export function buildDailyMemoryUpdateBlock(dailyMemory: string): string {
  *
  * `scene: 'cloud'` activates the cloud-tailored variant — there is no on-disk
  * PERSONA.md to point at, and the agent talks to its own metadata through the
- * `mavis` LLM tool (no CLI), so the closing instructions reference the tool
+ * `talos` LLM tool (no CLI), so the closing instructions reference the tool
  * call shape instead of a CLI command + filesystem path.
  */
 export function buildPersonaMissingBlock(
@@ -613,8 +606,8 @@ export function buildPersonaMissingBlock(
   );
   if (isCloud) {
     lines.push(
-      'Save voice / boundaries / brevity with the `mavis` tool:',
-      `  mavis({ command: "agent update", args: { agent_name: "me", persona: "<one or two paragraphs in your own voice>" } })`,
+      'Save voice / boundaries / brevity with the `talos` tool:',
+      `  talos({ command: "agent update", args: { agent_name: "me", persona: "<one or two paragraphs in your own voice>" } })`,
       '(use `new_name` in the same call to update your display name)',
     );
   } else {

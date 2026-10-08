@@ -228,13 +228,13 @@ export function appendTtlPromptSuffix(
       '---',
       `[self-reminder TTL] This reminder expires at ${options.expiry.label}.`,
       `If \`Date.now() > ${options.expiry.atMs}\`, your first action MUST be to delete this reminder and exit silently:`,
-      `use the \`mavis\` tool — run \`cron list\` (agent_name: "${options.agentName}"), find the cron named "${options.cronName}", then run \`cron delete\` with its cron_id.`,
+      `use the \`talos\` tool — run \`cron list\` (agent_name: "${options.agentName}"), find the cron named "${options.cronName}", then run \`cron delete\` with its cron_id.`,
     );
   } else {
     lines.push(
       '',
       '---',
-      '[self-reminder] No TTL — you are responsible for deleting this cron via the `mavis` tool (`cron list` → `cron delete`) when the reason is gone.',
+      '[self-reminder] No TTL — you are responsible for deleting this cron via the `talos` tool (`cron list` → `cron delete`) when the reason is gone.',
     );
   }
   if (options.quietOnSkip) {

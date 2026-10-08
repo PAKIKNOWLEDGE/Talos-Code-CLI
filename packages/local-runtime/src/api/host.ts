@@ -16,6 +16,7 @@ import { getConfig } from "@mavis/config";
 import type { RuntimeConversation } from "@mavis/conversation-contract";
 import type { CronStorePort } from "@mavis/cron";
 import type { GlobalEventInput } from "@mavis/shared/global-events";
+import { PRIMARY_AGENT_DISPLAY_NAME } from "@mavis/shared/subagent-roles";
 import { join } from "node:path";
 import type { AgentReferenceResolver } from "../agent/port.js";
 import {
@@ -287,7 +288,6 @@ import {
 } from "./routes/permissions.js";
 
 const DEFAULT_LOCAL_AGENT_NAME = "mavis";
-const DEFAULT_LOCAL_AGENT_DISPLAY_NAME = "Mavis";
 export type { LocalRuntimeApiHostOptions };
 export class LocalRuntimeApiHost {
   public readonly controller: LocalSessionController;
@@ -627,7 +627,7 @@ export class LocalRuntimeApiHost {
     this.contentSafetyChecker = contentSafetyChecker;
     this.agentName = hostAgentName;
     this.agentDisplayName =
-      options.agentDisplayName ?? DEFAULT_LOCAL_AGENT_DISPLAY_NAME;
+      options.agentDisplayName ?? PRIMARY_AGENT_DISPLAY_NAME;
     const memory = createLocalMemorySubsystem({
       configGetter: this.configGetter,
       nowMs: this.nowMs,

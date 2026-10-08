@@ -400,7 +400,7 @@ export class LocalMavisTool implements ToolImpl<
     if (!limited.truncated) return result;
     const continuation = createDesktopOutputContinuation({
       continuation_hint: {
-        tool: 'mavis',
+        tool: 'talos',
         preserve_args: ['command', 'args'],
         instruction: mavisRecoveryInstruction(output.command),
       },
@@ -716,20 +716,20 @@ async function handleAgentDelete(
 async function handleAgentHelp(ctx: LocalMavisCommandContext): Promise<LocalMavisOutput> {
   return success(ctx.command, {
     group: 'agent',
-    summary: 'Manage local desktop Mavis agents through the internal local-runtime agent service.',
+    summary: 'Manage local desktop agents through the internal local-runtime agent service.',
     commands: [
       {
         command: 'agent list',
         summary: 'List local agents; use each row requestRef for agent_name.',
         args: ['search?', 'offset?', 'limit?', 'include_primary?'],
-        examples: ['mavis({ command: "agent list", args: { limit: 20 } })'],
+        examples: ['talos({ command: "agent list", args: { limit: 20 } })'],
       },
       {
         command: 'agent get',
         summary:
           'Get one local agent by built-in target or roster requestRef; agent:<stable-name> selects an exact manual/custom colliding name.',
         args: ['agent_name'],
-        examples: ['mavis({ command: "agent get", args: { agent_name: "me" } })'],
+        examples: ['talos({ command: "agent get", args: { agent_name: "me" } })'],
       },
       {
         command: 'agent create',
@@ -744,8 +744,8 @@ async function handleAgentHelp(ctx: LocalMavisCommandContext): Promise<LocalMavi
           'default_workspace_dir?',
         ],
         examples: [
-          'mavis({ command: "agent create", args: { display_name: "Researcher" } })',
-          'mavis({ command: "agent create", args: { name: "researcher", system_prompt: "Help with research." } })',
+          'talos({ command: "agent create", args: { display_name: "Researcher" } })',
+          'talos({ command: "agent create", args: { name: "researcher", system_prompt: "Help with research." } })',
         ],
       },
       {
@@ -753,14 +753,14 @@ async function handleAgentHelp(ctx: LocalMavisCommandContext): Promise<LocalMavi
         summary: 'Patch identity, persona, or system prompt fields for a local agent.',
         args: ['agent_name', 'new_name?', 'system_prompt?', 'persona?', 'description?', 'avatar?'],
         examples: [
-          'mavis({ command: "agent update", args: { agent_name: "researcher", new_name: "Research Lead" } })',
+          'talos({ command: "agent update", args: { agent_name: "researcher", new_name: "Research Lead" } })',
         ],
       },
       {
         command: 'agent delete',
         summary: 'Delete a local non-built-in agent.',
         args: ['agent_name'],
-        examples: ['mavis({ command: "agent delete", args: { agent_name: "researcher" } })'],
+        examples: ['talos({ command: "agent delete", args: { agent_name: "researcher" } })'],
       },
     ],
   });
@@ -1002,7 +1002,7 @@ async function handleCronHelp(ctx: LocalMavisCommandContext): Promise<LocalMavis
       {
         command: 'cron list',
         args: ['agent_name?', 'cursor?', 'limit?'],
-        examples: ['mavis({ command: "cron list", args: { agent_name: "me" } })'],
+        examples: ['talos({ command: "cron list", args: { agent_name: "me" } })'],
       },
       { command: 'cron get', args: ['cron_id'] },
       {
@@ -1040,7 +1040,7 @@ async function handleCronHelp(ctx: LocalMavisCommandContext): Promise<LocalMavis
           'model?',
         ],
         examples: [
-          'mavis({ command: "cron self", args: { cron_name: "Check CI", every: "5m", prompt: "Check CI. Running: exit quietly. Passed: report and delete this cron. Failed: summarize and delete this cron." } })',
+          'talos({ command: "cron self", args: { cron_name: "Check CI", every: "5m", prompt: "Check CI. Running: exit quietly. Passed: report and delete this cron. Failed: summarize and delete this cron." } })',
         ],
       },
       {
@@ -1058,7 +1058,7 @@ async function handleCronHelp(ctx: LocalMavisCommandContext): Promise<LocalMavis
           'model?',
         ],
         examples: [
-          'mavis({ command: "cron once", args: { after: "10m", prompt: "Remind the user to review the draft.", agent_name: "me", session: { mode: "new" } } })',
+          'talos({ command: "cron once", args: { after: "10m", prompt: "Remind the user to review the draft.", agent_name: "me", session: { mode: "new" } } })',
         ],
       },
       {
@@ -1221,7 +1221,7 @@ async function handleSessionMessages(
 async function handleSessionHelp(ctx: LocalMavisCommandContext): Promise<LocalMavisOutput> {
   return success(ctx.command, {
     group: 'session',
-    summary: 'Read and manage local desktop Mavis sessions.',
+    summary: 'Read and manage local desktop sessions.',
     commands: [
       {
         command: 'session list',
@@ -1234,7 +1234,7 @@ async function handleSessionHelp(ctx: LocalMavisCommandContext): Promise<LocalMa
         summary:
           'Send to an existing unarchived local session, synchronously wait for completion, and fail without queueing when it is busy.',
         examples: [
-          'mavis({ command: "session send", args: { session_id: "mvs_target", content: "Continue with the follow-up requirement." } })',
+          'talos({ command: "session send", args: { session_id: "mvs_target", content: "Continue with the follow-up requirement." } })',
         ],
       },
       { command: 'session update', args: ['session_id', 'title?', 'archived?'] },

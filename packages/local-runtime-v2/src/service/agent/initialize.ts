@@ -7,6 +7,7 @@ import {
 import type { LegacyIdentityDetachEvent } from './application/_migration-legacy-identity-detach.js';
 import type { AgentSystemFactCallbacks } from './contracts.js';
 import { LocalPromptFileReader } from '../prompt-config/index.js';
+import { PRIMARY_AGENT_DISPLAY_NAME } from './domain/names.js';
 
 export interface AgentRuntimeOwner {
   readonly service: LocalAgentService;
@@ -36,6 +37,7 @@ export function createAgentRuntimeOwner(input: {
   const service = new LocalAgentService({
     repository,
     promptFileReader,
+    primaryDisplayName: PRIMARY_AGENT_DISPLAY_NAME,
     ...(input.promptMode
       ? { promptMode: input.promptMode, promptVersion: input.promptVersion }
       : {}),

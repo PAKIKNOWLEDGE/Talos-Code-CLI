@@ -10,7 +10,7 @@ export type DesktopOutputLimitStrategy = 'prefix_lines' | 'head_tail_lines';
 export type DesktopOutputOffsetUnit = 'line' | 'match' | 'file';
 
 export interface DesktopOutputContinuationHint {
-  tool: 'read' | 'grep' | 'glob' | 'mavis' | 'bash' | 'task_output';
+  tool: 'read' | 'grep' | 'glob' | 'talos' | 'bash' | 'task_output';
   preserve_args: readonly string[];
   instruction: string;
 }

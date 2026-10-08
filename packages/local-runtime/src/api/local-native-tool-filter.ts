@@ -12,7 +12,7 @@ export function filterLocalBuiltinCapabilityTools(
   const configurableToolNames = new Set<string>(AGENT_BUILTIN_TOOL_IDS);
   const capabilityFiltered = tools.filter(
     (tool) =>
-      (tool.def.name !== 'mavis' || capabilities.features.mavis) &&
+      (tool.def.name !== 'talos' || capabilities.features.mavis) &&
       (!configurableToolNames.has(tool.def.name) ||
         isAgentBuiltinToolEnabled(
           capabilities,

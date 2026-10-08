@@ -174,3 +174,51 @@ Disposition, 2026-10-06: retain both outcomes as known verification limitations.
 The automated run reports local fixtures and no paid model requests. The later real-use confirmation is a separate user observation; its provider, request counts and project contents are not recorded here. This record does not claim npm installation coverage, all-provider compatibility, or a complete platform matrix.
 
 Two conversation-experience observations are reserved for a later task: [follow-up scope](superpowers/plans/2026-10-03-nixos-followup.md). No prompt, runtime or test changes are part of accepting this record.
+
+## Talos prompt identity rebrand, 2026-10-07
+
+Scope: pull request #1 (branch `fix/prompt-talos-identity`, commit `cacce79fdd8c4282faa52ea87a426e533ef7fb20`) rebranded the bundled agent prompt identity. The agent persona is now **Perlica** (replacing Mavis, whose name was documented as "MiniMax As a Jarvis"), and runtime product references in the prompts now say **Talos** (replacing MiniMax Code). Ten asset files changed: the four `_v2` system/surface templates (`tui`/`coding`/`work` SYSTEM, `AGENT_CONTEXT`) and the six persona assets. Two test files updated their asset-content assertions in lockstep; one docs plan file was added and the source inventory was regenerated. Internal identifiers (`builtin-agents.json` roster, `@mavis/*` package names, `managed-prompts.json` path keys, capability flags) were deliberately not renamed.
+
+### Local verification
+
+`pnpm verify` (full profile) **PASS** at revision `cacce79` on Windows x64, Node v24.15.0, elapsed 598.9s: check:source (4,288 files), check:tsconfig, source export, release tools, lint, typecheck, build, standalone, artifact, capabilities, windows, windows-policy, status-contract, smoke, and byok all passed; `test:policy`, `test:sandbox`, and `test:release-package` were intentional platform/condition skips. Focused during iteration: catalog and agent repository suites (130 tests), `check:source`, `typecheck`.
+
+### Owner acceptance session (2026-10-07, partial fail)
+
+The owner ran the built CLI from the branch with a real model and asked about identity. The rebranded prompt claims took effect: the model introduced itself as **Perlica**, a coding agent running in the Talos terminal. The session nevertheless leaked internal identifiers: the model additionally stated that the current session's agent name is "Mavis" with role "orchestrator".
+
+### Owner re-acceptance (after routing-field removal, pass)
+
+After the follow-up repair (tool rename to `talos`, `PRIMARY_AGENT_DISPLAY_NAME`, and removal of `agentName` / `agentRole` from local `<agent-context>`), the owner re-ran interactive identity Q&A on a built CLI from this branch. **Pass:** the model introduced itself as Perlica/Talos and did not report the session agent as "Mavis" with role "orchestrator" from injected turn context. This is owner acceptance of the identity leak fix, not a full platform or live-service matrix.
+
+### Root cause (resolved by transcript evidence)
+
+The owner's acceptance session transcript pinned the leak precisely. The user turn carried a `<agent-context>` system-reminder containing:
+
+    agent: Mavis  # display name
+    agentName: mavis  # routing ID
+    agentRole: orchestrator  # agent type
+
+built by `packages/agent-modules/system-reminder/src/blocks.ts:105-114`, with the display name coming from the hardcoded seed `DEFAULT_LOCAL_AGENT_DISPLAY_NAME = "Mavis"` (`packages/local-runtime/src/api/host.ts:290`). Two further model-visible surfaces carried the same identity: the tool named `mavis` (`packages/agent-tools/src/desktop/builtin-defs.ts:946`, with "the built-in mavis agent" twice in its description), and the greeting reminder's `agent_name:` fact. The earlier conversation-experience follow-ups (standalone waiting replies; internal labels in documents) remain open and are corroborated by this acceptance session.
+
+### Repair (implemented the same day)
+
+Repair option B from [prompt identity follow-ups](superpowers/plans/2026-10-07-prompt-identity-followups.md), plus a guardrail:
+
+- The model-visible tool is renamed `mavis` → `talos` (`builtin-defs.ts`), its description scrubbed ("the built-in mavis agent" → "the primary agent"), and every name-keyed consumer updated: the native tool feature filter (`local-native-tool-filter.ts`), the V2 turn tool catalog gates (`local-turn-tool-catalog.ts`), the desktop output-limit continuation union, and the local-mavis continuation hint.
+- The display-name seed is now `Perlica` (`PRIMARY_AGENT_DISPLAY_NAME`); the V2 agent service pins `primaryDisplayName` at owner creation so stale stored `"Mavis"` identity rows cannot override the public name in reminders or `agent get`.
+- Local `<agent-context>` (first turn and slim follow-ups) no longer injects `agentName:` or `agentRole:`; routing values remain in memory for gating only. The greeting reminder's `agent_name` fact prefers the display name.
+- Prompt-asset examples call the tool as `talos({ ... })`; low-risk skill prose ("Mavis runtime", "Mavis-managed", "normal Mavis agent execution") was neutralized.
+- A later sink sweep on the same branch updated leftover model-visible `mavis({ ... })` examples in `local-mavis.ts` help, system-reminder blocks, cron self-reminder text, and agent-request-ref schema descriptions so they match the renamed `talos` tool. Internal routing keys were left unchanged.
+
+Remaining model-visible internal keys are deliberately unchanged (routing contracts): the `mavis` agent key, the `skills.mavis`/`features.mavis` flags and the built-in skill keyed `mavis`, `mavis-doctor`, `mavis-trash`, `MAVIS_SCRATCHPAD`, and the `lark-tools` CLI command references. Tool JSON may still expose routing fields such as `name: mavis` or `agentRole: orchestrator`; that is separate from turn `<agent-context>` injection. The `minimax-code-product` skill rewrite remains a separate task.
+
+### Repair verification
+
+Offline: `blocks.identity.test.ts` asserts assembled local `<agent-context>` strings omit `agentName: mavis` and `agentRole: orchestrator` while keeping `agent: Perlica`. Focused iteration on this branch also passed local-native tools and agent catalog/repository suites. Owner re-acceptance after routing-field removal is recorded above (pass).
+
+`pnpm verify` (full profile) **PASS** at revision `892bf9f` on Windows x64: 15 applicable gates green (`check:source` 4,290 files, tsconfig, export, release tools, lint, typecheck, build, standalone, artifact, capabilities, windows, windows-policy, status-contract, smoke, byok); intentional skips `test:policy`, `test:sandbox` (macOS-only), `test:release-package` (requires npm release archive). Elapsed ~13.6 minutes.
+
+### Boundary
+
+This record covers offline suites plus one interactive owner-run acceptance session on Windows. It does not claim a live-service matrix, other-platform interactive acceptance, or that the installed npm release carries the new prompts (which requires the next release). The research background for the rebrand is recorded in [harness prompt research](superpowers/plans/2026-10-07-harness-prompt-research.md).

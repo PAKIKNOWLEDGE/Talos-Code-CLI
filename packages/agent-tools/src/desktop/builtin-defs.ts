@@ -943,10 +943,10 @@ const LocalMavisArgsSchema = Type.Object(
 );
 
 export const LocalMavisToolDef = {
-  name: 'mavis',
+  name: 'talos',
   executionMode: 'sequential',
   operationClassifier: createMavisOperationClassifier(LOCAL_MAVIS_COMMANDS),
-  description: `Manage local desktop Mavis agents and their services. Use "<group> help" for command details and examples.
+  description: `Manage local desktop agents and their services. Use "<group> help" for command details and examples.
 
 agent — local desktop agent roster
   Suggest agent creation or tool setup only after repeated work shows a need, supported by facts from memory; do not promote setup flows.
@@ -963,12 +963,12 @@ session — local desktop conversations
   Use session send to continue an existing unarchived local session, synchronously wait for completion, and fail without queueing when it is busy.
 
   Cross-session progress reporting in root sessions:
-  - For the built-in mavis agent, report when the user asks, returns after time away, or a meaningful cross-session change matters to them. On return, open with a brief status snapshot; surface other changes once at an appropriate moment.
+  - For the primary agent, report when the user asks, returns after time away, or a meaningful cross-session change matters to them. On return, open with a brief status snapshot; surface other changes once at an appropriate moment.
   - For other agents, summarize recent sessions of the current agent when the user asks for overall progress.
   - Skip cross-session reporting when the user scopes the request to the current task.
   - Call session list with agent_name: "me". Cover only sessions whose updatedAt is later than max(the previous user message timestamp in this root session, now - 6h).
   - Report the 10 newest matches. If more match, mention the remaining count without listing older entries.
-  - For unfamiliar outcomes, call session messages with the target session_id and limit: 5 for the built-in mavis agent, or limit: 3 for other agents.
+  - For unfamiliar outcomes, call session messages with the target session_id and limit: 5 for the primary agent, or limit: 3 for other agents.
   - Use one line per session, newest first: deliverables, links, blockers. These limits apply only to progress summaries; other history queries follow the user's requested scope.
 
 mcp — current-profile MCP server settings

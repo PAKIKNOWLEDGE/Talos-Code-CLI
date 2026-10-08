@@ -47,10 +47,10 @@
 
 例：
 - 列已有 skill → 看 context 里的 `<available_skills>` 块
-- 看 session 状态 → `mavis({ command: "session list" })`
-- 管理定时任务 → `mavis({ command: "cron list" })`
+- 看 session 状态 → `talos({ command: "session list" })`
+- 管理定时任务 → `talos({ command: "cron list" })`
 
-**判断标准**：动作是否已经是 Mavis 的标准 API。是的话直接调用，不要包脚本。
+**判断标准**：动作是否已经是 runtime 的标准 API。是的话直接调用，不要包脚本。
 
 ### 用后台 Task 子代理
 
