@@ -1,6 +1,81 @@
-# Releasing MiniMax Code
+# Releasing Talos CLI
 
-## Tag-triggered CLI installation packages
+This fork ships **`@pakiknowledge/tal0s-code`** from [PAKIKNOWLEDGE/Talos-Code-CLI](https://github.com/PAKIKNOWLEDGE/Talos-Code-CLI). Follow the [Talos release runbook](#talos-release-runbook) for current publications. The [tag-triggered upstream workflow](#tag-triggered-cli-installation-packages-upstream) below describes the inherited MiniMax Code automation; the Talos **`CLI release`** GitHub Actions workflow is **disabled**, and `scripts/publish-cli-release.mjs` does not upload to npm for Talos.
+
+## Talos release runbook
+
+Use a clean checkout, keep build output outside the repository, and never move a tag after npm or a GitHub Release has referenced it.
+
+### 1. Prepare `main`
+
+1. Merge the reviewed feature branch.
+2. Run verification on the commit you intend to ship: `pnpm verify` on Linux (full profile), or `pnpm verify --profile windows` on Windows for the PR contract; run full `pnpm verify` before a release when capability or cross-platform coverage matters.
+3. Add or update [`docs/releases/X.Y.Z.md`](releases/0.1.2.md) and record results in [`verification.md`](verification.md).
+
+### 2. Version commit and tag
+
+From the latest `origin/main`:
+
+```bash
+pnpm release:cli --version X.Y.Z --dry-run
+pnpm release:cli --version X.Y.Z
+```
+
+This creates `release/vX.Y.Z`, bumps root and `packages/tui/package.json`, tags **`vX.Y.Z`**, and pushes the branch and tag. Merge the version bump into `main` (open the version PR manually if `gh pr create` fails). The tag commit is the release revision; later documentation-only commits on `main` do not need a new npm version unless you choose to ship again.
+
+### 3. Build the installation archive at the tag
+
+```bash
+git fetch origin
+git checkout vX.Y.Z
+export MCODE_RELEASE_TAG=vX.Y.Z
+export TALOS_NPM_PACKAGE_NAME=@pakiknowledge/tal0s-code
+pnpm build
+node scripts/package-cli-release.mjs vX.Y.Z /tmp/talos-release --publishable
+```
+
+Artifacts (names derive from the package name):
+
+- `/tmp/talos-release/pakiknowledge-tal0s-code-X.Y.Z.tar.gz`
+- `/tmp/talos-release/pakiknowledge-tal0s-code-X.Y.Z.tar.gz.sha256`
+
+Optional: `MCODE_RELEASE_ARCHIVE=/tmp/talos-release/pakiknowledge-tal0s-code-X.Y.Z.tar.gz pnpm verify --profile package` installs the archive into a fresh prefix and runs smoke/BYOK. It does not replace full source verification; a slow or loaded Windows host may hit the BYOK timeout even when the archive is valid.
+
+### 4. Publish npm (local)
+
+Authenticated npm on the maintainer machine:
+
+```bash
+npm publish /tmp/talos-release/pakiknowledge-tal0s-code-X.Y.Z.tar.gz --access public
+```
+
+### 5. Create the GitHub Release
+
+Attach the same tarball and checksum built at the tag (no separate source archive required unless you explicitly want one):
+
+```bash
+gh release create vX.Y.Z \
+  --repo PAKIKNOWLEDGE/Talos-Code-CLI \
+  --title "Talos CLI X.Y.Z" \
+  --notes-file docs/releases/X.Y.Z.md \
+  --latest \
+  /tmp/talos-release/pakiknowledge-tal0s-code-X.Y.Z.tar.gz \
+  /tmp/talos-release/pakiknowledge-tal0s-code-X.Y.Z.tar.gz.sha256
+```
+
+Mark **Latest** so the Releases page matches `npm install @pakiknowledge/tal0s-code@latest`.
+
+### Talos vs automated upstream release
+
+| Step | Upstream `CLI release` workflow (disabled here) | Talos runbook |
+| --- | --- | --- |
+| Trigger | Push `v*` tag | Same tag from `pnpm release:cli` |
+| Build / verify in CI | Full profile + install matrix | Maintainer runs verify before tag; optional local `package` profile |
+| npm registry | CI `publish-cli-release.mjs` | Local `npm publish` of the reviewed tarball |
+| GitHub Release assets | CI after install matrix | `gh release create` with tarball + `.sha256` |
+| Source tarball on Release | Sometimes bundled | Optional; omitted for 0.1.2 onward unless needed |
+
+## Tag-triggered CLI installation packages (upstream)
 
 Run the release command from a clean checkout of the latest reviewed `origin/main`.
 Git and an authenticated `gh-axi` or `gh` are required:
@@ -70,7 +145,7 @@ This workflow does not publish to the npm registry or change the official instal
 
 ## Source previews
 
-The current source target is MiniMax Code 0.4.12. Workspace and local-build manifests remain `private: true` to prevent accidental npm publication. A source release, npm package, and installer are separate artifacts with separate verification.
+The current Talos source line is **0.1.2** (see [source status](open-source-status.md)). Workspace manifests stay `private: true`; the published CLI is **`@pakiknowledge/tal0s-code`** only. A GitHub Release tarball, npm package, and source-export candidate remain separate artifacts with separate verification.
 
 ## Prepare a release
 
