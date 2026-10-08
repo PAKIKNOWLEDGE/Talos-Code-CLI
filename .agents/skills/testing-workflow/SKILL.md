@@ -37,9 +37,15 @@ suites are outside this distribution's verification.
 | TUI source and test lint | `pnpm lint:tui` |
 | Types and standalone build boundary | `pnpm typecheck`, `pnpm build`, `pnpm check:standalone` |
 | Published files and generated paths | `pnpm check:source`, `pnpm check:tsconfig` |
+| Windows PR contract (matches GitHub CI on win32) | `pnpm verify --profile windows` |
 
 Artifact-dependent tests require a current `pnpm build`. Keep test state and
 reports outside the repository, using synthetic data and temporary directories.
+
+On Windows, bare `pnpm verify` is the `full` profile (capabilities, smoke, BYOK)
+and is not what GitHub runs on pull requests. Before opening a PR from Windows,
+prefer `pnpm verify --profile windows` unless the change needs the full capability
+suite or you are validating a release.
 
 The declared Vitest gate runner serializes test files on Windows to limit
 filesystem contention while retaining individual test deadlines. Run the owning
@@ -53,8 +59,10 @@ Run `git diff --check` and the relevant individual gates while editing. Review
 new or removed files before regenerating `release/public-source.json` with
 `node scripts/source-inventory.mjs --write`.
 
-Before opening a PR, run `pnpm verify` on the reviewed commit with a clean tracked
-working tree. Source export reads committed HEAD and rejects uncommitted tracked
+Before opening a PR, run the applicable profile on the reviewed commit with a
+clean tracked working tree: `pnpm verify` on Linux, `pnpm verify --profile
+platform` when mirroring macOS CI, and `pnpm verify --profile windows` on
+Windows. Source export reads committed HEAD and rejects uncommitted tracked
 changes; report that limitation if only iteration checks are possible.
 
 Use `pnpm verify --list` to inspect the current platform's gates. Use the `docs`

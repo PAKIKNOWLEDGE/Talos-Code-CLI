@@ -98,6 +98,18 @@ if (values.list) {
   process.exit(0);
 }
 
+if (
+  profile === "full" &&
+  process.platform === "win32" &&
+  !process.env.GITHUB_ACTIONS
+) {
+  console.warn(
+    "Note: bare pnpm verify uses the full profile (capabilities, smoke, BYOK). " +
+      "GitHub Windows CI runs pnpm verify --profile windows instead. " +
+      "Use --profile windows before opening a PR unless you need Linux-equivalent coverage or are validating a release.",
+  );
+}
+
 // `npm_execpath` may be a JavaScript entry point or a native package-manager
 // binary depending on how pnpm was installed, so dispatch on what it actually is
 // instead of assuming it can be passed to node.

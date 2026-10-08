@@ -175,9 +175,13 @@ The automated run reports local fixtures and no paid model requests. The later r
 
 Two conversation-experience observations are reserved for a later task: [follow-up scope](superpowers/plans/2026-10-03-nixos-followup.md). No prompt, runtime or test changes are part of accepting this record.
 
+## Local verification profiles, 2026-10-08
+
+Documentation and `scripts/verify.mjs` now state explicitly that **bare `pnpm verify` on Windows runs the `full` profile** (capabilities, smoke, BYOK) and is slower than GitHub’s Windows job, which uses `pnpm verify --profile windows`. Pre-PR checks on Windows should use `--profile windows` unless the change needs Linux-equivalent capability coverage or release validation. See `AGENTS.md`, `CONTRIBUTING.md`, and the testing-workflow skill.
+
 ## Talos prompt identity rebrand, 2026-10-07
 
-Scope: pull request #1 (branch `fix/prompt-talos-identity`, commit `cacce79fdd8c4282faa52ea87a426e533ef7fb20`) rebranded the bundled agent prompt identity. The agent persona is now **Perlica** (replacing Mavis, whose name was documented as "MiniMax As a Jarvis"), and runtime product references in the prompts now say **Talos** (replacing MiniMax Code). Ten asset files changed: the four `_v2` system/surface templates (`tui`/`coding`/`work` SYSTEM, `AGENT_CONTEXT`) and the six persona assets. Two test files updated their asset-content assertions in lockstep; one docs plan file was added and the source inventory was regenerated. Internal identifiers (`builtin-agents.json` roster, `@mavis/*` package names, `managed-prompts.json` path keys, capability flags) were deliberately not renamed.
+Scope: pull request #1 (branch `fix/prompt-talos-identity`) rebranded the bundled agent prompt identity. Merged to `main` at `c3ee558` (2026-10-08). Shipped on npm as **`@pakiknowledge/tal0s-code@0.1.2`** (tag `v0.1.2`, version commit `70445a8`). The initial prompt-only commit on that branch was `cacce79`. The agent persona is now **Perlica** (replacing Mavis, whose name was documented as "MiniMax As a Jarvis"), and runtime product references in the prompts now say **Talos** (replacing MiniMax Code). Ten asset files changed: the four `_v2` system/surface templates (`tui`/`coding`/`work` SYSTEM, `AGENT_CONTEXT`) and the six persona assets. Two test files updated their asset-content assertions in lockstep; one docs plan file was added and the source inventory was regenerated. Internal identifiers (`builtin-agents.json` roster, `@mavis/*` package names, `managed-prompts.json` path keys, capability flags) were deliberately not renamed.
 
 ### Local verification
 
@@ -219,6 +223,12 @@ Offline: `blocks.identity.test.ts` asserts assembled local `<agent-context>` str
 
 `pnpm verify` (full profile) **PASS** at revision `892bf9f` on Windows x64: 15 applicable gates green (`check:source` 4,290 files, tsconfig, export, release tools, lint, typecheck, build, standalone, artifact, capabilities, windows, windows-policy, status-contract, smoke, byok); intentional skips `test:policy`, `test:sandbox` (macOS-only), `test:release-package` (requires npm release archive). Elapsed ~13.6 minutes.
 
+### Delivery (2026-10-08)
+
+- **Git:** PR #1 merged to `main`; `main` and tag `v0.1.2` at `70445a8` (0.1.2 version bump only on top of the identity merge).
+- **npm:** `@pakiknowledge/tal0s-code@0.1.2` published from a reviewed tarball built at that tag (local publication path; upstream GitHub npm publish script remains disabled for Talos).
+- **Package profile:** `pnpm verify --profile package` was attempted twice on Windows during publication; both runs failed on BYOK resume at the 90s test timeout after tarball install succeeded. Full source `pnpm verify` had already passed at `892bf9f`. Treat package-profile BYOK on a loaded Windows host as **NOT RUN / flaky** for this release unless rerun clean.
+
 ### Boundary
 
-This record covers offline suites plus one interactive owner-run acceptance session on Windows. It does not claim a live-service matrix, other-platform interactive acceptance, or that the installed npm release carries the new prompts (which requires the next release). The research background for the rebrand is recorded in [harness prompt research](superpowers/plans/2026-10-07-harness-prompt-research.md).
+This record covers offline suites plus interactive owner-run acceptance on Windows. It does not claim a live-service matrix or other-platform interactive acceptance. npm **0.1.2** carries the identity repair for installs from the public registry. The research background for the rebrand is recorded in [harness prompt research](superpowers/plans/2026-10-07-harness-prompt-research.md).

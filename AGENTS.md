@@ -65,11 +65,11 @@ Adding a verification gate: add a step to `scripts/verify.mjs`, with `platforms`
 
 ## Verification
 
-`pnpm verify` runs the same gates as CI in the same order; `pnpm verify --list` shows which apply on the current platform. Run it before opening a pull request. Individual gates such as `pnpm typecheck`, `pnpm build`, and `pnpm test:byok` remain available for iteration.
+`scripts/verify.mjs` defines one gate list; CI and local runs select a profile. `pnpm verify --list` shows the gates for the current profile and platform. While editing, run the relevant individual gates (`pnpm typecheck`, `pnpm build`, `pnpm test:byok`, focused Vitest files, and so on).
 
-The full profile is the local default. `platform` omits only duplicate type checking. Use `pnpm verify --profile docs` only when every changed path qualifies under `scripts/ci-changes.mjs`; it runs source inventory, generated-path, source-export, and release-tool checks. `AGENTS.md`, bundled runtime prompts, and `release/` changes do not qualify for that profile. `archive` skips Git export for source archives; the candidate workflow authenticates the archive before invoking it. Keep profile selection in the shared verifier.
+The default profile is `full` (Linux CI and release validation). On Windows, the applicable pre-PR profile that matches GitHub CI is `pnpm verify --profile windows`, not bare `pnpm verify`: the default still runs the full capability suite, smoke, and BYOK and is much slower. Use bare `pnpm verify` on Windows only for capability-wide changes, Linux-equivalent claims, or release validation. `platform` omits only duplicate type checking on macOS CI. Use `pnpm verify --profile docs` only when every changed path qualifies under `scripts/ci-changes.mjs`; it runs source inventory, generated-path, source-export, and release-tool checks. `AGENTS.md`, bundled runtime prompts, and `release/` changes do not qualify for that profile. `archive` skips Git export for source archives; the candidate workflow authenticates the archive before invoking it. Keep profile selection in the shared verifier.
 
-Source export reads committed `HEAD` and rejects uncommitted tracked changes. During editing, run the relevant individual gates; run the complete applicable profile on the reviewed commit with a clean tracked working tree before opening a PR. Report the checks actually run and any blocked or untested boundaries. Offline tests do not establish live-service or cross-platform acceptance.
+Source export reads committed `HEAD` and rejects uncommitted tracked changes. On the reviewed commit with a clean tracked working tree, run the applicable profile before opening a PR. Report the checks actually run and any blocked or untested boundaries. Offline tests do not establish live-service or cross-platform acceptance.
 
 ## Boundaries
 
