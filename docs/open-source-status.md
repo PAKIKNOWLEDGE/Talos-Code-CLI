@@ -1,6 +1,6 @@
 # Source status
 
-The current Talos source and release line is **0.1.2**. This repository contains the terminal TUI, headless CLI, ACP implementation, and the public distribution tooling around them.
+The current Talos source and release line is **0.1.2**. This repository contains the terminal TUI, headless CLI, ACP implementation, and the public distribution tooling around them. Engine handover and open tasks: [status](status.md). Name layers: [glossary](glossary.md). Desktop GUI work lives in the companion `T3rra-C0d3-Talos` repository.
 
 ## Version and evidence baseline
 

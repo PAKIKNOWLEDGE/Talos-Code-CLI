@@ -4,20 +4,23 @@
 
 ## Get started
 
-- [Official CLI quick start](https://agent.minimax.io/docs/cli/quick-start): installation, account regions, first tasks, and sessions.
-- [Install from source](installation.md): prerequisites, build, project usage, updates, and removal.
+- [Current status](status.md) — engine handover card (read with companion GUI `docs/status.md` for desktop work).
+- [Glossary](glossary.md) — Talos vs upstream vs internal routing names.
+- [Install from source](installation.md): prerequisites, npm, GitHub archives, build, updates, and removal.
 - [Examples](examples.md): code fixes, model selection, search, and image input.
 - [Real TUI demo](demo.md): a 20-second replay, still image, and reproduction steps.
 - [Status line configuration](../packages/tui/docs/status-line-config.md): the default status line and optional machine-readable mode.
 - [Capabilities and service boundaries](tui-capabilities.md): accounts, tools, plugins, sandboxing, and network behavior.
 - [TUI usage telemetry](telemetry.md): opt-in settings, sent fields, destinations, and retention boundary.
 
+Upstream product docs at [agent.minimax.io](https://agent.minimax.io/docs/cli/quick-start) describe MiniMax Code; they are **reference only** for this Talos fork.
+
 ## Contribute
 
 - [Contributing](../CONTRIBUTING.md) · [Maintainers and review](maintainers.md) · [Security reporting](../SECURITY.md)
 - [Architecture](architecture.md) · [Verification records](verification.md)
 - [Conversation experience follow-up](superpowers/plans/2026-10-03-nixos-followup.md): recorded observations reserved for a later task.
-- [Prompt identity follow-ups](superpowers/plans/2026-10-07-prompt-identity-followups.md): deferred naming and skill-content work from the Talos identity pass, including the verified `mavis` tool finding.
+- [Prompt identity follow-ups](superpowers/plans/2026-10-07-prompt-identity-followups.md): deferred naming and skill-content work from the Talos identity pass.
 - [Harness prompt research](superpowers/plans/2026-10-07-harness-prompt-research.md): pi-basis verification, prompt scale measurements, sources, and upstream observations from 2026-10-07.
 
 ## Maintain and release

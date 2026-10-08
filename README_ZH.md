@@ -58,13 +58,13 @@ talos
 
 运行 `talos update` 或在界面中输入 `/update` 检查新版。Talos 会显示升级命令，由你手动安装。再次执行上面的 npm 安装命令即可升级。
 
-更新说明：[0.1.1](docs/releases/0.1.1.md)。
+更新说明：[0.1.2](docs/releases/0.1.2.md) · [0.1.1](docs/releases/0.1.1.md)。
 
 ## 发行状态
 
-Talos **0.1.1** 是 CLI 预览版。Windows x64 发行检查已通过；NixOS 上的模型驱动使用已确认正常，源码检查通过 14 项中的 12 项，另两项保留为验证限制。范围与结果见[验证记录](docs/verification.md#native-nixos-verification-2026-10-03)，完整平台矩阵尚未齐备。
+Talos **0.1.2** 为当前 CLI 发行线（`@pakiknowledge/tal0s-code`）。Windows x64 发行检查在 0.1.x 系列已通过；NixOS 实际使用已确认，源码检查仍保留两项文档化限制。见[验证记录](docs/verification.md#native-nixos-verification-2026-10-03)与[当前状态](docs/status.md)。
 
-桌面 GUI 单独开发，本版不包含默认联网搜索。
+桌面 GUI 在配套仓库 `T3rra-C0d3-Talos` 维护；本版不包含默认联网搜索。
 
 遇到问题时，可以[提交 issue](https://github.com/PAKIKNOWLEDGE/Talos-Code-CLI/issues)，附上系统、Node.js 版本、Talos 版本和错误信息。分享日志前请移除 API key 及私人项目内容。
 

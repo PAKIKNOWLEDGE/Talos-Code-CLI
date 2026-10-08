@@ -1,13 +1,13 @@
 # Examples
 
-Build the project using the [installation guide](installation.md). Run the `pnpm mcode` commands below from the source root. For interactive tasks, open the target project directory and launch the built CLI by absolute path.
+Build the project using the [installation guide](installation.md). Run `pnpm start` or the built `dist/cli.js` from the source root. For interactive tasks, open the target project directory and launch the built CLI by absolute path.
 
 ## 1. Edit code and run tests
 
 `examples/clamp` is an intentionally broken exercise with one function and three Node.js tests. It needs no additional dependencies. Copy the directory to a temporary location, open that copy, and start:
 
 ```bash
-node /absolute/path/to/minimax-code/dist/cli.js
+node /absolute/path/to/Talos-Code-CLI/dist/cli.js
 ```
 
 Enter:
@@ -19,7 +19,7 @@ In the [real demo](demo.md), two tests initially failed. After correcting the bo
 Resume the most recent session in the current directory:
 
 ```bash
-node /absolute/path/to/minimax-code/dist/cli.js --continue
+node /absolute/path/to/Talos-Code-CLI/dist/cli.js --continue
 ```
 
 ## 2. Choose your own model
@@ -243,7 +243,7 @@ variable in the shell that will launch MCode, for example in Bash:
 read -r -s -p 'Research MCP API key: ' RESEARCH_MCP_API_KEY
 export RESEARCH_MCP_API_KEY
 cd /absolute/path/to/your-project
-node /absolute/path/to/minimax-code/dist/cli.js
+node /absolute/path/to/Talos-Code-CLI/dist/cli.js
 ```
 
 For PowerShell, use `Read-Host -AsSecureString` as in the [provider example](#2-choose-your-own-model), assigning the result to `$env:RESEARCH_MCP_API_KEY`.

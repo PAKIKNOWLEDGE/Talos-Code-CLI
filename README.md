@@ -58,13 +58,13 @@ Configuration and sessions are stored in `~/.talos` by default (`%USERPROFILE%\.
 
 Run `talos update` or enter `/update` to check for a new version. Talos shows the upgrade command; installation is always manual. To upgrade, run the npm install command above again.
 
-Release notes: [0.1.1](docs/releases/0.1.1.md).
+Release notes: [0.1.2](docs/releases/0.1.2.md) · [0.1.1](docs/releases/0.1.1.md).
 
 ## Release status
 
-Talos **0.1.1** is a CLI preview. Windows x64 release checks passed. Normal model-driven use on NixOS has been confirmed; its source verification passed 12 of 14 gates, with two unresolved check limitations. See [verification records](docs/verification.md#native-nixos-verification-2026-10-03) for the scope and results. The full platform matrix is not complete.
+Talos **0.1.2** is the current CLI line (`@pakiknowledge/tal0s-code`). Windows x64 release checks passed on the 0.1.x series. Normal model-driven use on NixOS has been confirmed; source verification retains two documented check limitations. See [verification records](docs/verification.md#native-nixos-verification-2026-10-03) and [current status](docs/status.md).
 
-The desktop GUI is separate work. Default web search is not included in this release.
+The desktop GUI lives in the companion repository `T3rra-C0d3-Talos`. Default web search is not included in this release.
 
 If you encounter a problem, [open an issue](https://github.com/PAKIKNOWLEDGE/Talos-Code-CLI/issues) with your OS, Node.js version, Talos version, and the error message. Remove API keys and private project content before sharing logs.
 

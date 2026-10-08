@@ -11,14 +11,14 @@ This repository is the reviewed public projection of an internal monorepo, not a
 - `packages/` — first-party workspace packages. `packages/agent-modules/*` is a second level of packages, not a package itself.
 - `third_party/` — vendored upstream packages (`pi-mono`, `sandbox-runtime`) with their own licenses. Their test suites are not part of this distribution's verification.
 - `release/` — machine-read release contracts. `extraction.json` pins the source baseline and package scope, `public-source.json` is the file inventory, `dependency-licenses.json` records declared dependency licenses. Build, type-check, test resolution, and source checks all read from here.
-- `docs/` — human-readable documentation and supporting media.
+- `docs/` — human-readable documentation and supporting media. **[docs/status.md](docs/status.md)** is the engine handover card; **[docs/glossary.md](docs/glossary.md)** defines product vs routing names.
 - `scripts/` — build and verification tooling. Shared constants live in `scripts/lib/`; import them instead of repeating literal paths or lists.
 - `test/` — repository-level tests and `vitest-suites.json`, the declaration of every Vitest file this distribution runs.
 
 ## Talos integration boundary
 
 - The GUI repository is `C:\DEV\develop\T3rra-C0d3-Talos`; keep the two repositories adjacent and independent. Do not add a Git submodule or relocate this checkout.
-- Talos currently consumes this repository through ACP. Changes to ACP messages, provider selection, authentication, data-directory layout, or TUI behavior require a source citation or reproducible probe before implementation, with results recorded in Talos `docs/adapters/minimax-code.md`.
+- Talos currently consumes this repository through ACP. Engine progress and release facts live in this repo's [docs/status.md](docs/status.md). GUI-side evidence is recorded in the companion repo `docs/adapters/talos-engine.md`. Changes to ACP messages, provider selection, authentication, data-directory layout, or TUI behavior require a source citation or reproducible probe before implementation.
 - The initial Talos sequence is independent-engine verification, then TUI work, then GUI repair. A fork remote or a clean working tree does not mean the engine has been neutralized or product-accepted.
 - Keep user API keys, sessions, logs, and real project content outside the repository. Use a disposable data directory for probes and report whether behavior came from a fake provider or a live model.
 
