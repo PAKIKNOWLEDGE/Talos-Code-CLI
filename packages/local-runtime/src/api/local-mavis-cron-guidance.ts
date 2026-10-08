@@ -97,7 +97,10 @@ function withoutCronDescriptionSection(description: string): string {
       : description.slice(0, cronStart) + description.slice(sessionStart);
   return withoutCronSection
     .split('\n')
-    .filter((line) => !line.includes('mavis({ command: "cron '))
+    .filter(
+      (line) =>
+        !line.includes('mavis({ command: "cron ') && !line.includes('talos({ command: "cron '),
+    )
     .join('\n');
 }
 

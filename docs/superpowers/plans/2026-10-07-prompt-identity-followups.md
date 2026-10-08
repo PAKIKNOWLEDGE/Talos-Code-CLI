@@ -30,14 +30,19 @@ updated (native tool feature filter, V2 turn tool catalog gates, desktop
 output-limit continuation union, local-mavis continuation hint); the display
 name is seeded `Perlica`; the `<agent-context>` block marks agentName/agentRole
 as internal routing metadata; the greeting reminder prefers the display name;
-prompt-asset examples use `talos({ ... })`. Verification is recorded in
+prompt-asset examples use `talos({ ... })`. A follow-up sink sweep closed the
+remaining model-visible `mavis({ ... })` call examples in tool help, system
+reminders, cron self-reminder text, and agent-request-ref schema copy. Routing
+keys such as `mavis, explore, worker, or verifier` stay as internal identifiers.
+Verification is recorded in
 [verification records](../../verification.md#talos-prompt-identity-rebrand-2026-10-07).
 
 **Still open (routing contracts, unchanged on purpose):** the `mavis` agent key
 and `skills.mavis`/`features.mavis` flags, the built-in skill keyed `mavis`
-("load the `mavis` skill" prompt references), the `agentName: mavis # routing
-ID` line, `mavis-doctor`, `mavis-trash`, `MAVIS_SCRATCHPAD`, and the
-`lark-tools` CLI command references. The `minimax-code-product` skill rewrite
+("load the `mavis` skill" prompt references), `mavis-doctor`, `mavis-trash`,
+`MAVIS_SCRATCHPAD`, and the `lark-tools` CLI command references. Local
+`<agent-context>` no longer prints `agentName` / `agentRole`; routing values may
+still appear in tool JSON or storage. The `minimax-code-product` skill rewrite
 remains its own task.
 
 ## 1. Model-visible functional names (verify the runtime name first)
@@ -55,8 +60,6 @@ Renaming them is a functional change, not an identity edit.
   reference resolves through runtime capability gating.
 - `#mavis-source=` citation anchors in the `mavis/modes/*/online/SYSTEM.md.hbs`
   reference examples.
-- `mavis({ command: "session list", ... })` tool-call examples in
-  `_default/prompt-session-root.md.hbs`.
 
 ## 2. Internal identifiers (explicit non-goals)
 

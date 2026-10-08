@@ -15,7 +15,10 @@ import type {
   AgentUpdateInput,
 } from '../contracts.js';
 
+import { PRIMARY_AGENT_DISPLAY_NAME } from '@mavis/shared/subagent-roles';
+
 export const PRIMARY_AGENT_NAME = 'mavis';
+export { PRIMARY_AGENT_DISPLAY_NAME };
 export const LEGACY_PRIMARY_AGENT_NAME = 'main';
 
 export function buildAgentReadScope(

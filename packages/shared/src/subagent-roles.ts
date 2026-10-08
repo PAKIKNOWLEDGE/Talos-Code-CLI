@@ -1,3 +1,6 @@
+/** User-facing display name for the primary built-in agent (routing key remains `mavis`). */
+export const PRIMARY_AGENT_DISPLAY_NAME = 'Perlica';
+
 export type CanonicalSubagentRole = 'explore' | 'worker' | 'verifier';
 
 export interface LocalSubagentRoleDefinition {
@@ -69,12 +72,12 @@ export function toAgentRequestRef(
 }
 
 export const AGENT_REQUEST_REF_DESCRIPTION =
-  'Use the `requestRef` returned by the native `mavis` tool with command "agent list". For built-in work use mavis, explore, worker, or verifier. Use `agent:<stable-name>` to select the exact manual/custom Agent when its name collides with a reserved role or primary alias; ordinary custom names use their raw stable name.';
+  'Use the `requestRef` returned by the native `talos` tool with command "agent list". For built-in work use mavis, explore, worker, or verifier. Use `agent:<stable-name>` to select the exact manual/custom Agent when its name collides with a reserved role or primary alias; ordinary custom names use their raw stable name.';
 
 export const LOCAL_MAVIS_AGENT_NAME_DESCRIPTION = `${AGENT_REQUEST_REF_DESCRIPTION} "me" selects the current Agent.`;
 
 const TASK_AGENT_REQUEST_REF_DESCRIPTION =
-  'Built-in name or stable custom `requestRef`. Use `agent:<stable-name>` for a custom Agent whose name collides with a reserved role or primary alias; ordinary custom names use their raw stable name. Use the native `mavis` tool with command "agent list" for discovery only when needed and available.';
+  'Built-in name or stable custom `requestRef`. Use `agent:<stable-name>` for a custom Agent whose name collides with a reserved role or primary alias; ordinary custom names use their raw stable name. Use the native `talos` tool with command "agent list" for discovery only when needed and available.';
 
 const WITHOUT_MAVIS_AGENT_REQUEST_REF_DESCRIPTION =
   'Use explore, worker, or verifier for built-in work. For a known custom Agent, use its stable `requestRef`. Use `agent:<stable-name>` to select the exact manual/custom Agent when its name collides with a reserved role or primary alias; ordinary custom names use their raw stable name.';
