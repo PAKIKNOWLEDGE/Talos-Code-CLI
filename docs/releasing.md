@@ -9,7 +9,8 @@ Use a clean checkout, keep build output outside the repository, and never move a
 ### 1. Prepare `main`
 
 1. Merge the reviewed feature branch.
-2. Run verification on the commit you intend to ship: `pnpm verify` on Linux (full profile), or `pnpm verify --profile windows` on Windows for the PR contract; run full `pnpm verify` before a release when capability or cross-platform coverage matters.
+2. **Before tagging or npm:** complete the upstream PR scan in [upstream-pr-watch.md](upstream-pr-watch.md). Stop and port selectively if a P0 item applies; otherwise log `release: proceed`.
+3. Run verification on the commit you intend to ship: `pnpm verify` on Linux (full profile), or `pnpm verify --profile windows` on Windows for the PR contract; run full `pnpm verify` before a release when capability or cross-platform coverage matters.
 3. Add or update `docs/releases/X.Y.Z.md` and record results in [`verification.md`](verification.md).
 
 ### 2. Version commit and tag

@@ -454,6 +454,7 @@ export function createTuiAcpAgent(options: CreateTuiAcpAgentOptions): acp.AgentA
           fork: {},
           resume: {},
           close: {},
+          delete: {},
         },
       },
       ...(supportsTerminalAuth
@@ -897,27 +898,48 @@ export function createTuiAcpAgent(options: CreateTuiAcpAgentOptions): acp.AgentA
     });
   });
 
+  const detachAcpSessionAttachment = (
+    sessionId: string,
+    client: acp.AgentContext,
+    reason: string,
+  ): AcpSession | undefined => {
+    const active = sessions.get(sessionId);
+    promptCancelEpochs.delete(sessionId);
+    promptCancelLatches.delete(sessionId);
+    if (active) {
+      active.attachmentController.abort(new Error(reason));
+      active.activePrompt?.controller.abort(new Error(reason));
+      void active.coordinator.abort().catch(() => false);
+      if (sessions.get(sessionId) === active) sessions.delete(sessionId);
+    }
+    clearDetachedClientState(sessionId, client, active);
+    if (active) {
+      void runSessionMcpMutation(sessionId, async () => {
+        await options.runtime.clearSessionMcpServers(active.session.sessionId);
+      }).catch(() => undefined);
+    }
+    return active;
+  };
+
   app.onRequest(acp.methods.agent.session.close, async ({ params, client }) => {
-    const reason = new Error('ACP Session attachment closed.');
-    const hadLifecycleWork = runSessionLifecycle.reset(params.sessionId, reason);
+    const reason = 'ACP Session attachment closed.';
+    const hadLifecycleWork = runSessionLifecycle.reset(params.sessionId, new Error(reason));
     const active = sessions.get(params.sessionId);
     if (!active && !hadLifecycleWork) {
       throw acp.RequestError.resourceNotFound(params.sessionId);
     }
-    promptCancelEpochs.delete(params.sessionId);
-    promptCancelLatches.delete(params.sessionId);
-    if (active) {
-      active.attachmentController.abort(new Error('ACP Session attachment closed.'));
-      active.activePrompt?.controller.abort(new Error('ACP session closed.'));
-      void active.coordinator.abort().catch(() => false);
-      if (sessions.get(params.sessionId) === active) sessions.delete(params.sessionId);
-    }
-    clearDetachedClientState(params.sessionId, client, active);
-    if (active) {
-      void runSessionMcpMutation(params.sessionId, async () => {
-        await options.runtime.clearSessionMcpServers(active.session.sessionId);
-      }).catch(() => undefined);
-    }
+    detachAcpSessionAttachment(params.sessionId, client, reason);
+    return {};
+  });
+
+  app.onRequest(acp.methods.agent.session.delete, async ({ params, client }) => {
+    await assertAuthenticated(options.runtime);
+    const session = await getPersistedSession(options.runtime, params.sessionId);
+    assertAcpSessionUsable(session);
+    const reason = 'ACP Session deleted.';
+    runSessionLifecycle.reset(params.sessionId, new Error(reason));
+    detachAcpSessionAttachment(params.sessionId, client, reason);
+    await options.runtime.deleteSession(session.sessionId);
     return {};
   });
 

@@ -1170,6 +1170,7 @@ describe('MiniMax Code ACP agent', () => {
             fork: {},
             resume: {},
             close: {},
+            delete: {},
           },
         },
         authMethods: [
@@ -1326,6 +1327,105 @@ describe('MiniMax Code ACP agent', () => {
     });
 
     expect(deleteSession).not.toHaveBeenCalled();
+  });
+
+  it('deletes a persisted session that is not attached', async () => {
+    const { runtime, deleteSession, getSession, listSessionPage } = createRuntime();
+    const persisted = {
+      sessionId: 'session-stale',
+      workspaceDir: '/workspace',
+      title: 'Old session',
+    };
+    getSession.mockResolvedValue(persisted);
+    listSessionPage.mockResolvedValue({ sessions: [persisted], hasMore: false });
+    deleteSession.mockImplementation(async () => {
+      listSessionPage.mockResolvedValue({ sessions: [], hasMore: false });
+    });
+    const agent = createTuiAcpAgent({ runtime, version: '1.2.3' });
+    const client = acp.client({ name: 'test-client' });
+
+    await client.connectWith(agent, async (connection) => {
+      await connection.request(acp.methods.agent.initialize, {
+        protocolVersion: acp.PROTOCOL_VERSION,
+        clientCapabilities: {},
+      });
+      await expect(
+        connection.request(acp.methods.agent.session.delete, { sessionId: 'session-stale' }),
+      ).resolves.toEqual({});
+      expect(deleteSession).toHaveBeenCalledWith('session-stale');
+      await expect(
+        connection.request(acp.methods.agent.session.list, { cwd: '/workspace' }),
+      ).resolves.toEqual({ sessions: [] });
+    });
+  });
+
+  it('deletes an attached session and persists removal', async () => {
+    const { runtime, deleteSession, clearSessionMcpServers, listModels } = createRuntime();
+    const agent = createTuiAcpAgent({ runtime, version: '1.2.3' });
+    const client = acp.client({ name: 'test-client' });
+
+    await client.connectWith(agent, async (connection) => {
+      await connection.request(acp.methods.agent.initialize, {
+        protocolVersion: acp.PROTOCOL_VERSION,
+        clientCapabilities: {},
+      });
+      const session = await connection.request(acp.methods.agent.session.new, {
+        cwd: '/workspace',
+        mcpServers: [],
+      });
+      await expect(
+        connection.request(acp.methods.agent.session.delete, { sessionId: session.sessionId }),
+      ).resolves.toEqual({});
+      expect(clearSessionMcpServers).toHaveBeenCalled();
+      expect(deleteSession).toHaveBeenCalledWith('session-1');
+      await expect(
+        connection.request(acp.methods.agent.session.close, { sessionId: session.sessionId }),
+      ).rejects.toThrow();
+    });
+  });
+
+  it('rejects deleting unknown persisted sessions', async () => {
+    const { runtime, deleteSession, getSession } = createRuntime();
+    getSession.mockRejectedValueOnce(new Error('missing'));
+    const agent = createTuiAcpAgent({ runtime, version: '1.2.3' });
+    const client = acp.client({ name: 'test-client' });
+
+    await client.connectWith(agent, async (connection) => {
+      await connection.request(acp.methods.agent.initialize, {
+        protocolVersion: acp.PROTOCOL_VERSION,
+        clientCapabilities: {},
+      });
+      await expect(
+        connection.request(acp.methods.agent.session.delete, { sessionId: 'session-missing' }),
+      ).rejects.toThrow();
+      expect(deleteSession).not.toHaveBeenCalled();
+    });
+  });
+
+  it('rejects deleting internal sub-agent sessions', async () => {
+    const { runtime, deleteSession, getSession } = createRuntime();
+    const internalSession = {
+      sessionId: 'session-worker',
+      workspaceDir: '/workspace',
+      sessionType: 'branch' as const,
+      parentSessionId: 'session-root',
+      sessionKind: 'task',
+      visibility: 'hidden' as const,
+    };
+    getSession.mockResolvedValue(internalSession);
+    const agent = createTuiAcpAgent({ runtime, version: '1.2.3' });
+    const client = acp.client({ name: 'test-client' });
+
+    await client.connectWith(agent, async (connection) => {
+      await connection.request(acp.methods.agent.initialize, {
+        protocolVersion: acp.PROTOCOL_VERSION,
+        clientCapabilities: {},
+      });
+      await expect(
+        connection.request(acp.methods.agent.session.delete, { sessionId: 'session-worker' }),
+      ).rejects.toThrow('Sub-agent Sessions are internal');
+      expect(deleteSession).not.toHaveBeenCalled();
+    });
   });
 
   it('serializes resume behind cancelled new Session deletion', async () => {
