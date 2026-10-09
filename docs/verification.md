@@ -232,3 +232,19 @@ Offline: `blocks.identity.test.ts` asserts assembled local `<agent-context>` str
 ### Boundary
 
 This record covers offline suites plus interactive owner-run acceptance on Windows. It does not claim a live-service matrix or other-platform interactive acceptance. npm **0.1.2** carries the identity repair for installs from the public registry. The research background for the rebrand is recorded in [harness prompt research](superpowers/plans/2026-10-07-harness-prompt-research.md).
+
+## ACP session delete (0.1.3)
+
+Scope: ACP `session/delete` with `sessionCapabilities.delete`, detach-if-attached then `runtime.deleteSession`; `session/close` unchanged. Merged to `main` at `4837477` (2026-10-09). Shipped as **`@pakiknowledge/tal0s-code@0.1.3`** (tag `v0.1.3`, version commit `0972c18`).
+
+### Verification
+
+- Vitest `packages/tui/test/unit/acp-agent.test.ts`: **109/109** pass.
+- `pnpm verify --profile windows` **PASS** at `4837477` (~92s).
+- Pre-release upstream scan: [upstream-pr-watch.md](upstream-pr-watch.md) 2026-10-09 — **release: proceed** (no P0).
+
+### Delivery (2026-10-09)
+
+- **Git:** `feat/acp-session-delete` fast-forwarded to `main`; version bump via `release/v0.1.3` merged to `main` (`gh pr create` failed on token permissions; merged with git).
+- **npm:** `@pakiknowledge/tal0s-code@0.1.3` published from tarball built at `v0.1.3` (local path per [releasing.md](releasing.md)).
+- **GitHub Release:** [v0.1.3](https://github.com/PAKIKNOWLEDGE/Talos-Code-CLI/releases/tag/v0.1.3) with `.tar.gz` + `.sha256`.
