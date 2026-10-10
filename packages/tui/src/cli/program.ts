@@ -38,6 +38,7 @@ export interface CreateTuiProgramOptions {
     lane?: string,
   ) => Promise<void>;
   runAcp?: (lane?: string) => Promise<void>;
+  runStudio?: (lane?: string) => Promise<void>;
   runLogin: (region?: MavisRegion, openBrowser?: boolean, lane?: string) => Promise<void>;
   runLogout: (region?: MavisRegion) => Promise<void>;
   runUpdate: () => Promise<void>;
@@ -110,6 +111,14 @@ export function createTuiProgram(options: CreateTuiProgramOptions): Command {
     .allowExcessArguments(false)
     .action(() =>
       activeLane ? requireAcpRunner(options)(activeLane) : requireAcpRunner(options)(),
+    );
+
+  program
+    .command('studio')
+    .description('Run Talos studio JSON-RPC server over stdio (for Desktop and rich clients)')
+    .allowExcessArguments(false)
+    .action(() =>
+      activeLane ? requireStudioRunner(options)(activeLane) : requireStudioRunner(options)(),
     );
 
   acp
@@ -418,6 +427,11 @@ function requirePluginRunner(options: CreateTuiProgramOptions) {
 function requireAcpRunner(options: CreateTuiProgramOptions) {
   if (!options.runAcp) throw new Error('ACP server is unavailable.');
   return options.runAcp;
+}
+
+function requireStudioRunner(options: CreateTuiProgramOptions) {
+  if (!options.runStudio) throw new Error('Studio server is unavailable.');
+  return options.runStudio;
 }
 
 function requireTelemetryRunner(options: CreateTuiProgramOptions) {

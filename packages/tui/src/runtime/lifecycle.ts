@@ -456,6 +456,7 @@ export async function createTuiRuntime(
     },
     ...(options.surface === 'headless' ||
     options.surface === 'acp' ||
+    options.surface === 'studio' ||
     (dependencies.getDataEnvironment ?? resolveMcodeDataEnvironment)() === 'test'
       ? { startupExecutionPolicy: 'quarantined' }
       : {}),

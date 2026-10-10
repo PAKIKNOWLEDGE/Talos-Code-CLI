@@ -46,6 +46,7 @@ talos
 | `talos --session` | 选择会话。 |
 | `talos exec "解释这个项目"` | 无交互界面执行任务。 |
 | `talos acp` | 连接 Agent Client Protocol 客户端。 |
+| `talos studio` | 面向 Desktop 的 Studio JSON-RPC 服务（stdio）。 |
 | `talos --help` | 查看命令行选项。 |
 
 在 Talos 内，使用 `/provider` 管理模型连接、`/sessions` 查看历史、`/help` 查看命令和快捷键。

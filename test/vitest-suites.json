@@ -34,6 +34,7 @@
       "packages/tui/test/unit/update-service.test.ts",
       "packages/tui/test/unit/update-application.test.ts",
       "packages/tui/test/unit/acp-agent.test.ts",
+      "packages/tui/test/unit/studio-server.test.ts",
       "packages/mcode-tools-host/test/unit/lease-broker.test.ts",
       "packages/mcode-tools-host/test/unit/resource.test.ts",
       "packages/agent-modules/permission/test/unit/permission/cloud-classify-client.test.ts",

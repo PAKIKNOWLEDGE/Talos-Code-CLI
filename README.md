@@ -46,6 +46,7 @@ Model usage is billed by your chosen provider.
 | `talos --session` | Choose a session. |
 | `talos exec "Explain this repository"` | Run a task without the interactive interface. |
 | `talos acp` | Connect an Agent Client Protocol client. |
+| `talos studio` | Studio JSON-RPC server for Desktop (stdio). |
 | `talos --help` | View command-line options. |
 
 Inside Talos, use `/provider` for model connections, `/sessions` for history, and `/help` for commands and shortcuts.

@@ -1,8 +1,8 @@
 # Source boundaries
 
-`TUI / exec / ACP → CliService → local Applications → Session / Turn / Agent services → Pi / model providers / local tools`.
+`TUI / exec / ACP / studio → CliService → local Applications → Session / Turn / Agent services → Pi / model providers / local tools`.
 
-- `packages/tui` owns terminal interaction and the headless and ACP adapters.
+- `packages/tui` owns terminal interaction and the headless, ACP, and studio (JSON-RPC) adapters.
 - `packages/local-runtime-v2/src/local` is the in-process product entry point. Session query views and queue contracts derive from local service types and converters.
 - `packages/local-runtime-v2/src/application` handles sessions, queues, and interactions. It does not instantiate DesktopService, an HTTP front door, or cloud handoff services.
 - `packages/protocol/src/local.ts` contains CLI data structures; `runtime.ts` contains agent configuration and events. Neither includes RPC envelopes, service routing, authentication headers, or an IDL generation chain. Some numeric enums preserve compatibility with existing saved sessions.

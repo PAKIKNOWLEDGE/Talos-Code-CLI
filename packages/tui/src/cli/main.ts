@@ -52,6 +52,7 @@ export interface RunTuiCliDependencies {
     version: string,
   ) => Promise<void>;
   readonly runAcp?: (version: string, lane?: string) => Promise<void>;
+  readonly runStudio?: (version: string, lane?: string) => Promise<void>;
   readonly runLogin?: (
     region?: MavisRegion,
     openBrowser?: boolean,
@@ -138,6 +139,11 @@ export async function runTuiCli(dependencies: RunTuiCliDependencies = {}): Promi
       runAcp: async (lane) => {
         const runAcp = dependencies.runAcp ?? defaultRunAcp;
         await runAcp(MINIMAX_CODE_VERSION, lane);
+        completedCommandExitMode = 'natural';
+      },
+      runStudio: async (lane) => {
+        const runStudio = dependencies.runStudio ?? defaultRunStudio;
+        await runStudio(MINIMAX_CODE_VERSION, lane);
         completedCommandExitMode = 'natural';
       },
       runLogin: async (region, openBrowser, lane) => {
@@ -259,6 +265,11 @@ async function defaultRunExec(
 async function defaultRunAcp(version: string, lane?: string): Promise<void> {
   const { runTuiAcpCommand } = await import('./run-acp-command.js');
   await runTuiAcpCommand(version, {}, lane);
+}
+
+async function defaultRunStudio(version: string, lane?: string): Promise<void> {
+  const { runTuiStudioCommand } = await import('./run-studio-command.js');
+  await runTuiStudioCommand(version, {}, lane);
 }
 
 async function defaultRunLogin(

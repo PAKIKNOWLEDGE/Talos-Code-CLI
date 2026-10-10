@@ -35,6 +35,7 @@ Do **not** merge upstream during a Talos feature slice unless the pre-release sc
 | Date | Talos release line | Upstream snapshot | P0 found? | Decision |
 | --- | --- | --- | --- | --- |
 | 2026-10-09 | 0.1.3 (ACP `session/delete`) | Open: #462–#460 drafts (413/retry, effort, body limit), #459 draft (reminders perf), #364 Linux/XDG, #319 SQLite contention, #317 model persist, #307 BYOK env, #255 sandbox modes, #186 endpoint query, dependabot #146/#145 | **No** | **release: proceed** — no merged upstream emergency; drafts not intake. Re-check before next npm. |
+| 2026-10-10 | 0.1.4 (`talos studio` v2) | Open: #471 OSC status, #468 dependabot tooling, #364 Linux/XDG, #319 SQLite, #317 model persist, #307 BYOK env, #255 sandbox, #186 endpoint query, #146/#145 deps | **No** | **release: proceed** — no P0 merged upstream; record-only. |
 
 ## References
 

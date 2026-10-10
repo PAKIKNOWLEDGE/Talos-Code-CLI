@@ -18,7 +18,7 @@ This repository is the reviewed public projection of an internal monorepo, not a
 ## Talos integration boundary
 
 - The GUI repository is `C:\DEV\develop\T3rra-C0d3-Talos`; keep the two repositories adjacent and independent. Do not add a Git submodule or relocate this checkout.
-- Talos currently consumes this repository through ACP. Engine progress and release facts live in this repo's [docs/status.md](docs/status.md). GUI-side evidence is recorded in the companion repo `docs/adapters/talos-engine.md`. Changes to ACP messages, provider selection, authentication, data-directory layout, or TUI behavior require a source citation or reproducible probe before implementation.
+- Talos Desktop should consume this repository through **`talos studio`** (JSON-RPC over stdio; see [docs/studio-protocol.md](docs/studio-protocol.md)). **`talos acp`** remains for editor-style ACP clients. Engine progress and release facts live in this repo's [docs/status.md](docs/status.md). GUI-side evidence is recorded in the companion repo `docs/adapters/talos-engine.md`. Changes to studio/ACP messages, provider selection, authentication, data-directory layout, or TUI behavior require a source citation or reproducible probe before implementation.
 - The initial Talos sequence is independent-engine verification, then TUI work, then GUI repair. A fork remote or a clean working tree does not mean the engine has been neutralized or product-accepted.
 - Keep user API keys, sessions, logs, and real project content outside the repository. Use a disposable data directory for probes and report whether behavior came from a fake provider or a live model.
 

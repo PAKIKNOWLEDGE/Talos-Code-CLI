@@ -5,11 +5,16 @@ import {
   MINIMAX_CODE_PERMISSION_MODES,
   type TuiPermissionMode,
 } from '../application/permission-mode.js';
-import type { TuiModel, TuiSession, TuiSessionUsage } from '../runtime/port.js';
+import type { TuiInspectionPort, TuiModel, TuiSession, TuiSessionUsage } from '../runtime/port.js';
 import { modelSupportsVariant } from './model-selection.js';
-import type { TuiAcpRuntime } from './runtime.js';
-
 export const ACP_MODE_DEFAULT = 'default';
+
+/** Minimal runtime surface for session mode + config option snapshots. */
+export interface TuiSessionControlRuntime {
+  getPlanModeCapabilities(): Promise<{ entryEnabled: boolean }>;
+  getPermissionMode(): Promise<TuiPermissionMode | undefined>;
+  listModels(sessionId: string): Promise<readonly TuiModel[]>;
+}
 export const ACP_MODE_PLAN = 'plan';
 export const ACP_CONFIG_PERMISSION_MODE = 'permissionMode';
 export const ACP_CONFIG_MODEL = 'model';
@@ -21,7 +26,7 @@ export interface TuiAcpSessionControlState {
 }
 
 export async function getTuiAcpSessionControlState(
-  runtime: TuiAcpRuntime,
+  runtime: TuiSessionControlRuntime,
   session: TuiSession,
 ): Promise<TuiAcpSessionControlState> {
   const [planCapabilities, permissionMode, models] = await Promise.all([
@@ -112,7 +117,7 @@ export function modelConfigValue(selection: {
 }
 
 export function usageUpdate(
-  snapshot: Awaited<ReturnType<TuiAcpRuntime['getContextSnapshot']>>,
+  snapshot: Awaited<ReturnType<TuiInspectionPort['getContextSnapshot']>>,
   usage: TuiSessionUsage,
 ): acp.UsageUpdate | undefined {
   const context = snapshot.contextUsage;
