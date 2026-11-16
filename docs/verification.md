@@ -383,6 +383,17 @@ Scope: long image chats reduce PNG and JPEG on the request copy and drop the old
 - **npm:** `@pakiknowledge/tal0s-code@0.1.14` published from the tarball built at that tag. Registry processing may take a few minutes.
 - **GitHub Release:** [v0.1.14](https://github.com/PAKIKNOWLEDGE/Talos-Code-CLI/releases/tag/v0.1.14) with `.tar.gz` + `.sha256`.
 
+## Two behaviour doctrines, Session-scoped (1.0.0)
+
+Scope: the TUI system prompt composes its behaviour discipline from one of two doctrine assets, and the choice is stored on the Session and locked once the Session has a user message. Classic remains the default skin.
+
+### Verification
+
+- Focused Vitest passed: doctrine asset rendering for both doctrines, composition order against a sentinel root-session prompt, `inlineDoctrine` rejecting an unknown value, the `409 local_prompt_doctrine_locked` guard, session-record persistence with inheritance by child and fork Sessions, the `/doctrine` catalog lines, the prompt-doctrine status item in both default orders, and the packaged 1.0.0 notes in both languages.
+- `tsc -p tsconfig.standalone.json` passed.
+- `pnpm verify --profile windows` **PASS** at `85ea113`: 10 gates on win32. Skipped typecheck (not in the Windows contract, run separately above), capabilities, status-contract, smoke, BYOK, policy, sandbox, and release-package.
+- Pre-release upstream scan: [upstream-pr-watch.md](upstream-pr-watch.md) 2026-11-16 - **release: proceed** (no P0, no merge since 2026-11-04).
+
 ## Custom model image input (0.1.13)
 
 Scope: `/model` Alt+I saves image input for one custom or gateway model. An exact catalog id inherits image input only when every source agrees. Classic remains the default skin.
