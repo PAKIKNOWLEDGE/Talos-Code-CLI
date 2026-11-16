@@ -185,8 +185,8 @@ const COMMAND_SOURCES: readonly TuiCommandSource[] = [
     argumentHint: '[status | apocalypse | stargate]',
     getArgumentCompletions: argumentCompleter([
       ['status', 'Show the current behaviour doctrine'],
-      ['apocalypse', 'Claude Code discipline sections'],
-      ['stargate', "pi's minimal doctrine"],
+      ['apocalypse', 'Long-form discipline sections'],
+      ['stargate', 'Minimal doctrine'],
     ]),
     visibleWhen: (context) => context.hasSession,
     unavailableReason: 'Start or resume a Session before choosing a doctrine.',

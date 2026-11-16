@@ -30,6 +30,32 @@ describe('Talos welcome changelog', () => {
     ).toEqual(['session wipe', 'system notes', 'web search']);
   });
 
+  it('reads the packaged English notes for 1.0.0', () => {
+    const source = readPackagedTuiChangelog('en-US');
+    expect(source).toBeTruthy();
+    const entries = extractTuiVersionChangelogEntries(source ?? '', '1.0.0');
+    expect(entries.length).toBeGreaterThanOrEqual(3);
+    expect(entries[0]).toContain('/doctrine');
+    expect(entries.join('\n')).toContain('status line');
+    expect(entries.join('\n')).toContain('Talos-owned');
+    expect(entries.join('\n')).toContain('no longer repeats');
+    expect(entries.join('\n')).not.toContain('_');
+    expect(selectWelcomeChangelogEntries(entries)[0]).toBe(entries[0]);
+  });
+
+  it('reads the packaged Chinese notes for 1.0.0', () => {
+    const source = readPackagedTuiChangelog('zh-CN');
+    expect(source).toBeTruthy();
+    const entries = extractTuiVersionChangelogEntries(source ?? '', '1.0.0');
+    expect(entries.length).toBeGreaterThanOrEqual(3);
+    expect(entries[0]).toContain('/doctrine');
+    expect(entries.join('\n')).toContain('状态栏');
+    expect(entries.join('\n')).toContain('Talos 持有');
+    expect(entries.join('\n')).toContain('不再重复');
+    expect(entries.join('\n')).not.toContain('_');
+    expect(selectWelcomeChangelogEntries(entries)[0]).toBe(entries[0]);
+  });
+
   it('reads the packaged English notes for 0.1.14', () => {
     const source = readPackagedTuiChangelog('en-US');
     expect(source).toBeTruthy();

@@ -9,6 +9,18 @@ Internal refactors, test-only changes, and changes limited to other product surf
 
 Talos release notes are the first heading for that version. Upstream history below keeps older numbers, including another 0.1.4.
 
+## 1.0.0 — 2026-11-16
+
+### New
+
+- `/doctrine` chooses how the agent is told to behave: a long-form discipline set or a minimal one. The choice is fixed to the conversation once you send your first message, so a later configuration edit cannot change how a chat in progress behaves.
+- The doctrine in force is always in the status line, and `/doctrine status` reports it. A new Session starts from the configured doctrine.
+- The discipline is now its own composition layer. Memory, response style, tool rules, and permission wording stay Talos-owned, so switching doctrine does not change them.
+
+### Improved
+
+- The TUI system prompt no longer repeats rules the runtime already injects, so the discipline text carries only discipline.
+
 ## 0.1.14 · 2026-11-01
 
 ### Improved

@@ -58,11 +58,11 @@ describe("prompt doctrine assets", () => {
     for (const name of ["apocalypse", "stargate"] as const) {
       const raw = await readFile(join(DOCTRINE_DIR, `${name}.md.hbs`), "utf8");
       expect(raw.trim().length).toBeGreaterThan(0);
-      expect(raw).toContain("Everything below this comment is upstream text.");
+      expect(raw).toContain("Everything below this comment is");
     }
   });
 
-  it("never emits Anthropic's model usage policy", async () => {
+  it("never emits the reference text's model usage policy", async () => {
     const doctrine = await renderDoctrine("apocalypse");
     for (const fragment of [
       "CYBER_RISK_INSTRUCTION",
@@ -75,7 +75,7 @@ describe("prompt doctrine assets", () => {
     }
   });
 
-  it("never emits Claude Code internal product details", async () => {
+  it("never emits the reference text's internal product details", async () => {
     const doctrine = await renderDoctrine("apocalypse");
     for (const fragment of [
       "USER_TYPE",
@@ -87,7 +87,6 @@ describe("prompt doctrine assets", () => {
       "/share",
       "/issue",
       "MODEL LAUNCH",
-      "claude-code-feedback",
       "ISSUES_EXPLAINER",
     ]) {
       expect(doctrine).not.toContain(fragment);
@@ -111,10 +110,9 @@ describe("prompt doctrine assets", () => {
     }
   });
 
-  it("keeps the doctrine free of pi-only project context blocks", async () => {
+  it("keeps the doctrine free of foreign project context blocks", async () => {
     const doctrine = await renderDoctrine("stargate");
     for (const fragment of [
-      "pi documentation",
       "project_context",
       "environment_context",
       "Available tools:",

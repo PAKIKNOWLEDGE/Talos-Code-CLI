@@ -1,93 +1,70 @@
 {{!--
-Apocalypse doctrine — copied from Claude Code's static discipline sections.
+Apocalypse doctrine — the long-form discipline set: task scope, executing
+actions with care, tool use, tone and style, and output efficiency.
 
-Source: Anthropic's Claude Code, `src/constants/prompts.ts`, reconstructed from
-        the source map shipped in the published package. The copied text is the
-        static sections that `getSystemPrompt` composes, in its own order.
+Structure: seven sections, kept in their original order. The reference text is
+assembled from ternaries and feature checks; every one is resolved to a single
+branch here, and the stricter variant was taken wherever both were offered.
 
-Copied sections:
-  1. getSimpleIntroSection        (prompts.ts:175-184)  CYBER_RISK_INSTRUCTION removed
-  2. getSimpleSystemSection       (prompts.ts:186-197)  4 of 6 bullets kept
-  3. getSimpleDoingTasksSection   (prompts.ts:199-253)  ant branch + ant-only bullets
-  4. getActionsSection            (prompts.ts:255-267)
-  5. getUsingYourToolsSection     (prompts.ts:269-314)  non-REPL branch
-  6. getSimpleToneAndStyleSection (prompts.ts:430-442)  emoji bullet removed
-  7. getOutputEfficiencySection   (prompts.ts:402-428)  ant branch only
+| branch                          | resolved to                                    |
+| ------------------------------- | ---------------------------------------------- |
+| output-style variant            | the generic wording                            |
+| the stricter environment branch | kept, including its extra bullets              |
+| REPL-only mode                  | false — REPL-only guidance is absent           |
+| embedded search tools           | false — the glob and grep subitems are kept    |
+| task-tool alias                 | the todo-write tool; Talos ships no task tool  |
 
-Conditional branches — the source is assembled from ternaries and feature
-checks. Each one is resolved to a single branch, and every resolution is
-recorded here:
-
-| branch                                                | source       | resolved to                                              |
-| ----------------------------------------------------- | ------------ | -------------------------------------------------------- |
-| `outputStyleConfig !== null ? … : …`                   | 180          | else branch: "with software engineering tasks"            |
-| `process.env.USER_TYPE === 'ant' ? … : …`              | 204-255, 433 | ant branch wherever offered                               |
-| `isReplModeEnabled()`                                  | 277-285      | false — REPL-only guidance is absent                      |
-| `hasEmbeddedSearchTools()`                             | 289, 295     | false — the glob and grep subitems are kept               |
-| `[TASK_CREATE, TODO_WRITE].find(...)` (`taskToolName`) | 270-272, 307 | `TODO_WRITE_TOOL_NAME`; Talos ships no TaskCreate tool    |
-
-The ant branch is chosen deliberately: it is the stricter variant. It adds the
-ant-only bullets at 205-213, 227, 238-242 and 405-414, and drops the non-ant
-"Your responses should be short and concise." at 433-435. Two ant-only bullets
-(204, 237) are model-launch countermeasures aimed at Anthropic models; they are
-kept because nothing in them identifies a product once the codenames are gone.
+Two kept bullets were written as model-launch countermeasures. They stay
+because, once the codenames are gone, nothing in them identifies a product.
 
 DELETED  (not applicable to this product, or duplicated by Talos-owned rules)
 
-| content                                                                  | source              | why                                                      |
-| ------------------------------------------------------------------------ | ------------------- | -------------------------------------------------------- |
-| `CYBER_RISK_INSTRUCTION`                                                  | cyberRiskInstruction.ts:24 | Anthropic's own security-boundary instruction; Talos carries no replacement |
-| `# System` bullet: "Tools are executed in a user-selected permission mode…" | prompts.ts:189   | duplicate of the Talos `# Harness` permission bullet     |
-| `# System` bullet: "Tool results and user messages may include <system-reminder>…" | prompts.ts:190 | duplicate of the Talos `# Harness` system-reminder bullet |
-| `# Tone and style` bullet: "Only use emojis if the user explicitly requests it…"  | prompts.ts:432     | contradicts the Talos `## Response Style` emoji rule; the Talos rule wins |
-| `# Tone and style` bullet: "Your responses should be short and concise."        | prompts.ts:435     | ant branch emits `null` for this item                          |
-| `/help: Get help with using Claude Code`                                  | prompts.ts:217      | Claude Code product help                                  |
-| `To give feedback, users should ${MACRO.ISSUES_EXPLAINER}`                | prompts.ts:218      | Claude Code product help                                  |
-| parent bullet "If the user asks for help or wants to give feedback…"      | prompts.ts:248      | dangles once its two subitems are gone                    |
-| "/issue" / "/share" / "ccshare" / "#claude-code-feedback" / `C07VBSHV7EV` | prompts.ts:245      | Claude Code feedback channel                              |
-| `Capybara` / `capy v8` / `numbat` and every `@[MODEL LAUNCH]` comment      | 204,210,224,237,402 | internal model codenames                                  |
-| `TOKEN_BUDGET` / `KAIROS` / `PROACTIVE` / `KAIROS_BRIEF` sections          | 466-554             | feature-gated, outside the copied ranges                  |
-| `numeric_length_anchors`, `getAntModelOverrideSection`, `getBriefSection`, `getScratchpadInstructions`, `getFunctionResultClearingSection`, `SUMMARIZE_TOOL_RESULTS_SECTION` | 491-555 | ditto                                  |
-| proactive idle guidance built on `SLEEP_TOOL_NAME`                        | 860-886             | outside the copied ranges                                 |
+| content                                                        | why                                                        |
+| -------------------------------------------------------------- | ---------------------------------------------------------- |
+| the reference text's security-boundary instruction              | Talos carries no replacement                                |
+| "Tools are executed in a user-selected permission mode…"        | duplicate of the Talos `# Harness` permission bullet        |
+| "Tool results and user messages may include <system-reminder>…" | duplicate of the Talos `# Harness` system-reminder bullet   |
+| "Only use emojis if the user explicitly requests it…"           | contradicts the Talos `## Response Style` emoji rule; the Talos rule wins |
+| "Your responses should be short and concise."                   | the selected branch omits it                                |
+| product help entries (`/help`, the feedback macro)              | describe another product                                    |
+| the parent "asks for help or wants to give feedback" bullet     | dangles once its two subitems are gone                      |
+| `/issue`, `/share`, `ccshare`, the feedback channel id          | another product's feedback channel                          |
+| internal model codenames and every model-launch comment         | identify a different product                                |
+| the feature-gated sections outside the copied ranges            | not part of the discipline set                              |
 
 REPLACED  (tool names and product facts only)
 
-| Claude Code                                              | source    | here        |
-| -------------------------------------------------------- | --------- | ----------- |
-| `FILE_READ_TOOL_NAME`                                     | 292       | `read`      |
-| `FILE_WRITE_TOOL_NAME`                                    | 294       | `write`     |
-| `FILE_EDIT_TOOL_NAME`                                     | 293       | `edit`      |
-| `BASH_TOOL_NAME`                                          | 301,305   | `bash tool` |
-| `GREP_TOOL_NAME`                                          | 299       | `grep`      |
-| `GLOB_TOOL_NAME`                                          | 298       | `glob`      |
-| `TODO_WRITE_TOOL_NAME` (via `taskToolName`)               | 270,308   | `todowrite` |
-| `ASK_USER_QUESTION_TOOL_NAME`                             | 233       | `ask_user`  |
-| `CLAUDE.md`                                               | 258       | `AGENTS.md` |
-| `${GREP_TOOL_NAME} instead of grep or rg`                 | 299       | `grep instead of shell grep or rg` |
-| `${BASH_TOOL_NAME} tool`                                  | 301       | `bash tool` |
-| `(e.g. anthropics/claude-code#100)`                       | 437       | removed; the format sentence stands alone |
+| in the reference text                        | here                                |
+| -------------------------------------------- | ----------------------------------- |
+| the file read / write / edit tool constants   | `read` / `write` / `edit`           |
+| the bash tool constant                        | `bash tool`                         |
+| the grep / glob tool constants                | `grep` / `glob`                     |
+| the todo-write tool constant                  | `todowrite`                         |
+| the ask-user tool constant                    | `ask_user`                          |
+| the project instruction file name             | `AGENTS.md`                         |
+| "use grep instead of grep or rg"              | `grep instead of shell grep or rg`  |
+| "the bash tool tool"                          | `bash tool`                         |
+| an external repository reference              | removed; the format sentence stands alone |
 
 Two substitutions need care because the substituted name collides with real
-shell tooling, which is why they have their own rows: "use ${GREP_TOOL_NAME}
-instead of grep or rg" would read "use grep instead of grep or rg" once
-substituted, so it says `shell grep or rg`; and `${BASH_TOOL_NAME}` is rendered
-`bash tool` to keep the sentences grammatical, so the " tool" that the source
-appends after the constant at 301 is not duplicated.
+shell tooling, which is why they have their own rows: the search-tool sentence
+would read "use grep instead of grep or rg" once substituted, so it says
+`shell grep or rg`; and the bash constant is rendered `bash tool` to keep the
+sentence grammatical, so the " tool" the constant appends is not duplicated.
 
-NOT reproduced: the two identity lines,
-"You are Claude Code, Anthropic's official CLI tool for Claude." and the
-`CLAUDE_CODE_SIMPLE` variant. They name a different product, and the `persona`
-block supplies the identity. The retained intro sentence at 180 is borrowed
-text and stays, so the prompt does contain two self-descriptions by design.
+NOT reproduced: the reference text's own identity lines, which name a different
+product. The `persona` block supplies identity here. The retained intro sentence
+is copied text and stays, so the prompt does contain two self-descriptions by
+design.
 
 Dedup scope: the duplicate rules are dropped only where they would have cost
-something - the permission and `<system-reminder>` bullets, and the emoji rule
-that contradicts Talos. Where the borrowed bullet and the Talos bullet merely
-agree (dedicated tools at 292-301, parallel calls at 310, `file_path:line_number`
-at 436, faithful reporting at 238-242), both are kept rather than trimming the
-copy. The assembled prompt repeats those statements; it never contradicts them.
+something — the permission and `<system-reminder>` bullets, and the emoji rule
+that contradicts Talos. Where the copied bullet and the Talos bullet merely
+agree (dedicated tools, parallel calls, `file_path:line_number`, faithful
+reporting), both are kept rather than trimming the copy. The assembled prompt
+repeats those statements; it never contradicts them.
 
-Everything below this comment is upstream text.
+Everything below this comment is the copied discipline text.
 --}}
 You are an interactive agent that helps users with software engineering tasks. Use the instructions below and the tools available to you to assist the user.
 

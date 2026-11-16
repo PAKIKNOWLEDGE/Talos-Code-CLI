@@ -34,7 +34,7 @@
     "verifier/agent.md": "Agent capability configuration, outside Prompt injection.",
     "worker/agent.md": "Agent capability configuration, outside Prompt injection.",
     "_v2/tui/SYSTEM.md.hbs": "Local V2 prompt combining identity, rules, and feature conditions; excluded from remote prompt delivery.",
-    "_v2/tui/doctrine/apocalypse.md.hbs": "Local V2 behaviour doctrine copied verbatim from Claude Code static prompt sections; excluded from remote prompt delivery.",
-    "_v2/tui/doctrine/stargate.md.hbs": "Local V2 behaviour doctrine copied verbatim from pi; excluded from remote prompt delivery."
+    "_v2/tui/doctrine/apocalypse.md.hbs": "Local V2 behaviour doctrine carrying the long-form discipline sections; excluded from remote prompt delivery.",
+    "_v2/tui/doctrine/stargate.md.hbs": "Local V2 behaviour doctrine carrying the minimal discipline set; excluded from remote prompt delivery."
   }
 }

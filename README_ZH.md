@@ -59,11 +59,11 @@ talos
 
 运行 `talos update` 或在界面中输入 `/update` 检查新版。Talos 会显示升级命令，由你手动安装。再次执行上面的 npm 安装命令即可升级。
 
-更新说明：[0.1.14](docs/releases/0.1.14.md) · [0.1.13](docs/releases/0.1.13.md) · [0.1.12](docs/releases/0.1.12.md) · [0.1.11](docs/releases/0.1.11.md)。
+更新说明：[1.0.0](docs/releases/1.0.0.md) · [0.1.14](docs/releases/0.1.14.md) · [0.1.13](docs/releases/0.1.13.md) · [0.1.12](docs/releases/0.1.12.md) · [0.1.11](docs/releases/0.1.11.md)。
 
 ## 发行状态
 
-Talos **0.1.14** 为当前 CLI 发行线（`@pakiknowledge/tal0s-code`）。本补丁会在长会话发出图片前缩小 PNG 和 JPEG，请求仍然太大时卸掉最老的图，使同一段会话可以继续。默认皮肤仍是 Classic。见[验证记录](docs/verification.md)与[当前状态](docs/status.md)。
+Talos **1.0.0** 为当前 CLI 发行线（`@pakiknowledge/tal0s-code`）。现在可以用 `/doctrine` 为一次会话在长文纪律集与极简纪律之间二选一；首次发送消息后该选择固定在本次会话上，之后修改配置不会改变已经在进行的对话。纪律是独立的提示词组合层，不再重复运行时已经注入的规则。默认皮肤仍是 Classic。见[验证记录](docs/verification.md)与[当前状态](docs/status.md)。
 
 桌面 GUI 在配套仓库 `T3rra-C0d3-Talos` 维护。
 

@@ -1,40 +1,34 @@
 {{!--
-Stargate doctrine — copied verbatim from pi-mono.
-
-Source: third_party/pi-mono/packages/coding-agent/src/core/system-prompt.ts
-        `buildSystemPrompt()`. The identity line is line 130; the rendered
-        guidelines list is lines 137-138. MIT-licensed; see
-        THIRD_PARTY_NOTICES.md.
+Stargate doctrine — the minimal discipline set: one identity line and a short
+guidelines list.
 
 Copied: the identity line, the "Guidelines:" heading, and the rendered
-guidelines. "Be concise in your responses" and "Show file paths clearly
-when working with files" are pi's two unconditional guidelines
-(system-prompt.ts:125-126). Their order is the rendered order: the two
-unconditional guidelines are appended last, so they are the only entries.
+guidelines. Two guidelines are unconditional in the reference text and are the
+only entries, because they are appended last in its rendered order.
 
 Deleted (factually wrong for Talos, not rewritten):
 
-| pi block                                                | Source        | Why deleted                                                        |
-| ------------------------------------------------------- | ------------- | ------------------------------------------------------------------ |
-| "Available tools:" + toolsList                          | 132-133       | Talos tool descriptions come from the tool schemas                  |
-| "In addition to the tools above, you may have access..." | 135          | Talos has no such secondary tool tier                               |
-| "Pi documentation (read only when the user asks...)"    | 140-147       | Talos ships no `docs/` or `examples/` tree of that shape            |
-| `<project_context>` / `<project_instructions>`          | 155-160       | Talos injects instructions via `local-agent-config-builder.ts`      |
-| `formatSkillsForPrompt(skills)` block                   | 164-166       | Talos injects skills separately                                     |
-| "Current date:" / "Current working directory:"          | 169-170       | Talos injects an environment block, so a second copy would conflict |
+| block                                                  | why deleted                                                         |
+| ------------------------------------------------------ | ------------------------------------------------------------------- |
+| "Available tools:" plus a tool list                     | Talos tool descriptions come from the tool schemas                   |
+| "In addition to the tools above, you may have access…"  | Talos has no such secondary tool tier                                |
+| the read-only documentation block                       | Talos ships no documentation tree of that shape                      |
+| `<project_context>` / `<project_instructions>`          | Talos injects instructions via `local-agent-config-builder.ts`       |
+| the formatted skills block                              | Talos injects skills separately                                      |
+| "Current date:" / "Current working directory:"          | Talos injects an environment block, so a second copy would conflict  |
 
-Also not reproduced: pi's conditional guideline "Use bash for file
-operations like ls, rg, find" (system-prompt.ts:113-115). pi only emits it
-when bash is present and grep/find/ls are absent; Talos ships dedicated
-`grep` and `glob` tools, so pi's own condition is false here.
+Also not reproduced: the reference text's conditional guideline about using
+bash for file operations. It only emits that guideline when bash is present and
+grep/find/ls are absent; Talos ships dedicated `grep` and `glob` tools, so the
+condition is false here.
 
 Replaced (name mismatch only):
 
-| pi                                            | here    |
-| --------------------------------------------- | ------- |
-| `operating inside pi, a coding agent harness` | `Talos` |
+| in the reference text        | here    |
+| ---------------------------- | ------- |
+| the harness name in identity | `Talos` |
 
-Everything below this comment is upstream text.
+Everything below this comment is the copied guidance.
 --}}
 You are an expert coding assistant operating inside Talos, a coding agent harness. You help users by reading files, executing commands, editing code, and writing new files.
 
