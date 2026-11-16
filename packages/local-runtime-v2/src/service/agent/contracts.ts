@@ -19,6 +19,15 @@ export type AgentPromptSurface = 'interactive' | 'task-child' | 'cli';
 export type AgentPromptProfile = 'desktop' | 'tui';
 export type AgentPromptMode = 'tui' | 'coding' | 'work';
 
+/**
+ * Behaviour doctrine borrowed verbatim from a validated upstream harness.
+ * Orthogonal to `AgentPromptMode`: the mode selects the surface, the doctrine
+ * selects the discipline text that surface renders.
+ */
+export const AGENT_PROMPT_DOCTRINES = ['apocalypse', 'stargate'] as const;
+export type AgentPromptDoctrine = (typeof AGENT_PROMPT_DOCTRINES)[number];
+export const DEFAULT_PROMPT_DOCTRINE: AgentPromptDoctrine = 'apocalypse';
+
 /** Agent-owned material; Runtime context and tool inventories remain separate. */
 export interface AgentPromptSnapshot {
   readonly mode: AgentPromptMode;
@@ -446,6 +455,8 @@ export interface AgentProfileRequest {
   readonly promptProfile?: AgentPromptProfile;
   readonly promptMode?: AgentPromptMode;
   readonly promptVersion?: string;
+  /** Behaviour doctrine; only the TUI asset consumes it. Absent means the default. */
+  readonly promptDoctrine?: AgentPromptDoctrine;
   readonly appMode?: AgentAppMode;
   readonly locale?: string;
   readonly promptChannel?: AgentPromptChannel;

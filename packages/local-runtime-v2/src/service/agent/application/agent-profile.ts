@@ -8,6 +8,7 @@ import {
 } from '../builtin/catalog.js';
 import { mergeBuiltinAgentSystemPrompt } from './config/builtin-canonical-files.js';
 import { AgentServiceError } from '../errors.js';
+import { AGENT_PROMPT_DOCTRINES } from '../contracts.js';
 import {
   toBuiltinProfile,
   toBuiltinRenderInput,
@@ -156,13 +157,23 @@ export async function resolveAgentProfileRenderContext(
 }
 
 export function createAgentPromptSelection(
-  options: Pick<AgentProfileRequest, 'promptMode' | 'promptVersion'>,
+  options: Pick<AgentProfileRequest, 'promptMode' | 'promptVersion' | 'promptDoctrine'>,
 ): (input: AgentProfileRequest) => AgentProfileRequest {
-  const { promptMode, promptVersion } = options;
+  const { promptMode, promptVersion, promptDoctrine } = options;
   if (promptMode !== undefined && !['tui', 'coding', 'work'].includes(promptMode)) {
     throw new Error(`Invalid prompt mode: ${String(promptMode)}`);
   }
-  return (input) => (promptMode === undefined ? input : { ...input, promptMode, promptVersion });
+  if (promptDoctrine !== undefined && !AGENT_PROMPT_DOCTRINES.includes(promptDoctrine)) {
+    throw new Error(`Invalid prompt doctrine: ${String(promptDoctrine)}`);
+  }
+  return (input) => {
+    if (promptMode === undefined && promptDoctrine === undefined) return input;
+    return {
+      ...input,
+      ...(promptMode === undefined ? {} : { promptMode, promptVersion }),
+      ...(promptDoctrine === undefined ? {} : { promptDoctrine }),
+    };
+  };
 }
 
 export async function renderAgentProfile(
@@ -285,6 +296,7 @@ function frozenProfileRenderInput(
       ...(input.promptProfile === undefined ? {} : { promptProfile: input.promptProfile }),
       promptMode: input.promptMode,
       promptVersion: input.promptVersion,
+      ...(input.promptDoctrine === undefined ? {} : { promptDoctrine: input.promptDoctrine }),
       appMode: input.appMode ?? 'coding',
       locale: input.locale ?? resolveLocale(),
       promptChannel: input.promptChannel ?? 'online',

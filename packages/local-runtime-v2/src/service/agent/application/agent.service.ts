@@ -97,6 +97,7 @@ import type {
   AgentNameCompatIntent,
   AgentPrimaryProfileOverlayOutcome,
   AgentProfileRequest,
+  AgentPromptDoctrine,
   AgentPromptMode,
   AgentReadScope,
   AgentStoreMeta,
@@ -118,6 +119,7 @@ export type { LegacyCustomAgentMaterializationEvent } from './legacy-custom-mate
 export interface LocalAgentServiceOptions extends BuiltinCatalogOptions {
   readonly promptMode?: AgentPromptMode;
   readonly promptVersion?: string;
+  readonly promptDoctrine?: AgentPromptDoctrine;
   readonly repository: AgentStorePort;
   readonly nowMs?: () => number;
   readonly primaryAgentName?: string;

@@ -1,0 +1,37 @@
+{{!--
+Stargate doctrine — copied verbatim from pi-mono.
+
+Source: third_party/pi-mono/packages/coding-agent/src/core/system-prompt.ts
+        buildSystemPrompt(), lines 128-147 (identity line + guidelines list).
+
+Copied: the identity line and the rendered guidelines list. "Be concise in your
+responses" and "Show file paths clearly when working with files" are pi's two
+unconditional guidelines (system-prompt.ts:125-126).
+
+Deleted (factually wrong for Talos, not rewritten):
+
+| pi block                                                       | Why deleted                                                       |
+| -------------------------------------------------------------- | ----------------------------------------------------------------- |
+| "# pi documentation" (readmePath / docsPath / examplesPath)     | Talos has no such paths                                           |
+| "# Project Context" (`<project_context>`, AGENTS.md discovery)  | Talos injects it via `_v2/AGENT_CONTEXT.md.hbs`                    |
+| `<environment_context>` (cwd, duration, network permission)     | Talos injects it via `environmentContextBlock`                     |
+| "# Tools" (`Available tools:` from toolSnippets)                | Talos tool descriptions come from the tool schemas                 |
+
+Also not reproduced: pi's conditional guideline
+"Use bash for file operations like ls, rg, find" (system-prompt.ts:113-115).
+pi only emits it when bash is present and grep/find/ls are absent; Talos ships
+dedicated `grep` and `glob` tools, so pi's own condition is false here.
+
+Replaced (name mismatch only):
+
+| pi                                                       | here  |
+| -------------------------------------------------------- | ----- |
+| `operating inside pi, a coding agent harness`             | `Talos` |
+
+Everything below this comment is upstream text.
+--}}
+You are an expert coding assistant operating inside Talos, a coding agent harness. You help users by reading files, executing commands, editing code, and writing new files.
+
+Guidelines:
+- Be concise in your responses
+- Show file paths clearly when working with files

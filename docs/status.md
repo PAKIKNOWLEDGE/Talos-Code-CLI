@@ -39,6 +39,42 @@ Companion GUI: `C:\DEV\develop\T3rra-C0d3-Talos` — [docs/status.md](https://gi
 | **0.7.2** | Current public upstream reference; not imported as a unit |
 | **0.4.12** (and similar) | Inherited upstream capability baseline in engineering docs |
 
+## Prompt doctrine
+
+The TUI system prompt composes exactly one behaviour doctrine, selected by `promptDoctrine` in `config.yaml`
+(`apocalypse` | `stargate`, default `apocalypse`). Both are copied from a validated upstream harness rather than
+authored here; each asset carries a header comment listing its source, deletions, and name substitutions, so
+"still a verbatim copy" stays provable with a plain diff.
+
+| Doctrine | Source | Asset | Copied body |
+| --- | --- | --- | --- |
+| `apocalypse` | Claude Code `constants/prompts.ts` static sections (`getSystemPrompt`, lines 560-571), ant branch | `packages/local-runtime-v2/assets/agents/_v2/tui/doctrine/apocalypse.md.hbs` | 13,832 chars / 53 lines (≈3.8k tokens) |
+| `stargate` | `pi-mono` `core/system-prompt.ts` identity line + guidelines list | `packages/local-runtime-v2/assets/agents/_v2/tui/doctrine/stargate.md.hbs` | 266 chars / 4 lines (≈74 tokens) |
+
+Composition rules:
+
+- `_v2/tui/SYSTEM.md.hbs` is a composer. Its `{{> tui/doctrine}}` marker is replaced with the selected doctrine
+  before Handlebars compilation (`BUILTIN_HANDLEBARS` registers no partials, so the marker cannot resolve at
+  compile time). The composer keeps only Talos-owned material: identity, the `# Harness` runtime facts Talos
+  alone knows (permission mode, dedicated-tool preference, parallel calls, `file_path:line_number` references,
+  secrets), memory, localisation and response-style rules, preamble examples, references, and deliverable
+  conventions.
+- `addRuntimeRules` (`preparation/config/runtime-prompt-rules.ts`) injects into the rendered prompt only the
+  `<system-reminder>` description, three file-operation rules, and two Windows rules under `# Harness`;
+  `LANGUAGE_RULES` under `## Response Style`; and `TOOL_CALL_PREAMBLE_REMINDER` under `## Preamble messages`.
+  Those exact statements are therefore **not** repeated in the composer.
+- Talos runtime facts and language instructions win over borrowed text. Where the two would contradict, the
+  borrowed bullet is listed in the doctrine's deletion table: the Claude Code permission rule, its
+  `<system-reminder>` rule, and its emoji rule are all dropped in favour of the Talos equivalent. Where they
+  agree, both are kept rather than trimming the copy.
+- A doctrine composes for any render that resolves to the `tui` prompt template. The `coding`, `work`, and
+  desktop templates contain no marker, so they ignore `promptDoctrine` entirely.
+- Both assets are registered in `prompt-exemptions.json` and deliberately kept out of `managed-prompts.json`
+  (that file is the desktop remote-delivery contract).
+
+Session scoping (doctrine fixed at session start, visible in the status bar) is tracked as a follow-up change;
+`config.yaml` currently supplies the value for every render.
+
 ## Next entries (engine)
 
 1. **Security/reliability ports** — #568 (stack-trace exposure), the OAuth refresh fence from #566, and #584 (`exec` workspace errors). Each needs its own reviewed change; see [upstream-pr-watch](upstream-pr-watch.md#review-log).

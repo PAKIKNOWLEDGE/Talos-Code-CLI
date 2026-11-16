@@ -1118,6 +1118,10 @@ describe("BuiltinAgentCatalog TUI prompt profile", () => {
       expect(enabled.corePrompt).toContain(
         "You are Perlica, a coding agent running in the Talos terminal",
       );
+      expect(enabled.corePrompt).toContain("# Executing actions with care");
+      // Discipline comes from the doctrine; `# Harness` stays one Talos-owned block.
+      expect(enabled.corePrompt.match(/^# Harness$/gmu)).toHaveLength(1);
+      expect(enabled.corePrompt.match(/^## Response Style$/gmu)).toHaveLength(1);
       expect(enabled.corePrompt).toContain("markdown in a terminal");
       expect(enabled.corePrompt).toContain("## Deliverable Files");
       expect(enabled.corePrompt).not.toContain("## Media Output");

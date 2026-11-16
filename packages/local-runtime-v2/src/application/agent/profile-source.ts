@@ -47,6 +47,7 @@ export function createV2AgentProfileSource(
         ...(requestRef === undefined ? {} : { requestRef }),
         surface: resolveAgentPromptSurface(session, runtimeOwnerKind),
         promptProfile: runtimeOwnerKind === 'tui' ? 'tui' : 'desktop',
+        ...(config.promptDoctrine ? { promptDoctrine: config.promptDoctrine } : {}),
         appMode: session.appMode ?? 'coding',
         capabilities,
         memoryEnabled: isCommandLineRuntimeOwner(runtimeOwnerKind) ? false : config.memory?.enabled,

@@ -129,6 +129,7 @@
       "packages/local-runtime-v2/src/services.test.ts",
       "packages/local-runtime-v2/src/application/session/session-title-policy.test.ts",
       "packages/local-runtime-v2/test/unit/agent/builtin/catalog.test.ts",
+      "packages/local-runtime-v2/test/unit/agent/builtin/prompt-doctrine.test.ts",
       "packages/local-runtime-v2/test/unit/agent/storage/agent.repository.test.ts",
       "packages/local-runtime-v2/test/unit/agent/storage/canonical-agent-config.test.ts",
       "packages/local-runtime-v2/test/unit/compat/v1/runtime.test.ts",

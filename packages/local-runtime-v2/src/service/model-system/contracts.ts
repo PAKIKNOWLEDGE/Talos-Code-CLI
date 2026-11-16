@@ -124,6 +124,8 @@ export interface LocalRuntimeConfig {
 /** Conversation-owned read model of the process config. */
 export interface LocalConversationRuntimeConfig extends LocalRuntimeConfig {
   readonly defaultLightModel?: string;
+  /** Behaviour doctrine for new TUI sessions; resolved from config.yaml. */
+  readonly promptDoctrine?: Config['promptDoctrine'];
   /** Goal verifier policy consumed by process-local auxiliary model calls. */
   readonly goal?: Config['goal'];
   readonly memory?: Partial<Config['memory']>;

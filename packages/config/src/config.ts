@@ -224,6 +224,13 @@ export type PermissionMode =
 /** Upstream-defined reasoning effort stored verbatim for model configuration. */
 export type EffortLevel = string;
 
+/**
+ * Behaviour doctrine for the TUI system prompt. Both values are copied from a
+ * validated upstream harness; this setting only selects which one is composed.
+ * See `packages/local-runtime-v2/assets/agents/_v2/tui/doctrine/`.
+ */
+export type PromptDoctrine = "apocalypse" | "stargate";
+
 export interface ThinkingConfig {
   /** User-defined choices exposed by the message input model selector. */
   effortOptions?: EffortLevel[];
@@ -979,6 +986,8 @@ export interface Config {
   defaultLightModel?: string;
   /** Permission mode for tool call authorization. */
   permissionMode: PermissionMode;
+  /** Behaviour doctrine composed into the TUI system prompt. */
+  promptDoctrine: PromptDoctrine;
   permission: PermissionConfig;
   /** Global SSE error event publishing controls. */
   sseErrorPush: SSEErrorPushConfig;
@@ -1780,6 +1789,7 @@ const DEFAULTS: Omit<
   logLevel: "info",
   devPort: DEFAULT_UI_PORT,
   permissionMode: "auto",
+  promptDoctrine: "apocalypse",
   sseErrorPush: {
     history: true,
     stream: true,
@@ -2126,6 +2136,11 @@ export function resolveConfigFromRaw(
       )
         ? (raw.permissionMode as PermissionMode)
         : DEFAULTS.permissionMode,
+    promptDoctrine:
+      typeof raw.promptDoctrine === "string" &&
+      ["apocalypse", "stargate"].includes(raw.promptDoctrine)
+        ? (raw.promptDoctrine as PromptDoctrine)
+        : DEFAULTS.promptDoctrine,
     permission: parsePermissionConfig(raw),
     sseErrorPush: {
       history:

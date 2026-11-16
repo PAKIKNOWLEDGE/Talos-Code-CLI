@@ -50,6 +50,7 @@ export function toBuiltinRenderInput(
     ...(input.promptProfile === undefined ? {} : { promptProfile: input.promptProfile }),
     promptMode: input.promptMode,
     promptVersion: input.promptVersion,
+    ...(input.promptDoctrine === undefined ? {} : { promptDoctrine: input.promptDoctrine }),
     appMode: input.appMode ?? 'coding',
     locale: input.locale ?? resolveLocale(),
     promptChannel: input.promptChannel ?? 'online',

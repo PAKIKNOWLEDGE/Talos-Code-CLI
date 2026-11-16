@@ -7,6 +7,7 @@ import {
 import type {
   AgentAppMode,
   AgentPromptChannel,
+  AgentPromptDoctrine,
   AgentPromptProfile,
   AgentPromptMode,
   AgentPromptSurface,
@@ -22,6 +23,7 @@ export interface BuiltinRenderInput {
   readonly promptProfile?: AgentPromptProfile;
   readonly promptMode?: AgentPromptMode;
   readonly promptVersion?: string;
+  readonly promptDoctrine?: AgentPromptDoctrine;
   readonly appMode: AgentAppMode;
   readonly locale: string;
   readonly promptChannel: AgentPromptChannel;
@@ -39,6 +41,7 @@ export interface BuiltinSurfaceRenderInput {
   readonly promptProfile?: AgentPromptProfile;
   readonly promptMode?: AgentPromptMode;
   readonly promptVersion?: string;
+  readonly promptDoctrine?: AgentPromptDoctrine;
   readonly appMode: AgentAppMode;
   readonly locale: string;
   readonly promptChannel: AgentPromptChannel;
@@ -87,6 +90,7 @@ export function toSurfaceRenderInput(input: BuiltinSurfaceRenderInput): BuiltinR
     ...(input.promptProfile === undefined ? {} : { promptProfile: input.promptProfile }),
     promptMode: input.promptMode,
     promptVersion: input.promptVersion,
+    promptDoctrine: input.promptDoctrine,
     appMode: input.appMode,
     locale: input.locale,
     promptChannel: input.promptChannel,

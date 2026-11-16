@@ -22,6 +22,7 @@ import type {
   AgentStoreIdentity,
   BuiltinAgentDefinition,
 } from '../contracts.js';
+import { DEFAULT_PROMPT_DOCTRINE } from '../contracts.js';
 import {
   BUILTIN_ROSTER_FILE,
   FEATURE_FILES,
@@ -49,6 +50,12 @@ export {
   legacyNamesFor,
   resolveCanonicalCapabilities,
 } from './definitions.js';
+
+/**
+ * Composition point of the TUI system prompt. Every mode asset without this
+ * marker is rendered verbatim; only `_v2/tui/SYSTEM.md.hbs` carries it.
+ */
+const DOCTRINE_INCLUDE_MARKER = '{{> tui/doctrine}}';
 
 export interface BuiltinCatalogOptions {
   readonly assetsDir?: string;
@@ -178,7 +185,9 @@ export class BuiltinAgentCatalog {
   private async renderAgentParts(canonical: string, input: BuiltinRenderInput) {
     const [personaTemplate, coreTemplate, featurePrompts] = await Promise.all([
       this.readPromptAsset(canonical, input, 'persona'),
-      this.readPromptAsset(canonical, input, 'system'),
+      this.readPromptAsset(canonical, input, 'system').then((template) =>
+        this.inlineDoctrine(template, input),
+      ),
       this.renderFeaturePrompts(canonical, input),
     ]);
     const context = this.context(input, featurePrompts);
@@ -211,6 +220,27 @@ export class BuiltinAgentCatalog {
         'saved V2 system',
       ),
     };
+  }
+
+  /**
+   * Splices the selected doctrine asset into the composing system prompt.
+   *
+   * `BUILTIN_HANDLEBARS` registers no partials, so `{{> ...}}` cannot resolve at
+   * compile time. The doctrine file is therefore inlined into the template text
+   * before compilation. Keeping the two doctrines in separate files is what
+   * makes "this text is copied from upstream" provable with a plain diff; a
+   * conditional block inside one file would not.
+   */
+  private async inlineDoctrine(
+    template: string | undefined,
+    input: BuiltinRenderInput,
+  ): Promise<string | undefined> {
+    if (template === undefined || !template.includes(DOCTRINE_INCLUDE_MARKER)) return template;
+    const doctrine = input.promptDoctrine ?? DEFAULT_PROMPT_DOCTRINE;
+    const path = posix.join('_v2', 'tui', 'doctrine', `${doctrine}.md.hbs`);
+    const body = await this.readPromptAssetFile(v2PromptReadContext(input), path);
+    if (body === undefined) throw new Error(`Mandatory V2 prompt doctrine is missing: ${path}.`);
+    return template.replace(DOCTRINE_INCLUDE_MARKER, body.trim());
   }
 
   /** Reads only the built-in Agent's own prompt assets; shared base layers are excluded. */
