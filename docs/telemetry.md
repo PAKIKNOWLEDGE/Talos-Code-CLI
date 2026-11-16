@@ -2,9 +2,11 @@
 
 All automatic telemetry uploads are disabled by default and each requires its own opt-in: TUI usage events (`telemetry.enabled`), runtime performance metrics (`telemetry.metrics`), and automatic error diagnostics (`telemetry.diagnostics`). Opting in to usage events does not authorize the other two channels. Login, model requests, update checks, and user-submitted feedback are separate product actions and are not controlled by these switches.
 
+The shipped Talos CLI launches in the neutral runtime profile (`TALOS_NEUTRAL_RUNTIME=1`), which disables every telemetry channel even when an inherited config opts in; `talos telemetry status` reports the block. The controls and payload descriptions below document the inherited implementation for review, not an upload path available in Talos.
+
 ## Turn it on or off
 
-Add this to the active profile's `config.yaml`, then restart MCode. Builds from this repository and the published npm CLI `@minimax-ai/code@0.4.12` default to `~/.minimax/config.yaml` (or `~/.minimax-<profile>/config.yaml` when a profile is selected). Overrides can change this path; see [Accounts and data](installation.md#accounts-and-data) to locate it. The telemetry controls below describe this repository's source build and are not a guarantee of feature parity with that npm release.
+Add this to the active profile's `config.yaml`, then restart Talos. Talos builds and the published `@pakiknowledge/tal0s-code` default to `~/.talos/config.yaml` (or `~/.talos-<profile>/config.yaml` when a profile is selected). Overrides can change this path; see [Accounts and data](installation.md#accounts-and-data) to locate it. The telemetry controls below describe this repository's source build.
 
 ```yaml
 telemetry:
@@ -16,11 +18,11 @@ telemetry:
 Remove a setting or set it to `false` to turn that channel off. Either environment variable below turns **all channels** off and takes precedence over the config file:
 
 ```sh
-MCODE_DISABLE_TELEMETRY=1 mcode
-DO_NOT_TRACK=1 mcode
+MCODE_DISABLE_TELEMETRY=1 talos
+DO_NOT_TRACK=1 talos
 ```
 
-Inspect the effective setting of every channel with `mcode telemetry status`. Run `mcode telemetry preview` to see a representative decoded usage-event request. Preview does not send a request. When usage telemetry is disabled, preview shows `request: null`, independently of the metrics and diagnostics settings.
+Inspect the effective setting of every channel with `talos telemetry status`. Run `talos telemetry preview` to see a representative decoded usage-event request. Preview does not send a request. When usage telemetry is disabled, preview shows `request: null`, independently of the metrics and diagnostics settings.
 
 ## Usage-event data sent
 
@@ -39,7 +41,7 @@ The decoded JSON envelope contains:
 | `distinct_id`                    | The same fresh random ID                      |
 | `lib.$lib`                       | `js`                                          |
 | `lib.$lib_method`                | `code`                                        |
-| `lib.$lib_version`               | MCode version                                 |
+| `lib.$lib_version`               | Talos version                                 |
 | `properties`                     | Common and event-specific fields listed below |
 | `type`                           | `track`                                       |
 | `event`                          | Event name from the table below               |
@@ -53,22 +55,22 @@ Every `properties` object includes:
 | `os`          | Node.js platform name, such as `darwin`, `linux`, or `win32` |
 | `region`      | `cn` or `en`                                                 |
 | `build_env`   | `dev`, `test`, `staging`, or `prod`                          |
-| `app_version` | MCode version                                                |
+| `app_version` | Talos version                                                |
 
 Event-specific fields are limited to:
 
 - `tui_launch`: `launch_type` (`cold`, `hot`).
 - `login_click`, `logout_click`: no extra fields.
-- `login_result`: `source` (`agent_web`, `agent_desktop`, `openplatform`, `mcode_tui`, `mcode_cli`); `result_type` (`1` success, `2` failure); `fail_reason` (empty for success, `1` server, `2` network, `3` cancelled, `4` other, `5` OAuth/authorization); `login_type` (`google`, `mobile`, `wechat`, `apple`, `minimax_sso`, `minimax_oauth`).
+- `login_result`: `source` (`agent_web`, `agent_desktop`, `openplatform`, `mcode_tui`, `mcode_cli`; the `mcode_*` values are retained wire identifiers); `result_type` (`1` success, `2` failure); `fail_reason` (empty for success, `1` server, `2` network, `3` cancelled, `4` other, `5` OAuth/authorization); `login_type` (`google`, `mobile`, `wechat`, `apple`, `minimax_sso`, `minimax_oauth`).
 - `btw_session_lifecycle`: `phase` (`opened`, `closed`); `duration_bucket` (`not_applicable`, `under_1m`, `1m_to_5m`, `5m_to_30m`, `over_30m`); `exit_reason` (empty, `ctrl_c`, `ctrl_d`, `navigation`, `replaced`).
 - `chat_send`: `chat_type` (`chat`, `agent_team`, `claw`, `hermes`, `IM`); `is_first_message` (`0`, `1`); `is_attachment` (`text`, `attachment`).
 - `slash_command_menu_view`, `at_command_menu_view`: `chat_type` (values above).
 - `slash_command_click`: `chat_type`; `command_type` (`skill`, `new_chat`, `summarize`, `plan_mode`, `goal_mode`, `other`).
 - `at_command_click`: `chat_type`; `command_type` (`plugins`, `goal_mode`, `plan_mode`, `file`, `directory`).
 
-MCode does not send account IDs, device IDs, workspace paths or names, session IDs, model names, prompts, responses, filenames, command text, plugin names, or credentials through this channel. The receiver requires an identity-shaped envelope, so the client creates a fresh random event ID for each request. It is never persisted or reused and cannot link two events on its own. MCode does not add an account authorization header to these requests.
+Talos does not send account IDs, device IDs, workspace paths or names, session IDs, model names, prompts, responses, filenames, command text, plugin names, or credentials through this channel. The receiver requires an identity-shaped envelope, so the client creates a fresh random event ID for each request. It is never persisted or reused and cannot link two events on its own. Talos does not add an account authorization header to these requests.
 
-As with any network request, the receiving server can observe transport metadata such as the source IP address. The client does not add that value to the event payload. `mcode telemetry preview` displays the decoded envelope.
+As with any network request, the receiving server can observe transport metadata such as the source IP address. The client does not add that value to the event payload. `talos telemetry preview` displays the decoded envelope.
 
 ## Usage-event destinations
 

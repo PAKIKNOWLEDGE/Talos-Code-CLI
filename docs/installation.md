@@ -11,7 +11,7 @@ npm install -g @pakiknowledge/tal0s-code@latest --registry=https://registry.npmj
 talos --version
 ```
 
-Keep optional dependencies enabled and allow native install scripts (for example `better-sqlite3`). For a pinned version, replace `@latest` with `@0.1.2` (or the version you intend to ship).
+Keep optional dependencies enabled and allow native install scripts (for example `better-sqlite3`). For a pinned version, replace `@latest` with `@0.1.14` (or the version you intend to ship).
 
 Release archives and maintainer steps: [releasing](releasing.md) and [releases/](releases/).
 

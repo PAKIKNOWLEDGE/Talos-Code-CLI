@@ -10,7 +10,7 @@ GUI and CLI documentation use the same names for different layers. Use this tabl
 | **Perlica** | Default model-visible persona and display name; not a vendor or model claim | Separate from the connected model identity |
 | **mavis** and similar | Internal agent keys, skill gates, storage fields | Label as **internal routing**; never the public product name |
 | **MiniMax Code** | Upstream lineage, NOTICE/LICENSE attribution, some protocol fossils | Not the install target for this fork |
-| **Release line vs capability baseline** | npm/source line (for example **0.1.2**) vs inherited upstream capability projection (for example **0.4.12**) | State both when discussing version; do not merge into one number |
+| **Release line vs capability baseline** | npm/source line (for example **0.1.14**) vs inherited upstream capability projection (**0.5.5** imported; **0.7.2** current public reference) | State both when discussing version; do not merge into one number |
 
 ## Which status card to read
 

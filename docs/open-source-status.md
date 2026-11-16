@@ -1,19 +1,20 @@
 # Source status
 
-The current Talos source and release line is **0.1.2**. This repository contains the terminal TUI, headless CLI, ACP implementation, and the public distribution tooling around them. Engine handover and open tasks: [status](status.md). Name layers: [glossary](glossary.md). Desktop GUI work lives in the companion `T3rra-C0d3-Talos` repository.
+The current Talos source and release line is **0.1.14**. This repository contains the terminal TUI, headless CLI, ACP implementation, and the public distribution tooling around them. Engine handover and open tasks: [status](status.md). Name layers: [glossary](glossary.md). Desktop GUI work lives in the companion `T3rra-C0d3-Talos` repository.
 
 ## Version and evidence baseline
 
 | Concern | Current value | Source of truth |
 | --- | --- | --- |
-| TUI capability version | 0.1.2 | `packages/tui/package.json` |
-| Root workspace version | 0.1.2, aligned with the TUI | Root `package.json` |
-| Published npm observation | `@pakiknowledge/tal0s-code@0.1.2` (2026-10-08) | Public npm registry |
+| TUI capability version | 0.1.14 | `packages/tui/package.json` |
+| Root workspace version | 0.1.14, aligned with the TUI | Root `package.json` |
+| Published npm observation | `@pakiknowledge/tal0s-code@0.1.14` (2026-11-01) | Public npm registry |
 | Shared-source baseline | `9b9885e42a3cf1a3df1cfa52a46e4fdb034cfcee` | `release/extraction.json` |
+| Current public upstream reference | MiniMax Code **0.7.2** (`3c21163`, 2026-10-31), reviewed as reference only | [upstream-pr-watch](upstream-pr-watch.md) |
 | Embedded mcode-tools | 0.0.4, extracted from public `@minimax-ai/code@0.3.11` | `scripts/lib/mcode-tools-artifact.mjs` |
 | Historical live-service acceptance and demo | TUI 0.3.11, recorded 2026-09-11 | `docs/verification.md`, `docs/release-audit.md`, `docs/demo.md` |
 
-The product, TUI, and root workspace use the same 0.1.2 version. The embedded tool has its own version. Workspace and local-build manifests remain `private: true`; the Talos CLI is published separately as `@pakiknowledge/tal0s-code` from reviewed release tarballs. Matching version strings do not prove that this source tree reproduces the published npm tarball without running the package verification profile.
+The product, TUI, and root workspace use the same 0.1.14 version. The embedded tool has its own version. Workspace and local-build manifests remain `private: true`; the Talos CLI is published separately as `@pakiknowledge/tal0s-code` from reviewed release tarballs. Matching version strings do not prove that this source tree reproduces the published npm tarball without running the package verification profile.
 
 ## Source boundary
 

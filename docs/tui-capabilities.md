@@ -2,6 +2,8 @@
 
 The current capability target is **TUI 0.4.12**; see [version and evidence baseline](open-source-status.md#version-and-evidence-baseline) for the separate workspace and embedded-tool versions. “Restored” below describes implementation and assembly, not acceptance of every account or online service.
 
+Talos launches in the neutral runtime profile (`TALOS_NEUTRAL_RUNTIME=1`). Managed MiniMax account/Token Plan sign-in, the official plugin catalog, managed connectors, mcode-tools/cloud tools, Matrix media, and upstream telemetry are unavailable in that profile. The active model path is BYOK/custom providers and the MiniMax API key provider; plugins are local, and search uses the configured Tavily, Exa, or DeepSeek backend. Rows below describe the inherited implementation and its historical evidence, not every capability's availability in Talos.
+
 ## Output speed
 
 The activity line and completed-turn summary show provider output tokens divided by
@@ -18,12 +20,12 @@ observed generation window, not server hardware throughput.
 
 ## Terminal titles and notifications
 
-Terminal titles show the current state, session name and MCode, for example
-`Needs approval | Fix login | MCode`. Renaming or switching a session updates the
+Terminal titles show the current state, session name and Talos, for example
+`Needs approval | Fix login | Talos`. Renaming or switching a session updates the
 title. Unnamed sessions use the project name and a short session ID. Titles are
-cleared when MCode exits or suspends and reapplied when it resumes.
+cleared when Talos exits or suspends and reapplied when it resumes.
 
-Configure these presentation settings in the MCode data directory's `config.yaml`:
+Configure these presentation settings in the Talos data directory's `config.yaml`:
 
 ```yaml
 tui:
@@ -38,7 +40,7 @@ Title items can be ordered or omitted; `project-name` is also available. Set
 `terminalTitle` to `null` or `[]` to disable title updates. Unknown items are ignored.
 Notification `when` accepts `unfocused`, `always` or `never`; `method` accepts
 `auto`, `osc9`, `osc777` or `bel`. Omitting `events` enables all four events; `[]`
-disables them. Apply configuration changes by restarting MCode.
+disables them. Apply configuration changes by restarting Talos.
 
 Notifications identify the session and suppress duplicates. Completion waits for
 the session's queue to finish; failed turns and requests for input can notify
@@ -48,7 +50,7 @@ Automatic delivery uses the detected terminal's notification protocol or falls
 back to a bell. The existing Windows toast bridge is restricted to local Windows
 or WSL interop. Terminal settings and OS notification permissions still apply.
 
-VS Code normally displays a process name in its terminal tabs. To display MCode's
+VS Code normally displays a process name in its terminal tabs. To display Talos's
 session titles, use this VS Code setting:
 
 ```json
@@ -69,7 +71,7 @@ The evidence column summarizes the historical TUI 0.3.11 restoration record from
 | BYOK / custom models | Retained; headless model overrides no longer inherit the default Token Plan login requirement | Local protocol server drives runtime, resume, and file tools; live BYOK session passed; managed models still reject unauthenticated requests |
 | mcode-tools | Public package's unchanged 0.0.4 artifact, launcher, and short-lived token leases restored | Archive SHA-512, CLI SHA-256, real CLI startup, lease and host integration tests; production shared-broker authentication passed |
 | Search and Matrix image / audio / video tools | Matrix MCP and tool assembly restored; search is independent of mcode-tools | MCP configuration and auth-isolation tests; actual search passed; generation requests not run |
-| Official and local plugins; runtime GitHub importer | `/plugins` and `mcode plugin` manage official installations and discovered local packages; arbitrary marketplace registration and GitHub URL import are not exposed in the CLI/TUI. See [plugin management](examples.md#4-manage-plugins) | Plugin application, source-page, and offline local CLI tests; actual official catalog read passed |
+| Official and local plugins; runtime GitHub importer | `/plugins` and `talos plugin` manage official installations and discovered local packages; arbitrary marketplace registration and GitHub URL import are not exposed in the CLI/TUI. See [plugin management](examples.md#4-manage-plugins) | Plugin application, source-page, and offline local CLI tests; actual official catalog read passed |
 | Managed connectors | Cloud client, permissions, and invocation adapters restored | Connector runtime and cloud transport tests; actual tool discovery passed; business writes not run |
 | Updates | Update entry points, install-source detection, and signature verification restored; public packages use public npm | Update application and service tests; no real installation / upgrade on the development machine |
 | Feedback and diagnostic uploads | Reviewed feedback text and minimized diagnostic summaries | Synthetic fixtures exercise session collection and capture/decode the final ZIP upload; no live uploads or real content |
@@ -182,8 +184,8 @@ The regression tests use temporary synthetic files and intercepted HTTP only. Th
 
 ## Interactive startup model
 
-Use `mcode -m <provider-id>/<model-id>` or
-`mcode "Fix the failing tests" --model <provider-id>/<model-id>` to select the
+Use `talos -m <provider-id>/<model-id>` or
+`talos "Fix the failing tests" --model <provider-id>/<model-id>` to select the
 model for the startup Session. References use the same syntax as `exec --model`,
 including `custom_provider:<id>/<model-id>`, model IDs containing `/`, and the
 optional `#variant` suffix. The provider must already be configured and the model
