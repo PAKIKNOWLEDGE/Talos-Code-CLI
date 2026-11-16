@@ -6,6 +6,7 @@ import type { TuiSession } from '../../src/runtime/port.js';
 function createFlow(
   options: {
     readonly session?: TuiSession | undefined;
+    readonly pending?: 'apocalypse' | 'stargate' | undefined;
     readonly setSessionPromptDoctrine?: (
       sessionId: string,
       doctrine: 'apocalypse' | 'stargate',
@@ -16,6 +17,10 @@ function createFlow(
   const setSessionPromptDoctrine = vi.fn(
     options.setSessionPromptDoctrine ?? (async () => ({ sessionId: 'session-1' })),
   );
+  let pending = options.pending;
+  const setPendingDoctrine = vi.fn((next: 'apocalypse' | 'stargate') => {
+    pending = next;
+  });
   const append = vi.fn();
   const setHint = vi.fn();
   const onChanged = vi.fn();
@@ -23,24 +28,28 @@ function createFlow(
   const flow = new TuiPromptDoctrineFlow({
     runtime: { setSessionPromptDoctrine },
     session: () => ('session' in options ? options.session : { sessionId: 'session-1' }),
+    pendingDoctrine: () => pending,
+    setPendingDoctrine,
     append,
     setHint,
     onChanged,
     onApplied,
   });
-  return { flow, setSessionPromptDoctrine, append, setHint, onChanged, onApplied };
+  return { flow, setSessionPromptDoctrine, setPendingDoctrine, append, setHint, onChanged, onApplied };
 }
 
 describe('prompt doctrine flow', () => {
-  it('asks for a Session instead of calling the runtime', async () => {
-    const { flow, setSessionPromptDoctrine, append } = createFlow({ session: undefined });
+  it('holds the choice for the Session that has not been created yet', async () => {
+    const { flow, setSessionPromptDoctrine, setPendingDoctrine, append } = createFlow({
+      session: undefined,
+    });
 
     await flow.set('stargate');
 
     expect(setSessionPromptDoctrine).not.toHaveBeenCalled();
+    expect(setPendingDoctrine).toHaveBeenCalledWith('stargate');
     expect(append).toHaveBeenCalledWith(
-      'Start or resume a Session before choosing a doctrine.',
-      'warning',
+      'Behaviour doctrine · Stargate. Applies when this Session is created.',
     );
   });
 
@@ -54,7 +63,7 @@ describe('prompt doctrine flow', () => {
     expect(setSessionPromptDoctrine).toHaveBeenCalledWith('session-1', 'stargate');
     expect(onApplied).toHaveBeenCalledWith('session-1');
     expect(append).toHaveBeenCalledWith(
-      "Behaviour doctrine · Stargate. Applies to this Session's next turn.",
+      "Behaviour doctrine · Stargate. Applies from this Session's first turn.",
     );
   });
 
@@ -69,8 +78,8 @@ describe('prompt doctrine flow', () => {
     expect(append.mock.calls[0]?.[0]).toContain('Behaviour doctrine: Stargate.');
   });
 
-  it('surfaces the runtime lock without retrying', async () => {
-    const locked = Object.assign(new Error('The behaviour doctrine is fixed'), {
+  it('surfaces the runtime lock as an anchored Session without retrying', async () => {
+    const locked = Object.assign(new Error('The behaviour doctrine is anchored'), {
       status: 409,
       key: 'local_prompt_doctrine_locked',
     });
@@ -86,7 +95,20 @@ describe('prompt doctrine flow', () => {
     expect(setSessionPromptDoctrine).toHaveBeenCalledTimes(1);
     expect(onApplied).not.toHaveBeenCalled();
     expect(append).toHaveBeenCalledWith(expect.stringContaining('not changed'), 'warning');
+    expect(append).toHaveBeenCalledWith(
+      expect.stringContaining('This Session is anchored to Apocalypse'),
+      'warning',
+    );
+    expect(append).not.toHaveBeenCalledWith(expect.stringContaining('new Session'), 'warning');
     expect(setHint).toHaveBeenLastCalledWith('Behaviour doctrine unchanged');
+  });
+
+  it('reports the pending choice before a Session exists', () => {
+    const { flow, append } = createFlow({ session: undefined, pending: 'stargate' });
+
+    flow.showStatus();
+
+    expect(append.mock.calls[0]?.[0]).toContain('Behaviour doctrine: Stargate');
   });
 
   it('reports an unrecorded doctrine as following configuration', () => {
@@ -108,7 +130,7 @@ describe('prompt doctrine flow', () => {
     await flow.set('stargate');
 
     expect(append).toHaveBeenCalledWith(
-      "Behaviour doctrine · Stargate. Applies to this Session's next turn.",
+      "Behaviour doctrine · Stargate. Applies from this Session's first turn.",
     );
     expect(append).not.toHaveBeenCalledWith(expect.stringContaining('not changed'), 'warning');
     expect(setHint).toHaveBeenLastCalledWith(undefined);

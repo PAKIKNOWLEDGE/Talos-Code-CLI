@@ -320,7 +320,7 @@ function resolveStableShell(input: ResolveTuiVisiblePresentationInput): TuiShell
     busy: Boolean(input.currentLiveRunId),
     permissionMode: input.permissionMode?.mode,
     permissionModeUpdating: input.permissionMode?.updating ?? false,
-    promptDoctrine: session?.promptDoctrine,
+    promptDoctrine: session?.promptDoctrine ?? input.snapshot.pendingPromptDoctrine,
     planMode: input.planMode?.displayMode,
     planModeTransition: input.planMode?.transition,
   };

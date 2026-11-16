@@ -180,7 +180,7 @@ const COMMAND_SOURCES: readonly TuiCommandSource[] = [
   },
   {
     name: 'doctrine',
-    description: 'Choose or inspect the behaviour doctrine of this Session',
+    description: 'Choose or inspect the behaviour doctrine',
     category: 'Session',
     argumentHint: '[status | apocalypse | stargate]',
     getArgumentCompletions: argumentCompleter([
@@ -188,8 +188,6 @@ const COMMAND_SOURCES: readonly TuiCommandSource[] = [
       ['apocalypse', 'Long-form discipline sections'],
       ['stargate', 'Minimal doctrine'],
     ]),
-    visibleWhen: (context) => context.hasSession,
-    unavailableReason: 'Start or resume a Session before choosing a doctrine.',
   },
   {
     name: 'review',

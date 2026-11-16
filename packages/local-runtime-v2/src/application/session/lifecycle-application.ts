@@ -293,7 +293,7 @@ export class SessionLifecycleApplication {
     throw new AppError(
       409,
       "local_prompt_doctrine_locked",
-      "The behaviour doctrine is fixed once a Session has a message; start a new Session to change it",
+      "The behaviour doctrine is anchored once a Session has a message",
     );
   }
 

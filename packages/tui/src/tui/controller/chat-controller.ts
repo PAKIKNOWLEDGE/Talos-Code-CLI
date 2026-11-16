@@ -10,6 +10,7 @@ import {
 import type { TranscriptStore } from '../transcript/store.js';
 import type { TranscriptAttachment, TranscriptUserPresentation } from '../transcript/model.js';
 import { MINIMAX_CODE_DEFAULT_AGENT_NAME } from '../../product-context.js';
+import type { TuiPromptDoctrine } from '../../application/prompt-doctrine.js';
 import { TuiTurnProjection } from './projection/turn-projection.js';
 import type { OptimisticUserCommitMode } from './projection/turn-projection.js';
 import { TuiStatusMetricsFlow } from './projection/status-metrics-flow.js';
@@ -786,8 +787,14 @@ export class TuiChatController {
     const creationSequence = ++this.sessionCreationSequence;
     const projectionSequence = this.sessionProjectionSequence;
     this.updateState({ status: 'starting', error: undefined });
+    // Capture the pending choice before the await: a later `/doctrine` must not
+    // retarget the Session this call is already creating.
+    const pendingPromptDoctrine = this.state.pendingPromptDoctrine;
     const creation = this.runtime
-      .createSession({ workspaceDir: this.workspaceDir })
+      .createSession({
+        workspaceDir: this.workspaceDir,
+        ...(pendingPromptDoctrine ? { promptDoctrine: pendingPromptDoctrine } : {}),
+      })
       .then((session) => {
         this.options.onSessionLifecycle?.(session.sessionId);
         onResolved?.(session.sessionId);
@@ -801,6 +808,7 @@ export class TuiChatController {
           status: 'idle',
           session,
           sessions: upsertSession(this.state.sessions, session),
+          pendingPromptDoctrine: undefined,
         });
         return session;
       })
@@ -809,6 +817,14 @@ export class TuiChatController {
       });
     this.sessionCreation = creation;
     return creation;
+  }
+
+  /**
+   * Records the doctrine a not-yet-created Session should start with. The
+   * choice is applied by `ensureSession`, so it never rewrites a live Session.
+   */
+  setPendingPromptDoctrine(doctrine: TuiPromptDoctrine | undefined): void {
+    this.updateState({ pendingPromptDoctrine: doctrine });
   }
 
   private invalidateSessionCreation(): void {

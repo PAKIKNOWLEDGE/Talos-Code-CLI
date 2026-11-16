@@ -11,6 +11,7 @@ import type { TuiComposerDraft } from '../../features/composer/draft.js';
 import type { TuiWorkspaceRoots } from '../../features/composer/workspace-roots.js';
 import { TuiLoginRegionPicker } from '../../features/auth/login-region-picker.js';
 import { TuiPermissionModePicker } from '../../features/interaction/permission-mode-picker.js';
+import { TuiPromptDoctrinePicker } from '../../features/interaction/prompt-doctrine-picker.js';
 import { TuiSettingsPicker } from '../../features/settings/picker.js';
 import { TuiHotkeysPicker } from '../../features/settings/hotkeys-picker.js';
 import { submittedEditorContent, submittedEditorTransport, type Editor } from '../../widgets/editor/editor.js';
@@ -171,6 +172,7 @@ export class TuiCommandFlow {
   private loginRegionPicker: TuiLoginRegionPicker | undefined;
   private pendingLoginContinuation: 'checkin' | undefined;
   private permissionModePicker: TuiPermissionModePicker | undefined;
+  private promptDoctrinePicker: TuiPromptDoctrinePicker | undefined;
   private settingsPicker: TuiSettingsPicker | undefined;
   private hotkeysPicker: TuiHotkeysPicker | undefined;
   private submissionCounter = 0;
@@ -1279,7 +1281,18 @@ export class TuiCommandFlow {
           return;
         }
         const action = args.trim().toLocaleLowerCase();
-        if (!action || action === 'status') {
+        if (!action) {
+          // Before a Session exists the picker is the way to choose; afterwards
+          // the doctrine is anchored, so report it instead of offering a choice
+          // the runtime will reject.
+          if (this.options.controller.snapshot().session) {
+            this.options.promptDoctrineFlow.showStatus();
+            return;
+          }
+          this.showPromptDoctrinePicker();
+          return;
+        }
+        if (action === 'status') {
           this.options.promptDoctrineFlow.showStatus();
           return;
         }
@@ -1640,6 +1653,34 @@ export class TuiCommandFlow {
       this.options.onChanged,
     );
     this.permissionModePicker = picker;
+    this.options.surface.show(picker);
+  }
+
+  private showPromptDoctrinePicker(): void {
+    const flow = this.options.promptDoctrineFlow;
+    if (!flow) {
+      this.options.append('Behaviour doctrine is unavailable in this host.', 'warning');
+      return;
+    }
+    if (this.promptDoctrinePicker) {
+      this.options.surface.close(this.promptDoctrinePicker);
+      this.promptDoctrinePicker = undefined;
+    }
+    const picker = new TuiPromptDoctrinePicker(
+      flow.current(),
+      (doctrine) => {
+        if (this.promptDoctrinePicker !== picker) return;
+        this.options.surface.close(picker);
+        this.promptDoctrinePicker = undefined;
+        void flow.set(doctrine);
+      },
+      () => {
+        this.options.surface.close(picker);
+        if (this.promptDoctrinePicker === picker) this.promptDoctrinePicker = undefined;
+      },
+      this.options.onChanged,
+    );
+    this.promptDoctrinePicker = picker;
     this.options.surface.show(picker);
   }
 

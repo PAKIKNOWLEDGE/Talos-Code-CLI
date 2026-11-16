@@ -7,6 +7,7 @@ import type {
   TuiSessionUsageSummary,
   TuiContextSnapshotResponse,
 } from '../../runtime/port.js';
+import type { TuiPromptDoctrine } from '../../application/prompt-doctrine.js';
 import type { TuiTransportAttachment } from '../../types/invocation.js';
 import type { TranscriptStore } from '../transcript/store.js';
 import type { TuiTodoItem } from '../todo/model.js';
@@ -34,6 +35,11 @@ export interface TuiChatSnapshot {
   outputTokensPerSecondEstimated?: boolean;
   error?: string;
   errorRetryable?: boolean;
+  /**
+   * Doctrine chosen before the Session existed. `ensureSession` stamps it onto
+   * the Session it creates, so the choice survives the lazy creation boundary.
+   */
+  pendingPromptDoctrine?: TuiPromptDoctrine;
   /** Latest canonical turn outcome for this Session. */
   lastSettledTurn?: TuiSettledTurn;
 }

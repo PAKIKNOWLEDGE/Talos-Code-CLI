@@ -603,6 +603,8 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
   const promptDoctrineFlow = new TuiPromptDoctrineFlow({
     runtime: options.runtime,
     session: () => controller.snapshot().session,
+    pendingDoctrine: () => controller.snapshot().pendingPromptDoctrine,
+    setPendingDoctrine: (doctrine) => controller.setPendingPromptDoctrine(doctrine),
     append: appendLocalCell,
     setHint: (message) => chromeFlow?.setHint(message),
     onChanged: () => {

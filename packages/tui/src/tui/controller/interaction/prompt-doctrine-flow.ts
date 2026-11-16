@@ -9,6 +9,13 @@ export interface TuiPromptDoctrineFlowOptions {
   readonly runtime: Pick<TuiSessionPort, 'setSessionPromptDoctrine'>;
   /** The active Session, or undefined before one exists. */
   readonly session: () => TuiSession | undefined;
+  /** Doctrine held for the next Session, chosen before one exists. */
+  readonly pendingDoctrine?: () => TuiPromptDoctrine | undefined;
+  /**
+   * Stores the choice a not-yet-created Session should start with. TUI only:
+   * headless and delegated Sessions never pass through this flow.
+   */
+  readonly setPendingDoctrine?: (doctrine: TuiPromptDoctrine) => void;
   readonly append: (content: string, kind?: 'final-summary' | 'warning' | 'error') => void;
   readonly setHint: (message: string | undefined) => void;
   readonly onChanged: () => void;
@@ -20,10 +27,11 @@ export interface TuiPromptDoctrineFlowOptions {
 /**
  * `/doctrine` command support.
  *
- * The runtime owns the lock: it rejects a change once the Session has a user
- * message (`local_prompt_doctrine_locked`). This flow does not pre-judge that,
- * because a second copy of the rule would drift; it surfaces the rejection and
- * says where a doctrine can still be chosen.
+ * A Session renders one doctrine for its whole life: switching rewrites the
+ * system prompt, which invalidates the cached prompt prefix. Before the Session
+ * exists there is nothing cached, so the choice is held here and stamped by
+ * `ensureSession`; after the first message the runtime lock owns the rule and
+ * this flow only reports it.
  */
 export class TuiPromptDoctrineFlow {
   private updatingValue = false;
@@ -36,7 +44,17 @@ export class TuiPromptDoctrineFlow {
     if (this.isStopped() || this.updatingValue) return;
     const session = this.options.session();
     if (!session) {
-      this.options.append('Start or resume a Session before choosing a doctrine.', 'warning');
+      // No Session and no request has been sent, so holding the choice costs
+      // nothing: `ensureSession` stamps it at creation.
+      const pending = this.options.pendingDoctrine?.();
+      this.options.setPendingDoctrine?.(nextDoctrine);
+      if (pending !== nextDoctrine) {
+        this.options.append(
+          `Behaviour doctrine · ${formatTuiPromptDoctrine(nextDoctrine)}. Applies when this Session is created.`,
+        );
+      }
+      this.options.setHint(undefined);
+      this.options.onChanged();
       return;
     }
     if (session.promptDoctrine === nextDoctrine) {
@@ -51,16 +69,19 @@ export class TuiPromptDoctrineFlow {
       await this.options.runtime.setSessionPromptDoctrine(session.sessionId, nextDoctrine);
       if (this.isStopped() || mutationSequence !== this.mutationSequence) return;
       this.options.append(
-        `Behaviour doctrine · ${formatTuiPromptDoctrine(nextDoctrine)}. Applies to this Session's next turn.`,
+        `Behaviour doctrine · ${formatTuiPromptDoctrine(nextDoctrine)}. Applies from this Session's first turn.`,
       );
       this.options.setHint(undefined);
       await this.refresh(session.sessionId);
     } catch (error) {
       if (this.isStopped() || mutationSequence !== this.mutationSequence) return;
+      const anchored = session.promptDoctrine
+        ? formatTuiPromptDoctrine(session.promptDoctrine)
+        : 'its existing doctrine';
       this.options.append(
         formatTuiActionFailure(error, {
           summary: 'The behaviour doctrine was not changed.',
-          nextStep: 'A doctrine is fixed once the Session has a message; choose one in a new Session.',
+          nextStep: `This Session is anchored to ${anchored}.`,
         }),
         'warning',
       );
@@ -89,7 +110,12 @@ export class TuiPromptDoctrineFlow {
   showStatus(): void {
     const session = this.options.session();
     if (!session) {
-      this.options.append('Start or resume a Session before choosing a doctrine.');
+      const pending = this.options.pendingDoctrine?.();
+      this.options.append(
+        pending
+          ? `Behaviour doctrine: ${formatTuiPromptDoctrine(pending)} (applies when this Session is created). Choose with /doctrine apocalypse or /doctrine stargate.`
+          : 'Behaviour doctrine: not chosen yet. config.yaml applies unless you choose with /doctrine apocalypse or /doctrine stargate.',
+      );
       return;
     }
     const current = session.promptDoctrine
@@ -98,6 +124,11 @@ export class TuiPromptDoctrineFlow {
     this.options.append(
       `Behaviour doctrine: ${current}. Choose with /doctrine apocalypse or /doctrine stargate; the choice is fixed once the Session has a message.`,
     );
+  }
+
+  /** Doctrine the next Session would start with: pending choice, else the active Session's. */
+  current(): TuiPromptDoctrine | undefined {
+    return this.options.session()?.promptDoctrine ?? this.options.pendingDoctrine?.();
   }
 
   stop(): void {

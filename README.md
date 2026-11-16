@@ -59,11 +59,11 @@ Configuration and sessions are stored in `~/.talos` by default (`%USERPROFILE%\.
 
 Run `talos update` or enter `/update` to check for a new version. Talos shows the upgrade command; installation is always manual. To upgrade, run the npm install command above again.
 
-Release notes: [1.0.0](docs/releases/1.0.0.md) · [0.1.14](docs/releases/0.1.14.md) · [0.1.13](docs/releases/0.1.13.md) · [0.1.12](docs/releases/0.1.12.md) · [0.1.11](docs/releases/0.1.11.md).
+Release notes: [1.0.1](docs/releases/1.0.1.md) · [1.0.0](docs/releases/1.0.0.md) · [0.1.14](docs/releases/0.1.14.md) · [0.1.13](docs/releases/0.1.13.md) · [0.1.12](docs/releases/0.1.12.md) · [0.1.11](docs/releases/0.1.11.md).
 
 ## Release status
 
-Talos **1.0.0** is the current CLI line (`@pakiknowledge/tal0s-code`). A conversation now picks one of two behaviour doctrines — a long-form discipline set or a minimal one — with `/doctrine`; the choice is fixed to the Session when the first message is sent, so editing configuration cannot change a chat in progress. The discipline is its own composition layer and no longer repeats rules the runtime already injects. Classic stays the default skin. See [verification records](docs/verification.md) and [current status](docs/status.md).
+Talos **1.0.1** is the current CLI line (`@pakiknowledge/tal0s-code`). The behaviour doctrine can now be chosen before a conversation exists: `/doctrine` in an empty chat picks one of the two doctrines, the status line shows the choice, and the value is applied when your first message creates the Session. The doctrine is then anchored for the life of that Session, so the system prompt prefix stays stable and later configuration edits cannot change a chat in progress. Classic stays the default skin. See [verification records](docs/verification.md) and [current status](docs/status.md).
 
 The desktop GUI lives in the companion repository `T3rra-C0d3-Talos`.
 

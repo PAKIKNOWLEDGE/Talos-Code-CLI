@@ -9,6 +9,17 @@ Internal refactors, test-only changes, and changes limited to other product surf
 
 Talos release notes are the first heading for that version. Upstream history below keeps older numbers, including another 0.1.4.
 
+## 1.0.1 — 2026-11-16
+
+### New
+
+- `/doctrine` now works before a Session exists. In an empty chat it opens a picker, and the chosen doctrine is applied when your first message creates the Session.
+- The status line shows the chosen doctrine immediately, so the choice is visible before the chat starts.
+
+### Improved
+
+- Once a Session is anchored, `/doctrine` reports the doctrine in force instead of offering a change the runtime would reject. `/doctrine status` works in both states.
+
 ## 1.0.0 — 2026-11-16
 
 ### New

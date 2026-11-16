@@ -20,6 +20,39 @@ class TuiChatController extends ProductionTuiChatController {
 }
 
 describe('TuiChatController', () => {
+  it('stamps the doctrine chosen before the Session existed', async () => {
+    const createSession = vi.fn(async () => ({ sessionId: 'session-doctrine' }));
+    const controller = new ProductionTuiChatController({
+      runtime: { createSession } as never,
+      transcript: new TranscriptStore(),
+      workspaceDir: '/workspace',
+    });
+
+    controller.setPendingPromptDoctrine('stargate');
+    expect(controller.snapshot().pendingPromptDoctrine).toBe('stargate');
+
+    await controller.ensureSession();
+
+    expect(createSession).toHaveBeenCalledWith({
+      workspaceDir: '/workspace',
+      promptDoctrine: 'stargate',
+    });
+    expect(controller.snapshot().pendingPromptDoctrine).toBeUndefined();
+  });
+
+  it('omits the doctrine field when nothing was chosen', async () => {
+    const createSession = vi.fn(async () => ({ sessionId: 'session-default' }));
+    const controller = new ProductionTuiChatController({
+      runtime: { createSession } as never,
+      transcript: new TranscriptStore(),
+      workspaceDir: '/workspace',
+    });
+
+    await controller.ensureSession();
+
+    expect(createSession).toHaveBeenCalledWith({ workspaceDir: '/workspace' });
+  });
+
   it.each(['display', 'legacy transport'])(
     'reconciles plugin mentions using %s without duplicate user cells',
     async (echo) => {
