@@ -31,6 +31,8 @@ export {
   DEFAULT_MODEL_PRESETS,
   MINIMAX_API_MODEL_CATALOG,
   isProposalEligibleAgent,
+  PROMPT_DOCTRINES,
+  DEFAULT_PROMPT_DOCTRINE,
 } from './config.js';
 export {
   GOAL_CONFIG_DEFAULTS,
@@ -251,6 +253,7 @@ export type {
   MavisBuildEnv,
   PresetKey,
   PromptConfig,
+  PromptDoctrine,
   TuiCustomStatusLineConfig,
 } from './config.js';
 export {

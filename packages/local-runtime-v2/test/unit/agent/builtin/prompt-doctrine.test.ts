@@ -49,6 +49,10 @@ function countHeading(prompt: string, heading: string): number {
   return prompt.split("\n").filter((line) => line.trim() === heading).length;
 }
 
+function countOccurrences(prompt: string, statement: string): number {
+  return prompt.split(statement).length - 1;
+}
+
 describe("prompt doctrine assets", () => {
   it("ships both doctrine files as independent, non-empty assets", async () => {
     for (const name of ["apocalypse", "stargate"] as const) {
@@ -144,15 +148,75 @@ describe("prompt doctrine composition", () => {
   });
 
   it("keeps the Talos-owned rules from being duplicated by the doctrine", async () => {
+    // Statements `addRuntimeRules` injects; the doctrine must not repeat them.
+    const injected = [
+      "<system-reminder>",
+      "Tools run behind a user-selected permission mode",
+      "Never introduce code that exposes or logs secrets",
+      "Follow explicit user language instructions",
+      "For any non-trivial tool-call step",
+    ];
     for (const doctrine of ["apocalypse", "stargate"] as const) {
-      const prompt = await renderTui(doctrine);
-      const assembled = addRuntimeRules(prompt, true);
+      const assembled = addRuntimeRules(await renderTui(doctrine), true);
       expect(countHeading(assembled, "# Harness")).toBe(1);
       expect(countHeading(assembled, "## Response Style")).toBe(1);
       expect(countHeading(assembled, "## Preamble messages")).toBe(1);
-      // The doctrine must not re-state the harness facts Talos injects.
-      expect(await renderDoctrine(doctrine)).not.toContain("<system-reminder>");
+      for (const statement of injected) {
+        expect(countOccurrences(assembled, statement)).toBe(1);
+      }
     }
+  });
+
+  it("keeps the doctrine below the runtime-injected root-session framing", async () => {
+    const signature = {
+      apocalypse: "Executing actions with care",
+      stargate: "Be concise in your responses",
+    } as const;
+    for (const doctrine of ["apocalypse", "stargate"] as const) {
+      const assembled = addRuntimeRules(
+        await renderTui(doctrine),
+        true,
+        "SENTINEL-ROOT-FRAMING",
+      );
+      expect(countHeading(assembled, "# Core Judgment")).toBe(1);
+      expect(countOccurrences(assembled, "SENTINEL-ROOT-FRAMING")).toBe(1);
+      // Both the injected framing and the doctrine body must survive.
+      expect(assembled).toContain(signature[doctrine]);
+      expect(assembled.indexOf("SENTINEL-ROOT-FRAMING")).toBeLessThan(
+        assembled.indexOf(signature[doctrine]),
+      );
+    }
+  });
+
+  it("composes the doctrine for a desktop profile that selects the TUI mode", async () => {
+    const catalog = new BuiltinAgentCatalog();
+    const base = {
+      agentName: "mavis",
+      surface: "cli" as const,
+      promptProfile: "desktop" as const,
+      promptMode: "tui" as const,
+      appMode: "coding" as const,
+      locale: "en",
+      promptChannel: "online" as const,
+      capabilities: resolveAgentCapabilities(),
+      memoryEnabled: false,
+      cronEnabled: false,
+    };
+    const apocalypse = await catalog.render(base);
+    const stargate = await catalog.render({ ...base, promptDoctrine: "stargate" });
+    expect(apocalypse.corePrompt).toContain("Executing actions with care");
+    expect(stargate.corePrompt).toContain("Be concise in your responses");
+    expect(stargate.corePrompt).not.toBe(apocalypse.corePrompt);
+  });
+
+  it("rejects an unknown doctrine instead of reporting a missing asset", async () => {
+    const catalog = new BuiltinAgentCatalog();
+    await expect(
+      catalog.render({
+        ...common,
+        promptDoctrine: "nonesuch" as never,
+      }),
+    ).rejects.toThrow(/Invalid prompt doctrine/u);
   });
 
   it("ignores the doctrine outside the TUI profile", async () => {

@@ -3,7 +3,12 @@ import type {
   AgentBuiltinSkillId,
   AgentBuiltinToolId,
   AgentCapabilityConfig,
+  PromptDoctrine,
   ResolvedAgentCapabilities,
+} from '@mavis/config';
+import {
+  DEFAULT_PROMPT_DOCTRINE as CONFIG_DEFAULT_PROMPT_DOCTRINE,
+  PROMPT_DOCTRINES,
 } from '@mavis/config';
 import type { PromptReadScope } from '@mavis/agent-runtime';
 
@@ -23,10 +28,13 @@ export type AgentPromptMode = 'tui' | 'coding' | 'work';
  * Behaviour doctrine borrowed verbatim from a validated upstream harness.
  * Orthogonal to `AgentPromptMode`: the mode selects the surface, the doctrine
  * selects the discipline text that surface renders.
+ *
+ * The values and the default live in `@mavis/config`; these aliases keep the
+ * Agent layer readable without defining a second copy that could drift.
  */
-export const AGENT_PROMPT_DOCTRINES = ['apocalypse', 'stargate'] as const;
-export type AgentPromptDoctrine = (typeof AGENT_PROMPT_DOCTRINES)[number];
-export const DEFAULT_PROMPT_DOCTRINE: AgentPromptDoctrine = 'apocalypse';
+export const AGENT_PROMPT_DOCTRINES = PROMPT_DOCTRINES;
+export type AgentPromptDoctrine = PromptDoctrine;
+export const DEFAULT_PROMPT_DOCTRINE = CONFIG_DEFAULT_PROMPT_DOCTRINE;
 
 /** Agent-owned material; Runtime context and tool inventories remain separate. */
 export interface AgentPromptSnapshot {

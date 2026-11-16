@@ -42,35 +42,50 @@ Companion GUI: `C:\DEV\develop\T3rra-C0d3-Talos` — [docs/status.md](https://gi
 ## Prompt doctrine
 
 The TUI system prompt composes exactly one behaviour doctrine, selected by `promptDoctrine` in `config.yaml`
-(`apocalypse` | `stargate`, default `apocalypse`). Both are copied from a validated upstream harness rather than
-authored here; each asset carries a header comment listing its source, deletions, and name substitutions, so
-"still a verbatim copy" stays provable with a plain diff.
+(`apocalypse` | `stargate`, default `apocalypse`; the values and the default are declared once in
+`packages/config/src/config.ts` and re-exported by the Agent layer). Both are copied from a validated upstream
+harness rather than authored here, and each asset carries a header comment listing its source, resolved
+conditional branches, deletions, and name substitutions.
+
+Verifiability differs by doctrine, and the difference is deliberate: `stargate` can be diffed against
+`third_party/pi-mono` in this checkout, while `apocalypse` is a reconstruction from the source map shipped in
+the published Claude Code package, so its baseline is external and the header is the only local record.
 
 | Doctrine | Source | Asset | Copied body |
 | --- | --- | --- | --- |
-| `apocalypse` | Claude Code `constants/prompts.ts` static sections (`getSystemPrompt`, lines 560-571), ant branch | `packages/local-runtime-v2/assets/agents/_v2/tui/doctrine/apocalypse.md.hbs` | 13,832 chars / 53 lines (≈3.8k tokens) |
-| `stargate` | `pi-mono` `core/system-prompt.ts` identity line + guidelines list | `packages/local-runtime-v2/assets/agents/_v2/tui/doctrine/stargate.md.hbs` | 266 chars / 4 lines (≈74 tokens) |
+| `apocalypse` | Claude Code `constants/prompts.ts` static sections composed by `getSystemPrompt` (175-442), ant branch | `packages/local-runtime-v2/assets/agents/_v2/tui/doctrine/apocalypse.md.hbs` | 13,798 chars / 53 lines (≈3.8k tokens) |
+| `stargate` | `pi-mono` `core/system-prompt.ts` identity line (130) + guidelines list (137-138) | `packages/local-runtime-v2/assets/agents/_v2/tui/doctrine/stargate.md.hbs` | 266 chars / 4 lines (≈74 tokens) |
 
 Composition rules:
 
 - `_v2/tui/SYSTEM.md.hbs` is a composer. Its `{{> tui/doctrine}}` marker is replaced with the selected doctrine
   before Handlebars compilation (`BUILTIN_HANDLEBARS` registers no partials, so the marker cannot resolve at
-  compile time). The composer keeps only Talos-owned material: identity, the `# Harness` runtime facts Talos
-  alone knows (permission mode, dedicated-tool preference, parallel calls, `file_path:line_number` references,
-  secrets), memory, localisation and response-style rules, preamble examples, references, and deliverable
-  conventions.
+  compile time). The composer keeps only Talos-owned material: identity, the `# Harness` runtime facts (permission
+  mode, secrets, and the workspace and convention rules), memory, response-style rules, preamble examples,
+  references, and deliverable conventions.
+- `# Core Judgment` now holds the doctrine's own framing instead of Talos's previous root-session paragraph. That
+  paragraph is intentionally dropped: `_v2` ships no surface template, so `rootSessionPrompt` is empty and
+  `addRuntimeRules` never re-injects `# Core Judgment` — the composer is the only source, and the borrowed intro
+  sentence now serves as the framing. The `persona` block still supplies the product identity.
 - `addRuntimeRules` (`preparation/config/runtime-prompt-rules.ts`) injects into the rendered prompt only the
   `<system-reminder>` description, three file-operation rules, and two Windows rules under `# Harness`;
-  `LANGUAGE_RULES` under `## Response Style`; and `TOOL_CALL_PREAMBLE_REMINDER` under `## Preamble messages`.
-  Those exact statements are therefore **not** repeated in the composer.
+  `LANGUAGE_RULES` under `## Response Style`; `TOOL_CALL_PREAMBLE_REMINDER` under `## Preamble messages`; and
+  `rootSessionPrompt` under `# Core Judgment` when that prompt is non-empty. Those exact statements are
+  therefore **not** repeated in the composer.
 - Talos runtime facts and language instructions win over borrowed text. Where the two would contradict, the
   borrowed bullet is listed in the doctrine's deletion table: the Claude Code permission rule, its
   `<system-reminder>` rule, and its emoji rule are all dropped in favour of the Talos equivalent. Where they
-  agree, both are kept rather than trimming the copy.
-- A doctrine composes for any render that resolves to the `tui` prompt template. The `coding`, `work`, and
-  desktop templates contain no marker, so they ignore `promptDoctrine` entirely.
-- Both assets are registered in `prompt-exemptions.json` and deliberately kept out of `managed-prompts.json`
-  (that file is the desktop remote-delivery contract).
+  merely agree — dedicated tools, parallel calls, `file_path:line_number`, faithful reporting — both are kept
+  rather than trimming the copy, so the assembled prompt repeats those three or four statements without ever
+  contradicting itself. The doctrine files record that scope explicitly.
+- A doctrine composes for any render that resolves to the `tui` prompt template, including a desktop-profile
+  render that names `promptMode: 'tui'`. The `coding` and `work` templates contain no marker, and no desktop
+  template exists, so the field is inert everywhere else.
+- An unknown doctrine value is rejected by `inlineDoctrine` with an `Invalid prompt doctrine` error rather than
+  being reported as a missing file.
+- Both assets are listed in `prompt-exemptions.json`, which is review documentation rather than an enforced
+  gate, and they are deliberately kept out of `managed-prompts.json` (that file is the desktop remote-delivery
+  contract).
 
 Session scoping (doctrine fixed at session start, visible in the status bar) is tracked as a follow-up change;
 `config.yaml` currently supplies the value for every render.

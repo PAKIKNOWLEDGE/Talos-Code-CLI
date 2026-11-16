@@ -2,26 +2,43 @@
 Apocalypse doctrine — copied from Claude Code's static discipline sections.
 
 Source: Anthropic's Claude Code, `src/constants/prompts.ts`, reconstructed from
-        the source map shipped in the published package; one function,
-        `getSystemPrompt`. Copyright Anthropic. Provenance and terms are
-        recorded in THIRD_PARTY_NOTICES.md.
+        the source map shipped in the published package. The copied text is the
+        static sections that `getSystemPrompt` composes, in its own order.
+        Copyright Anthropic. Provenance and terms are recorded in
+        THIRD_PARTY_NOTICES.md.
 
-Copied, in getSystemPrompt's static order:
+Copied sections:
   1. getSimpleIntroSection        (prompts.ts:175-184)  CYBER_RISK_INSTRUCTION removed
   2. getSimpleSystemSection       (prompts.ts:186-197)  4 of 6 bullets kept
   3. getSimpleDoingTasksSection   (prompts.ts:199-253)  ant branch + ant-only bullets
   4. getActionsSection            (prompts.ts:255-267)
-  5. getUsingYourToolsSection     (prompts.ts:269-314)
+  5. getUsingYourToolsSection     (prompts.ts:269-314)  non-REPL branch
   6. getSimpleToneAndStyleSection (prompts.ts:430-442)  emoji bullet removed
   7. getOutputEfficiencySection   (prompts.ts:402-428)  ant branch only
 
-Deliberate departures — nothing outside these two tables.
+Conditional branches — the source is assembled from ternaries and feature
+checks. Each one is resolved to a single branch, and every resolution is
+recorded here:
+
+| branch                                                | source       | resolved to                                              |
+| ----------------------------------------------------- | ------------ | -------------------------------------------------------- |
+| `outputStyleConfig !== null ? … : …`                   | 180          | else branch: "with software engineering tasks"            |
+| `process.env.USER_TYPE === 'ant' ? … : …`              | 204-255, 433 | ant branch wherever offered                               |
+| `isReplModeEnabled()`                                  | 277-285      | false — REPL-only guidance is absent                      |
+| `hasEmbeddedSearchTools()`                             | 289, 295     | false — the glob and grep subitems are kept               |
+| `[TASK_CREATE, TODO_WRITE].find(...)` (`taskToolName`) | 270-272, 307 | `TODO_WRITE_TOOL_NAME`; Talos ships no TaskCreate tool    |
+
+The ant branch is chosen deliberately: it is the stricter variant. It adds the
+ant-only bullets at 205-213, 227, 238-242 and 405-414, and drops the non-ant
+"Your responses should be short and concise." at 433-435. Two ant-only bullets
+(204, 237) are model-launch countermeasures aimed at Anthropic models; they are
+kept because nothing in them identifies a product once the codenames are gone.
 
 DELETED  (not applicable to this product, or duplicated by Talos-owned rules)
 
 | content                                                                  | source              | why                                                      |
 | ------------------------------------------------------------------------ | ------------------- | -------------------------------------------------------- |
-| `CYBER_RISK_INSTRUCTION`                                                  | cyberRiskInstruction.ts:24 | Anthropic model usage policy, unrelated to Talos    |
+| `CYBER_RISK_INSTRUCTION`                                                  | cyberRiskInstruction.ts:24 | Anthropic's own security-boundary instruction; Talos carries no replacement |
 | `# System` bullet: "Tools are executed in a user-selected permission mode…" | prompts.ts:189   | duplicate of the Talos `# Harness` permission bullet     |
 | `# System` bullet: "Tool results and user messages may include <system-reminder>…" | prompts.ts:190 | duplicate of the Talos `# Harness` system-reminder bullet |
 | `# Tone and style` bullet: "Only use emojis if the user explicitly requests it…"  | prompts.ts:432     | contradicts the Talos `## Response Style` emoji rule; the Talos rule wins |
@@ -30,37 +47,47 @@ DELETED  (not applicable to this product, or duplicated by Talos-owned rules)
 | `To give feedback, users should ${MACRO.ISSUES_EXPLAINER}`                | prompts.ts:218      | Claude Code product help                                  |
 | parent bullet "If the user asks for help or wants to give feedback…"      | prompts.ts:248      | dangles once its two subitems are gone                    |
 | "/issue" / "/share" / "ccshare" / "#claude-code-feedback" / `C07VBSHV7EV` | prompts.ts:245      | Claude Code feedback channel                              |
-| `process.env.USER_TYPE === 'ant'` branching itself                        | throughout          | conditions are evaluated; no branch text remains          |
 | `Capybara` / `capy v8` / `numbat` and every `@[MODEL LAUNCH]` comment      | 204,210,224,237,402 | internal model codenames                                  |
-| `TOKEN_BUDGET` / `KAIROS` / `PROACTIVE` / `KAIROS_BRIEF` sections          | 466-554             | feature-gated, absent here                                |
-| `numeric_length_anchors`, `getAntModelOverrideSection`, `getBriefSection`, `getScratchpadInstructions`, `getFunctionResultClearingSection`, `SUMMARIZE_TOOL_RESULTS_SECTION` | 491-555 | not part of the static discipline             |
-| every bullet for tools Talos does not ship (ToolSearch, LSP, Enter/ExitPlanMode, SendMessage, Sleep, TaskCreate, TeamCreate/TeamDelete) | 269-314 | no corresponding tool            |
+| `TOKEN_BUDGET` / `KAIROS` / `PROACTIVE` / `KAIROS_BRIEF` sections          | 466-554             | feature-gated, outside the copied ranges                  |
+| `numeric_length_anchors`, `getAntModelOverrideSection`, `getBriefSection`, `getScratchpadInstructions`, `getFunctionResultClearingSection`, `SUMMARIZE_TOOL_RESULTS_SECTION` | 491-555 | ditto                                  |
+| proactive idle guidance built on `SLEEP_TOOL_NAME`                        | 860-886             | outside the copied ranges                                 |
 
 REPLACED  (tool names and product facts only)
 
-| Claude Code                    | here      |
-| ------------------------------ | --------- |
-| `FILE_READ_TOOL_NAME`          | `read`    |
-| `FILE_WRITE_TOOL_NAME`         | `write`   |
-| `FILE_EDIT_TOOL_NAME`          | `edit`    |
-| `BASH_TOOL_NAME`               | `bash tool` |
-| `GREP_TOOL_NAME`               | `grep`    |
-| `GLOB_TOOL_NAME`               | `glob`    |
-| `TODO_WRITE_TOOL_NAME`         | `todowrite` |
-| `ASK_USER_QUESTION_TOOL_NAME`  | `ask_user`  |
-| `CLAUDE.md` (prompts.ts:258)   | `AGENTS.md` |
+| Claude Code                                              | source    | here        |
+| -------------------------------------------------------- | --------- | ----------- |
+| `FILE_READ_TOOL_NAME`                                     | 292       | `read`      |
+| `FILE_WRITE_TOOL_NAME`                                    | 294       | `write`     |
+| `FILE_EDIT_TOOL_NAME`                                     | 293       | `edit`      |
+| `BASH_TOOL_NAME`                                          | 301,305   | `bash tool` |
+| `GREP_TOOL_NAME`                                          | 299       | `grep`      |
+| `GLOB_TOOL_NAME`                                          | 298       | `glob`      |
+| `TODO_WRITE_TOOL_NAME` (via `taskToolName`)               | 270,308   | `todowrite` |
+| `ASK_USER_QUESTION_TOOL_NAME`                             | 233       | `ask_user`  |
+| `CLAUDE.md`                                               | 258       | `AGENTS.md` |
+| `${GREP_TOOL_NAME} instead of grep or rg`                 | 299       | `grep instead of shell grep or rg` |
+| `${BASH_TOOL_NAME} tool`                                  | 301       | `bash tool` |
+| `(e.g. anthropics/claude-code#100)`                       | 437       | removed; the format sentence stands alone |
 
 Two substitutions need care because the substituted name collides with real
-shell tooling. "use ${GREP_TOOL_NAME} instead of grep or rg" would read "use
-grep instead of grep or rg" once substituted, so it says `shell grep or rg`.
-`${BASH_TOOL_NAME}` is rendered `bash tool` to keep the sentences grammatical;
-the source appends " tool" after the constant in one place (prompts.ts:301) and
-that word is not duplicated.
+shell tooling, which is why they have their own rows: "use ${GREP_TOOL_NAME}
+instead of grep or rg" would read "use grep instead of grep or rg" once
+substituted, so it says `shell grep or rg`; and `${BASH_TOOL_NAME}` is rendered
+`bash tool` to keep the sentences grammatical, so the " tool" that the source
+appends after the constant at 301 is not duplicated.
 
-NOT reproduced: the identity line
-"You are Claude Code, Anthropic's official CLI tool for Claude."
-(`getSystemPrompt`, CLAUDE_CODE_SIMPLE branch). Identity comes from the
-`persona` block so there is exactly one self-description in the prompt.
+NOT reproduced: the two identity lines,
+"You are Claude Code, Anthropic's official CLI tool for Claude." and the
+`CLAUDE_CODE_SIMPLE` variant. They name a different product, and the `persona`
+block supplies the identity. The retained intro sentence at 180 is borrowed
+text and stays, so the prompt does contain two self-descriptions by design.
+
+Dedup scope: the duplicate rules are dropped only where they would have cost
+something - the permission and `<system-reminder>` bullets, and the emoji rule
+that contradicts Talos. Where the borrowed bullet and the Talos bullet merely
+agree (dedicated tools at 292-301, parallel calls at 310, `file_path:line_number`
+at 436, faithful reporting at 238-242), both are kept rather than trimming the
+copy. The assembled prompt repeats those statements; it never contradicts them.
 
 Everything below this comment is upstream text.
 --}}
@@ -118,7 +145,7 @@ When you encounter an obstacle, do not use destructive actions as a shortcut to 
 
 # Tone and style
  - When referencing specific functions or pieces of code include the pattern file_path:line_number to allow the user to easily navigate to the source code location.
- - When referencing GitHub issues or pull requests, use the owner/repo#123 format (e.g. anthropics/claude-code#100) so they render as clickable links.
+ - When referencing GitHub issues or pull requests, use the owner/repo#123 format so they render as clickable links.
  - Do not use a colon before tool calls. Your tool calls may not be shown directly in the output, so text like "Let me read the file:" followed by a read tool call should just be "Let me read the file." with a period.
 
 # Communicating with the user

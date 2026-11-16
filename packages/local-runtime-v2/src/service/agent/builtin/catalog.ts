@@ -22,7 +22,7 @@ import type {
   AgentStoreIdentity,
   BuiltinAgentDefinition,
 } from '../contracts.js';
-import { DEFAULT_PROMPT_DOCTRINE } from '../contracts.js';
+import { AGENT_PROMPT_DOCTRINES, DEFAULT_PROMPT_DOCTRINE } from '../contracts.js';
 import {
   BUILTIN_ROSTER_FILE,
   FEATURE_FILES,
@@ -237,6 +237,11 @@ export class BuiltinAgentCatalog {
   ): Promise<string | undefined> {
     if (template === undefined || !template.includes(DOCTRINE_INCLUDE_MARKER)) return template;
     const doctrine = input.promptDoctrine ?? DEFAULT_PROMPT_DOCTRINE;
+    if (!AGENT_PROMPT_DOCTRINES.includes(doctrine)) {
+      throw new Error(
+        `Invalid prompt doctrine: ${String(doctrine)}. Expected one of ${AGENT_PROMPT_DOCTRINES.join(', ')}.`,
+      );
+    }
     const path = posix.join('_v2', 'tui', 'doctrine', `${doctrine}.md.hbs`);
     const body = await this.readPromptAssetFile(v2PromptReadContext(input), path);
     if (body === undefined) throw new Error(`Mandatory V2 prompt doctrine is missing: ${path}.`);

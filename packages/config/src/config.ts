@@ -229,7 +229,9 @@ export type EffortLevel = string;
  * validated upstream harness; this setting only selects which one is composed.
  * See `packages/local-runtime-v2/assets/agents/_v2/tui/doctrine/`.
  */
-export type PromptDoctrine = "apocalypse" | "stargate";
+export const PROMPT_DOCTRINES = ["apocalypse", "stargate"] as const;
+export type PromptDoctrine = (typeof PROMPT_DOCTRINES)[number];
+export const DEFAULT_PROMPT_DOCTRINE: PromptDoctrine = "apocalypse";
 
 export interface ThinkingConfig {
   /** User-defined choices exposed by the message input model selector. */
@@ -1789,7 +1791,7 @@ const DEFAULTS: Omit<
   logLevel: "info",
   devPort: DEFAULT_UI_PORT,
   permissionMode: "auto",
-  promptDoctrine: "apocalypse",
+  promptDoctrine: DEFAULT_PROMPT_DOCTRINE,
   sseErrorPush: {
     history: true,
     stream: true,
@@ -2138,7 +2140,7 @@ export function resolveConfigFromRaw(
         : DEFAULTS.permissionMode,
     promptDoctrine:
       typeof raw.promptDoctrine === "string" &&
-      ["apocalypse", "stargate"].includes(raw.promptDoctrine)
+      (PROMPT_DOCTRINES as readonly string[]).includes(raw.promptDoctrine)
         ? (raw.promptDoctrine as PromptDoctrine)
         : DEFAULTS.promptDoctrine,
     permission: parsePermissionConfig(raw),
