@@ -411,6 +411,12 @@ Scope: `/doctrine` is usable in an empty chat, the pending choice reaches `creat
 - `pnpm verify --profile windows` **PASS** at `379b782`: 10 gates on win32. Skipped typecheck (not in the Windows contract, run separately above), capabilities, status-contract, smoke, BYOK, policy, sandbox, and release-package.
 - Pre-release upstream scan: [upstream-pr-watch.md](upstream-pr-watch.md) 2026-11-16 - **release: proceed** (no P0, no merge since 2026-11-04).
 - Environment note: the first gate run failed `test:artifact` and the full TUI unit directory showed 89 failures because the shell exported `TALOS_NEUTRAL_RUNTIME=1`, which makes the `mcode-tools` wrapper exit 1 by design and suppresses managed login. With that variable unset, the gate list and the affected unit files pass. Neither failure was a repository defect.
+
+### Delivery (2026-11-16)
+
+- **Git:** `feat/doctrine-before-session` fast-forwarded to `main` (no version PR; `gh pr create` was refused by account permissions and left alone, as usual). Feature work and records end at `5be3645`; version commit `83b822e`, tag `v1.0.1`.
+- **npm:** `@pakiknowledge/tal0s-code@1.0.1` published from the tarball built at that tag, shasum `42e78d8fc9399f94733a5784ee33777bcb443d1c` (13.2 MB). The registry listing lagged several minutes behind the accepted upload, matching the 1.0.0 behavior; the version and shasum were read back from the registry and confirmed, and `latest` points to 1.0.1.
+- **GitHub Release:** [v1.0.1](https://github.com/PAKIKNOWLEDGE/Talos-Code-CLI/releases/tag/v1.0.1) with `.tar.gz` (GitHub digest `sha256:01362588…`) and `.sha256` (`4567b315…`); published non-draft, not a prerelease, and `gh api releases/latest` reports `v1.0.1`.
 ## Custom model image input (0.1.13)
 
 Scope: `/model` Alt+I saves image input for one custom or gateway model. An exact catalog id inherits image input only when every source agrees. Classic remains the default skin.
