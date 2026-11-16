@@ -1,4 +1,5 @@
 import type { AppDb } from '../../../../infra/db/client.js';
+import type { PromptDoctrine } from '@mavis/config';
 import type { ConversationModelThinkingSelection } from '@mavis/conversation-contract';
 import type {
   SessionAgentDefinition,
@@ -36,6 +37,12 @@ export type SessionDataOrigin = 'local-runtime' | 'legacy-opencode' | 'unknown';
 export type SessionOrigin = 'user' | 'root-repair';
 export type AppMode = 'coding' | 'work';
 export type SessionInteractionMode = 'plan' | 'goal';
+/**
+ * Session-local alias of the configured behaviour doctrine. The value set stays
+ * owned by `@mavis/config`; this alias only keeps session-system call sites from
+ * re-importing the config module for a name they already know.
+ */
+export type SessionPromptDoctrine = PromptDoctrine;
 
 export interface SessionRunLocation {
   readonly mode: SessionRunLocationMode;
@@ -62,6 +69,14 @@ export interface SessionRecord {
   readonly runLocation?: SessionRunLocation;
   readonly appMode?: AppMode;
   readonly interactionMode?: SessionInteractionMode;
+  /**
+   * Behaviour doctrine composed into this Session's system prompt. Immutable once
+   * the Session has a user message, so a Session keeps rendering the doctrine it
+   * was started with; an empty Session may still change it through the lifecycle
+   * application, which owns that lock. Absent means "follow `config.yaml`", which
+   * is what Sessions created before this field existed do.
+   */
+  readonly promptDoctrine?: SessionPromptDoctrine;
   readonly memoryPolicy?: SessionMemoryPolicy;
   readonly status: SessionStatus;
   readonly errorMessage?: string;
@@ -113,6 +128,12 @@ export interface SessionCreateInput {
   readonly isDefaultWorkspace?: boolean;
   readonly runLocation?: SessionRecord['runLocation'];
   readonly appMode?: SessionRecord['appMode'];
+  /**
+   * Stored as given. Defaults to the parent Session's doctrine; when neither is
+   * present nothing is stored, and renderers fall back to `promptDoctrine` in
+   * `config.yaml`.
+   */
+  readonly promptDoctrine?: SessionPromptDoctrine;
   readonly errorMessage?: string;
   readonly errorCode?: number;
   readonly errorSource?: string;

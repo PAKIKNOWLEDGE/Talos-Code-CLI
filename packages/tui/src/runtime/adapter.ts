@@ -73,6 +73,7 @@ import type {
   WatchTuiSessionTurnOptions,
 } from "./port.js";
 import type { TuiPermissionMode } from "../application/permission-mode.js";
+import type { TuiPromptDoctrine } from "../application/prompt-doctrine.js";
 import { resolveTuiEffortChoice } from "../application/model-effort.js";
 import type { TuiObservability } from "../observability/index.js";
 import type { TuiTokenPlanAccountStatus } from "../account/matrix-account-client.js";
@@ -113,6 +114,11 @@ export interface TuiRuntimeAdapterOptions {
    * Session id or `--continue`: there the flag only retargets that Session.
    */
   startupModelOverride?: TuiModelSelection;
+  /**
+   * Configured behaviour doctrine stamped onto Sessions this process creates.
+   * Read per call so a config edit applies to the next `/new` without a restart.
+   */
+  promptDoctrineGetter?: () => TuiPromptDoctrine | undefined;
 }
 
 export class TuiRuntimeAdapter implements TuiRuntime {
@@ -137,12 +143,14 @@ export class TuiRuntimeAdapter implements TuiRuntime {
   private readonly feedback: TuiRuntimeAdapterOptions["feedback"];
   private readonly dailyCheckin: TuiRuntimeAdapterOptions["dailyCheckin"];
   private readonly startupModelOverride: TuiModelSelection | undefined;
+  private readonly promptDoctrineGetter: (() => TuiPromptDoctrine | undefined) | undefined;
 
   constructor(cliService: CliService, options: TuiRuntimeAdapterOptions = {}) {
     this.cliService = cliService;
     const defaultAgentName =
       options.defaultAgentName ?? MINIMAX_CODE_DEFAULT_AGENT_NAME;
     this.startupModelOverride = options.startupModelOverride;
+    this.promptDoctrineGetter = options.promptDoctrineGetter;
     this.tokenPlanAccountStatusGetter = options.tokenPlanAccountStatusGetter;
     this.synchronizeAuth = options.synchronizeAuth;
     this.accountIdentityGetter = options.accountIdentityGetter;
@@ -162,6 +170,7 @@ export class TuiRuntimeAdapter implements TuiRuntime {
       cliService,
       defaultAgentName,
       options.onSessionDeleted,
+      this.promptDoctrineGetter,
     );
     this.productAccess = new TuiProductAccess(
       this.context,
@@ -196,21 +205,25 @@ export class TuiRuntimeAdapter implements TuiRuntime {
   }
 
   async createSession(input: CreateTuiSessionInput): Promise<TuiSession> {
+    // The doctrine is stamped once, at creation, so the discipline of a running
+    // conversation cannot move under the user. Children omit it and inherit the
+    // parent Session's value inside the runtime.
+    const stamped = this.stampPromptDoctrine(input);
     // A `--model` startup override outranks the saved global default: the user
     // asked for this model for the whole invocation, so `/new` must keep it
     // instead of snapping back to whatever config.yaml happens to hold.
     if (this.startupModelOverride) {
-      return this.sessionAccess.createSession(input, this.startupModelOverride);
+      return this.sessionAccess.createSession(stamped, this.startupModelOverride);
     }
     const defaultModel = await this.productAccess
       .listModels()
       .then((models) => models.find((model) => model.selected === true))
       .catch(() => undefined);
-    if (!defaultModel) return this.sessionAccess.createSession(input);
+    if (!defaultModel) return this.sessionAccess.createSession(stamped);
     // Inherit Runtime's saved global selection before catalog defaults, using
     // the same rule as the status line and without changing existing Sessions.
     const effort = resolveTuiEffortChoice(defaultModel)?.trim();
-    return this.sessionAccess.createSession(input, {
+    return this.sessionAccess.createSession(stamped, {
       providerId: defaultModel.providerId,
       modelId: defaultModel.modelId,
       ...(defaultModel.variant !== undefined
@@ -221,6 +234,12 @@ export class TuiRuntimeAdapter implements TuiRuntime {
         : {}),
       ...(effort ? { thinking: { effort } } : {}),
     });
+  }
+
+  private stampPromptDoctrine(input: CreateTuiSessionInput): CreateTuiSessionInput {
+    if (input.promptDoctrine || input.parentSessionId) return input;
+    const doctrine = this.promptDoctrineGetter?.();
+    return doctrine ? { ...input, promptDoctrine: doctrine } : input;
   }
   configureSessionMcpServers(
     sessionId: string,
@@ -450,6 +469,12 @@ export class TuiRuntimeAdapter implements TuiRuntime {
   }
   setPermissionMode(mode: TuiPermissionMode): Promise<TuiPermissionMode> {
     return this.productAccess.setPermissionMode(mode);
+  }
+  setSessionPromptDoctrine(
+    sessionId: string,
+    doctrine: TuiPromptDoctrine,
+  ): Promise<TuiSession> {
+    return this.sessionAccess.setSessionPromptDoctrine(sessionId, doctrine);
   }
   listModels(sessionId?: string): Promise<TuiModel[]> {
     return this.productAccess.listModels(sessionId);

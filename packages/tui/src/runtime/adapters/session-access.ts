@@ -13,6 +13,7 @@ import type {
   TuiMessagePage,
   TuiMessagePageInput,
   TuiModelSelection,
+  TuiPromptDoctrine,
   TuiEditMessageInput,
   TuiEditMessageResult,
   TuiRewindInput,
@@ -39,7 +40,46 @@ export class TuiSessionAccess {
     private readonly cliService: CliService,
     private readonly defaultAgentName: string,
     private readonly onSessionDeleted?: (sessionId: string) => void | Promise<void>,
+    /**
+     * Configured doctrine, used only for Sessions that predate the axis. The
+     * runtime still enforces those from configuration, so the status line would
+     * under-report the effective doctrine if it trusted the record alone.
+     */
+    private readonly promptDoctrineFallback?: () => TuiPromptDoctrine | undefined,
   ) {}
+
+  /**
+   * Normalizes one Session view, filling the doctrine a legacy record cannot
+   * carry. A record that does store one always wins: it is the locked value.
+   */
+  private normalize(view: SessionInfoView): TuiSession {
+    const session = normalizeSessionInfoView(view);
+    if (session.promptDoctrine) return session;
+    const fallback = this.promptDoctrineFallback?.();
+    return fallback ? { ...session, promptDoctrine: fallback } : session;
+  }
+
+  private requireSession(
+    view: SessionInfoView | undefined,
+    fallbackSessionId: string | undefined,
+  ): TuiSession {
+    if (view) return this.normalize(view);
+    if (fallbackSessionId) {
+      const fallback = this.promptDoctrineFallback?.();
+      return { sessionId: fallbackSessionId, ...(fallback ? { promptDoctrine: fallback } : {}) };
+    }
+    throw new Error('Runtime did not return the created Session.');
+  }
+
+  private normalizePage(
+    response: { sessions: SessionInfoView[]; hasMore: boolean; nextCursor?: string },
+    workspaceDir?: string,
+  ): TuiSessionPage {
+    const sessions = response.sessions
+      .map((view) => this.normalize(view))
+      .filter((session) => !workspaceDir || session.workspaceDir === workspaceDir);
+    return sessionPageFromResponse(sessions, response);
+  }
 
   async createSession(
     input: CreateTuiSessionInput,
@@ -52,6 +92,7 @@ export class TuiSessionAccess {
       ...(input.parentSessionId ? { parentSessionId: input.parentSessionId } : {}),
       ...(input.visibility ? { visibility: input.visibility } : {}),
       ...(input.purpose ? { purpose: input.purpose } : {}),
+      ...(input.promptDoctrine ? { promptDoctrine: input.promptDoctrine } : {}),
       ...(defaultModel
         ? {
             model: {
@@ -71,7 +112,7 @@ export class TuiSessionAccess {
           }
         : {}),
     });
-    const session = normalizeRequiredSession(response.session, response.sessionId);
+    const session = this.requireSession(response.session, response.sessionId);
     if (input.mcpServers?.length) {
       await this.configureSessionMcpServers(session.sessionId, input.mcpServers);
     }
@@ -116,7 +157,7 @@ export class TuiSessionAccess {
     options: ListTuiSessionsOptions = {},
   ): Promise<TuiSession[]> {
     const response = await this.cliService.listSessions({ name: agentName, ...options });
-    return (response.sessions ?? []).map(normalizeSessionInfoView);
+    return (response.sessions ?? []).map((view) => this.normalize(view));
   }
 
   async listSessionPage(
@@ -138,7 +179,7 @@ export class TuiSessionAccess {
       allAgents
         ? this.listSessionTree(agentName, options)
         : this.listAgentSessions(agentName, options);
-    if (!workspaceDir) return normalizeSessionPage(await loadPage(pageOptions));
+    if (!workspaceDir) return this.normalizePage(await loadPage(pageOptions));
 
     let cursor = pageOptions.cursor;
     const seenCursors = new Set<string>(cursor ? [cursor] : []);
@@ -151,7 +192,7 @@ export class TuiSessionAccess {
         ...(requestedLimit ? { limit: Math.max(1, requestedLimit - sessions.length) } : {}),
         ...(cursor ? { cursor } : {}),
       });
-      const page = normalizeSessionPage(response, workspaceDir);
+      const page = this.normalizePage(response, workspaceDir);
       sessions.push(...page.sessions);
       const filled = requestedLimit ? sessions.length >= requestedLimit : sessions.length > 0;
       if (filled || !response.hasMore) return sessionPageFromResponse(sessions, response);
@@ -165,7 +206,7 @@ export class TuiSessionAccess {
   async getSession(sessionId: string): Promise<TuiSession> {
     const response = await this.cliService.getSession({ id: sessionId });
     if (!response.session) throw new Error(`Runtime did not return session ${sessionId}.`);
-    return normalizeSessionInfoView(response.session);
+    return this.normalize(response.session);
   }
 
   async getMessages(sessionId: string, limit = 80): Promise<TuiMessage[]> {
@@ -208,7 +249,7 @@ export class TuiSessionAccess {
       createIsolatedWorktree: input.createIsolatedWorktree,
     });
     return {
-      session: normalizeRequiredSession(response.session, undefined),
+      session: this.requireSession(response.session, undefined),
       ...(response.forkOriginMessageId
         ? { forkOriginMessageId: response.forkOriginMessageId }
         : {}),
@@ -222,7 +263,18 @@ export class TuiSessionAccess {
 
   async renameSession(sessionId: string, title: string): Promise<TuiSession> {
     const response = await this.cliService.updateSession({ id: sessionId, title });
-    return normalizeRequiredSession(response.session, sessionId);
+    return this.requireSession(response.session, sessionId);
+  }
+
+  async setSessionPromptDoctrine(
+    sessionId: string,
+    doctrine: TuiPromptDoctrine,
+  ): Promise<TuiSession> {
+    const response = await this.cliService.updateSession({
+      id: sessionId,
+      promptDoctrine: doctrine,
+    });
+    return this.requireSession(response.session, sessionId);
   }
 
   async archiveSession(sessionId: string, archived: boolean): Promise<void> {
@@ -340,16 +392,6 @@ export class TuiSessionAccess {
   }
 }
 
-function normalizeSessionPage(
-  response: { sessions: SessionInfoView[]; hasMore: boolean; nextCursor?: string },
-  workspaceDir?: string,
-): TuiSessionPage {
-  const sessions = response.sessions
-    .map(normalizeSessionInfoView)
-    .filter((session) => !workspaceDir || session.workspaceDir === workspaceDir);
-  return sessionPageFromResponse(sessions, response);
-}
-
 function sessionPageFromResponse(
   sessions: TuiSession[],
   response: { hasMore: boolean; nextCursor?: string },
@@ -366,13 +408,4 @@ function toBranchSessionInfoView(
   parentSessionId: string,
 ): SessionInfoView {
   return { ...child, sessionType: SessionTypeView.Branch, parentSessionId };
-}
-
-function normalizeRequiredSession(
-  session: SessionInfoView | undefined,
-  fallbackSessionId: string | undefined,
-): TuiSession {
-  if (session) return normalizeSessionInfoView(session);
-  if (fallbackSessionId) return { sessionId: fallbackSessionId };
-  throw new Error('Runtime did not return the created Session.');
 }

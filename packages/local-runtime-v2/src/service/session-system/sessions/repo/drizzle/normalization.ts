@@ -181,6 +181,7 @@ const OWNED_UPDATE_FIELDS = [
   'runLocation',
   'appMode',
   'interactionMode',
+  'promptDoctrine',
   'memoryPolicy',
   'errorMessage',
   'errorCode',

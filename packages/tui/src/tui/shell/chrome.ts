@@ -7,6 +7,10 @@ import {
   formatTuiPermissionModeCompact,
   isDangerousTuiPermissionMode,
 } from '../../application/permission-mode.js';
+import {
+  formatTuiPromptDoctrine,
+  formatTuiPromptDoctrineCompact,
+} from '../../application/prompt-doctrine.js';
 import { tuiChalk as chalk, tuiColors as colors } from '../theme/runtime.js';
 import { getCapabilities, hyperlink } from '../engine/public.js';
 import type { TuiTokenPlanQuota, TuiWorkspaceGitMetadata } from '../../runtime/port.js';
@@ -216,6 +220,16 @@ function buildStatusSegment(
       return createStatusSegment([renderStatusMode(state), renderStatusMode(state, true)], {
         shrinkPriority: 60,
       });
+    case 'prompt-doctrine':
+      // Sits between the permission indicator (60) and the build tag (70): the
+      // doctrine compacts to APOC/STAR after `approval-mode` does, so the
+      // permission label keeps its own wording for longer. Neither carries a
+      // dropPriority, so both survive the drop passes; only the last-resort
+      // fallback can remove one, and that predates this item.
+      return createStatusSegment(
+        [renderPromptDoctrine(state), renderPromptDoctrine(state, true)],
+        { shrinkPriority: 62 },
+      );
     case 'model-with-reasoning':
       return createStatusSegment(
         [
@@ -636,6 +650,14 @@ function renderPermissionMode(state: TuiShellState, compact = false): string {
 
 function renderStatusMode(state: TuiShellState, compact = false): string {
   return renderPermissionMode(state, compact);
+}
+
+function renderPromptDoctrine(state: TuiShellState, compact = false): string {
+  if (!state.promptDoctrine) return '';
+  const label = compact
+    ? formatTuiPromptDoctrineCompact(state.promptDoctrine)
+    : formatTuiPromptDoctrine(state.promptDoctrine);
+  return chalk.bold.hex(colors.dim)(label);
 }
 
 function formatWorkspace(workspace: string, homeDir: string | undefined): string {

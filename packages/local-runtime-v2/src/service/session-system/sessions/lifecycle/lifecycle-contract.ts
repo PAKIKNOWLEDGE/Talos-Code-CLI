@@ -9,6 +9,7 @@ import type {
   SessionKind,
   SessionOrigin,
   SessionModelSnapshot,
+  SessionPromptDoctrine,
 } from '../repo/contract.js';
 import type { ConversationModelThinkingSelection } from '@mavis/conversation-contract';
 import type { SessionMemoryPolicyPatch } from '../memory-policy.js';
@@ -28,6 +29,8 @@ export interface SessionMutationFields {
   readonly effectiveModelVariant?: string | null;
   readonly effectiveModelThinking?: ConversationModelThinkingSelection | null;
   readonly interactionMode?: SessionInteractionMode;
+  /** Only the empty-Session path may change this; see the lifecycle application. */
+  readonly promptDoctrine?: SessionPromptDoctrine;
   readonly effectiveModelContextWindow?: number | null;
   readonly effectiveModelMaxOutputTokens?: number | null;
   readonly memoryPolicy?: SessionMemoryPolicyPatch;
@@ -56,6 +59,7 @@ export interface SessionMetadataCreateInput {
   readonly originCronId?: string;
   readonly runLocation?: SessionRecord['runLocation'];
   readonly appMode?: NonNullable<SessionRecord['appMode']>;
+  readonly promptDoctrine?: SessionPromptDoctrine;
   readonly effectiveModel?: string;
   readonly effectiveModelVariant?: string;
   readonly effectiveModelThinking?: ConversationModelThinkingSelection | null;

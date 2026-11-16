@@ -31,7 +31,11 @@ import {
   LocalModelProviderError,
   AgentModelSelectionError,
 } from "../../service/model-system/index.js";
-import { AgentServiceError } from "../../service/agent/index.js";
+import {
+  AGENT_PROMPT_DOCTRINES,
+  AgentServiceError,
+  type AgentPromptDoctrine,
+} from "../../service/agent/index.js";
 import type { ApplicationContext } from "../context.js";
 import { AppError } from "../errors.js";
 import { publishBestEffort, type GlobalEventPublisher } from "../events.js";
@@ -80,6 +84,11 @@ export interface SessionLifecycleApplicationOptions
   ) => Promise<void>;
   /** Rejects user initiated deletion for sessions with a stronger owner. */
   readonly assertSessionDeletionAllowed?: (sessionId: string) => Promise<void>;
+  /** Session-owned readers the doctrine lock needs; absent in test-only wirings. */
+  readonly promptDoctrineGuard?: {
+    readSession(sessionId: string): Promise<SessionRecord | undefined>;
+    hasUserMessages(sessionId: string): Promise<boolean>;
+  };
   readonly metrics?: ApplicationMetricsClient;
 }
 
@@ -249,13 +258,43 @@ export class SessionLifecycleApplication {
     _context: ApplicationContext,
     req: UpdateSessionReq,
   ): Promise<UpdateSessionResp> {
-    const updated = await this.invoke(() =>
-      this.options.lifecycle.mutateSession(req.id, {
+    const updated = await this.invoke(async () => {
+      // Validated before the lock check so a malformed value is reported as a
+      // bad request rather than as a locked Session.
+      const promptDoctrine = validPromptDoctrine(req.promptDoctrine);
+      await this.assertPromptDoctrineUnlocked(req.id, promptDoctrine);
+      return this.options.lifecycle.mutateSession(req.id, {
         ...whenDefined("title", req.title),
         ...whenDefined("memoryPolicy", req.memoryPolicy),
-      }),
-    );
+        ...whenDefined("promptDoctrine", promptDoctrine),
+      });
+    });
     return { session: toSessionInfoView(updated) };
+  }
+
+  /**
+   * A Session always renders the doctrine it was started with, so only an empty
+   * Session may change it. Authority sits here rather than in the TUI: the client
+   * only pre-disables its command, while every caller of this route is rejected
+   * identically once the conversation has begun.
+   */
+  private async assertPromptDoctrineUnlocked(
+    sessionId: string,
+    requested: UpdateSessionReq["promptDoctrine"],
+  ): Promise<void> {
+    if (requested === undefined) return;
+    const guard = this.options.promptDoctrineGuard;
+    if (!guard) return;
+    const session = await guard.readSession(sessionId);
+    // A missing Session is reported by the mutation itself, not here.
+    if (!session) return;
+    if (session.promptDoctrine === requested) return;
+    if (!(await guard.hasUserMessages(sessionId))) return;
+    throw new AppError(
+      409,
+      "local_prompt_doctrine_locked",
+      "The behaviour doctrine is fixed once a Session has a message; start a new Session to change it",
+    );
   }
 
   async deleteSession(
@@ -457,6 +496,7 @@ function toCreateInput(req: CreateSessionReq): DomainSessionCreateInput {
     ...whenDefined("appMode", resolveRequestedAppMode(req.appMode)),
     ...whenDefined("runLocation", runLocation),
     ...whenDefined("model", toModelInput(req.model)),
+    ...whenDefined("promptDoctrine", validPromptDoctrine(req.promptDoctrine)),
   };
 }
 
@@ -464,6 +504,28 @@ function validVisibility(
   value: string | undefined,
 ): "visible" | "hidden" | undefined {
   return value === "visible" || value === "hidden" ? value : undefined;
+}
+
+/**
+ * Rejects a doctrine outside the declared value set.
+ *
+ * Unlike `validVisibility`, an unknown doctrine cannot be dropped silently: the
+ * stored value is read back with a throwing parser, so persisting a bad one
+ * would make the Session unreadable instead of merely different.
+ */
+function validPromptDoctrine(
+  value: string | undefined,
+): AgentPromptDoctrine | undefined {
+  if (value === undefined) return undefined;
+  const doctrine = AGENT_PROMPT_DOCTRINES.find((entry) => entry === value);
+  if (!doctrine) {
+    throw new AppError(
+      400,
+      "VALIDATION_ERROR",
+      `promptDoctrine must be one of: ${AGENT_PROMPT_DOCTRINES.join(", ")}`,
+    );
+  }
+  return doctrine;
 }
 
 function resolveRequestedAppMode(

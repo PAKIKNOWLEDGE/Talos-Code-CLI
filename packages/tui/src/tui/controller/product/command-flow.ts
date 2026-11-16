@@ -30,6 +30,8 @@ import type { TuiUpdateFlow } from './update-flow.js';
 import type { TuiGoalFlow } from './goal-flow.js';
 import type { TuiPlanModeFlow } from '../interaction/plan-mode-flow.js';
 import type { TuiPermissionModeFlow } from '../interaction/permission-mode-flow.js';
+import type { TuiPromptDoctrineFlow } from '../interaction/prompt-doctrine-flow.js';
+import { normalizeTuiPromptDoctrine } from '../../../application/prompt-doctrine.js';
 import type { MavisRegion } from '@mavis/config';
 import type { McodeAuthPort } from '../../../auth/application.js';
 import { markTuiAuthorizationUrl } from '../../../auth/authorization-url.js';
@@ -79,6 +81,7 @@ export interface TuiCommandFlowOptions {
   readonly goalFlow?: Pick<TuiGoalFlow, 'execute' | 'resumeBlocked'>;
   readonly planModeFlow?: TuiPlanModeFlow;
   readonly permissionModeFlow?: TuiPermissionModeFlow;
+  readonly promptDoctrineFlow?: TuiPromptDoctrineFlow;
   readonly auth?: McodeAuthPort;
   readonly openExternalTarget?: TuiExternalTargetOpener;
   readonly interactionFlow: TuiInteractionFlow;
@@ -1269,6 +1272,23 @@ export class TuiCommandFlow {
           return 'retained';
         }
         await this.options.permissionModeFlow.set(mode);
+      },
+      doctrine: async ({ args }) => {
+        if (!this.options.promptDoctrineFlow) {
+          this.options.append('Behaviour doctrine is unavailable in this host.', 'warning');
+          return;
+        }
+        const action = args.trim().toLocaleLowerCase();
+        if (!action || action === 'status') {
+          this.options.promptDoctrineFlow.showStatus();
+          return;
+        }
+        const doctrine = normalizeTuiPromptDoctrine(action);
+        if (!doctrine) {
+          this.options.append('Usage: /doctrine [status | apocalypse | stargate]', 'warning');
+          return 'retained';
+        }
+        await this.options.promptDoctrineFlow.set(doctrine);
       },
       login: () => {
         if (process.env.TALOS_NEUTRAL_RUNTIME === '1') {

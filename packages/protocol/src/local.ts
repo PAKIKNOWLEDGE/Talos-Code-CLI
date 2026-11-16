@@ -52,6 +52,13 @@ export const SessionInteractionModeView = {
 export type SessionInteractionModeView =
   (typeof SessionInteractionModeView)[keyof typeof SessionInteractionModeView];
 
+/**
+ * Behaviour doctrine composed into a Session's system prompt. Resolved when the
+ * Session is created and immutable afterwards, so a client echoes it rather than
+ * deriving it from live configuration.
+ */
+export type SessionPromptDoctrineView = 'apocalypse' | 'stargate';
+
 export const SessionKind = {
   Unknown: 0,
   Conversation: 1,
@@ -736,6 +743,7 @@ export interface SessionInfoView {
   runLocation?: RunLocationView;
   sessionKind?: SessionKind;
   interactionMode?: SessionInteractionModeView;
+  promptDoctrine?: SessionPromptDoctrineView;
   conversationCapabilities?: SessionConversationCapabilities;
   memoryPolicy?: SessionMemoryPolicyView;
   collaboration?: SessionCollaborationView;
@@ -837,6 +845,11 @@ export interface CreateSessionInput {
   projectId?: number;
   sessionKind?: SessionKind;
   expectedAgentInstanceId?: string;
+  /**
+   * Behaviour doctrine for the new Session. Omit to inherit the parent Session's
+   * doctrine; a Session created without either falls back to configuration.
+   */
+  promptDoctrine?: SessionPromptDoctrineView;
 }
 
 export interface CreateSessionResult {
@@ -850,6 +863,8 @@ export interface UpdateSessionInput {
   title?: string;
   memoryPolicy?: SessionMemoryPolicyInput;
   projectId?: number;
+  /** Rejected with 409 once the Session has a user message. */
+  promptDoctrine?: SessionPromptDoctrineView;
 }
 
 export interface UpdateSessionResult {

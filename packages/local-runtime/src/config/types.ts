@@ -73,6 +73,8 @@ export interface LocalRuntimeConfig {
   defaultModel?: string;
   defaultModelVariant?: string;
   permissionMode?: 'default' | 'acceptEdits' | 'bypassPermissions' | 'auto' | 'off';
+  /** Behaviour doctrine stamped onto new Sessions; see `Config.promptDoctrine`. */
+  promptDoctrine?: Config['promptDoctrine'];
   /** Permission policy rollout; omitted local views inherit the config default. */
   permission?: Partial<Config['permission']>;
   dataDir: string;

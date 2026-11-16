@@ -40,6 +40,7 @@ import { TuiSessionFlow } from './controller/session-flow.js';
 import { TuiCommandFlow } from './controller/product/command-flow.js';
 import { TuiInputFlow } from './controller/interaction/input-flow.js';
 import { TuiPermissionModeFlow } from './controller/interaction/permission-mode-flow.js';
+import { TuiPromptDoctrineFlow } from './controller/interaction/prompt-doctrine-flow.js';
 import { TuiPlanModeFlow } from './controller/interaction/plan-mode-flow.js';
 import { createTuiAbortLiveTurn } from './controller/run/abort-live-turn.js';
 import { createTuiUpdateFlow } from './controller/product/update-flow.js';
@@ -599,6 +600,20 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
     },
     isStopped: () => stopped,
   });
+  const promptDoctrineFlow = new TuiPromptDoctrineFlow({
+    runtime: options.runtime,
+    session: () => controller.snapshot().session,
+    append: appendLocalCell,
+    setHint: (message) => chromeFlow?.setHint(message),
+    onChanged: () => {
+      updateChrome(controller.snapshot());
+      tui.requestRender();
+    },
+    // The status line reads the stored doctrine, so re-read the Session instead
+    // of trusting the value the command just sent.
+    onApplied: (sessionId) => controller.refreshSessionMetadata(sessionId),
+    isStopped: () => stopped,
+  });
   commandFlow = new TuiCommandFlow({
     bashFlow,
     workspaceDir: options.workspaceDir,
@@ -612,6 +627,7 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
     goalFlow,
     planModeFlow,
     permissionModeFlow,
+    promptDoctrineFlow,
     ...(options.auth ? { auth: options.auth } : {}),
     openExternalTarget: options.openExternalTarget,
     interactionFlow,
@@ -857,6 +873,7 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
     delegationFlow.stop();
     activeRunFlow.stop();
     permissionModeFlow.stop();
+    promptDoctrineFlow.stop();
     planModeFlow.stop();
     feedbackFlow.stop();
     updateFlow.stop();

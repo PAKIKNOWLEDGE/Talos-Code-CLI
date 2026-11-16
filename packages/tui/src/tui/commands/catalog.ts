@@ -179,6 +179,19 @@ const COMMAND_SOURCES: readonly TuiCommandSource[] = [
     shortcut: 'Shift+Tab',
   },
   {
+    name: 'doctrine',
+    description: 'Choose or inspect the behaviour doctrine of this Session',
+    category: 'Session',
+    argumentHint: '[status | apocalypse | stargate]',
+    getArgumentCompletions: argumentCompleter([
+      ['status', 'Show the current behaviour doctrine'],
+      ['apocalypse', 'Claude Code discipline sections'],
+      ['stargate', "pi's minimal doctrine"],
+    ]),
+    visibleWhen: (context) => context.hasSession,
+    unavailableReason: 'Start or resume a Session before choosing a doctrine.',
+  },
+  {
     name: 'review',
     description: 'Review staged, unstaged, and untracked local changes',
     category: 'Capability',

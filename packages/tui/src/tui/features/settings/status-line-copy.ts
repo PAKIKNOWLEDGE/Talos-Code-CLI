@@ -45,6 +45,7 @@ const descriptions: Record<Exclude<TuiStatusLineItem, 'build-mode'>, readonly [s
   'review-link': ['Current branch PR / MR link', '当前分支的 PR / MR 链接'],
   'plan-mode': ['Plan mode', '计划模式'],
   'approval-mode': ['Current permission mode', '当前权限模式'],
+  'prompt-doctrine': ['Session behaviour doctrine', '当前会话行为纪律档'],
   'model-with-reasoning': ['Model and reasoning', '模型和推理配置'],
   model: ['Model name', '模型名称'],
   'context-window': ['Context window capacity', '上下文总容量'],

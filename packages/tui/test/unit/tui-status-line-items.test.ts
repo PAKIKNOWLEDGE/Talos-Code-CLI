@@ -596,7 +596,7 @@ describe('context meter item', () => {
   it('stays out of the default status line', () => {
     expect(TUI_STATUS_LINE_DEFAULT_ITEMS).toEqual([
       'current-dir', 'session-title', 'git-branch', 'review-link', 'plan-mode',
-      'approval-mode', 'model-with-reasoning', 'context-window', 'subagent',
+      'approval-mode', 'prompt-doctrine', 'model-with-reasoning', 'context-window', 'subagent',
       'token-quota', 'context-remaining',
     ]);
     const state = {
@@ -781,6 +781,7 @@ describe('context meter boundaries', () => {
       'model-with-reasoning',
       'context-window',
       'context-remaining',
+      'prompt-doctrine',
       'plan-mode',
       'approval-mode',
     ]);
@@ -809,5 +810,56 @@ describe('context meter boundaries', () => {
     );
     expect(inPlan).toContain('PLAN');
     expect(inPlan.indexOf('PLAN')).toBeLessThan(inPlan.indexOf('Auto'));
+  });
+});
+
+describe('prompt doctrine item', () => {
+  it('resolves the canonical id and the doctrine alias', () => {
+    expect(parseTuiStatusLineItem('prompt-doctrine')).toBe('prompt-doctrine');
+    expect(parseTuiStatusLineItem('doctrine')).toBe('prompt-doctrine');
+  });
+
+  it('renders the doctrine of the active Session', () => {
+    const state = { ...BASE_STATE, promptDoctrine: 'apocalypse' as const };
+    expect(stripAnsi(render(state))).toContain('Apocalypse');
+  });
+
+  it('reports the other doctrine without reusing the label map', () => {
+    const state = {
+      ...BASE_STATE,
+      promptDoctrine: 'stargate' as const,
+      statusLineItems: ['prompt-doctrine'] as const,
+    };
+    expect(stripAnsi(render(state))).toContain('Stargate');
+  });
+
+  it('compacts to the short label on a narrow line instead of disappearing', () => {
+    const state = {
+      ...BASE_STATE,
+      promptDoctrine: 'apocalypse' as const,
+      statusLineItems: ['prompt-doctrine'] as const,
+    };
+    const line = stripAnsi(render(state, 8));
+    expect(line).toContain('APOC');
+    expect(line).not.toContain('Apocalypse');
+  });
+
+  it('keeps rendering the doctrine in the Collapsal skin', () => {
+    const state = {
+      ...BASE_STATE,
+      promptDoctrine: 'stargate' as const,
+      contextUsage: { usedTokens: 20, contextWindowTokens: 100 },
+    };
+    const collapsal = stripAnsi(
+      new TuiStatusLine(state, undefined, 'collapsal').render(200).join('\n'),
+    );
+
+    expect(collapsal).toContain('Stargate');
+    expect(collapsal.indexOf('Stargate')).toBeLessThan(collapsal.indexOf('Auto'));
+  });
+
+  it('stays silent when the Session carries no doctrine', () => {
+    const state = { ...BASE_STATE, statusLineItems: ['prompt-doctrine'] as const };
+    expect(stripAnsi(render(state)).trim()).toBe('');
   });
 });

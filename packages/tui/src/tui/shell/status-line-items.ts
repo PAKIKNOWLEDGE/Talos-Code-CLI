@@ -27,6 +27,7 @@ export const TUI_STATUS_LINE_ITEMS = [
   'review-link',
   'plan-mode',
   'approval-mode',
+  'prompt-doctrine',
   'model-with-reasoning',
   'model',
   'context-window',
@@ -60,6 +61,7 @@ const TUI_STATUS_LINE_ITEM_ALIASES: Readonly<Record<string, TuiStatusLineItem>> 
   review: 'review-link',
   permissions: 'approval-mode',
   'permission-mode': 'approval-mode',
+  doctrine: 'prompt-doctrine',
   'model-with-thinking': 'model-with-reasoning',
   identity: 'model-with-reasoning',
   'sub-agent': 'subagent',
@@ -120,6 +122,7 @@ export const TUI_STATUS_LINE_DEFAULT_ITEMS: readonly TuiStatusLineItem[] = [
   'review-link',
   'plan-mode',
   'approval-mode',
+  'prompt-doctrine',
   'model-with-reasoning',
   'context-window',
   'subagent',
@@ -127,13 +130,14 @@ export const TUI_STATUS_LINE_DEFAULT_ITEMS: readonly TuiStatusLineItem[] = [
   'context-remaining',
 ];
 
-/** Unconfigured Collapsal footer: cwd | git | model | context | plan | permission. */
+/** Unconfigured Collapsal footer: cwd | git | model | context | doctrine | plan | permission. */
 export const COLLAPSAL_STATUS_LINE_DEFAULT_ITEMS: readonly TuiStatusLineItem[] = [
   'current-dir',
   'git-branch',
   'model-with-reasoning',
   'context-window',
   'context-remaining',
+  'prompt-doctrine',
   'plan-mode',
   'approval-mode',
 ];

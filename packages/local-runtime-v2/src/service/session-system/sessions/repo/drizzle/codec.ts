@@ -1,4 +1,5 @@
 import type { sessions } from '../../../../../infra/db/schema/sessions.js';
+import { PROMPT_DOCTRINES, type PromptDoctrine } from '@mavis/config';
 import type { ConversationModelThinkingSelection } from '@mavis/conversation-contract';
 import { canonicalProjectWorkspaceDir } from '../../../shared/workspace.js';
 import {
@@ -26,6 +27,7 @@ export interface SessionExtraData {
   readonly runLocation?: SessionRunLocation;
   readonly appMode?: AppMode;
   readonly interactionMode?: SessionInteractionMode;
+  readonly promptDoctrine?: PromptDoctrine;
   readonly memoryPolicy?: SessionMemoryPolicy;
   readonly errorSource?: string;
   readonly errorDetail?: string;
@@ -149,6 +151,7 @@ export function sessionExtraDataFromRecord(record: SessionRecord): SessionExtraD
     runLocation: record.runLocation,
     appMode: record.sessionType === 'branch' ? record.appMode : undefined,
     interactionMode: record.interactionMode,
+    promptDoctrine: record.promptDoctrine,
     memoryPolicy: record.memoryPolicy,
     errorSource: record.errorSource,
     errorDetail: record.errorDetail,
@@ -187,6 +190,12 @@ export function parseSessionExtraData(raw: string): SessionExtraData {
       record,
       'interactionMode',
       ['plan', 'goal'],
+      'extra_data_json',
+    ),
+    promptDoctrine: readOptionalEnum(
+      record,
+      'promptDoctrine',
+      PROMPT_DOCTRINES,
       'extra_data_json',
     ),
     memoryPolicy: readOptionalSessionMemoryPolicy(record, 'memoryPolicy', 'extra_data_json'),

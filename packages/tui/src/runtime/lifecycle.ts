@@ -504,6 +504,8 @@ export async function createTuiRuntime(
       adapter: new TuiRuntimeAdapter(host.cliService, {
         workspaceDir: options.workspaceDir,
         observability,
+        // Sessions own their doctrine once created; this getter only seeds new ones.
+        promptDoctrineGetter: () => getConfig().promptDoctrine,
         ...(options.startupModelOverride
           ? { startupModelOverride: options.startupModelOverride }
           : {}),

@@ -117,6 +117,8 @@ export interface ForkSessionPort {
     readonly title: string;
     readonly appMode?: SessionRecord['appMode'];
     readonly runLocation?: SessionRecord['runLocation'];
+    /** A fork copies history, so it must keep the source's behaviour doctrine. */
+    readonly promptDoctrine?: SessionRecord['promptDoctrine'];
     readonly effectiveModel?: SessionRecord['effectiveModel'];
     readonly effectiveModelVariant?: SessionRecord['effectiveModelVariant'];
     readonly effectiveModelThinking?: SessionRecord['effectiveModelThinking'];

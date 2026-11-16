@@ -69,6 +69,7 @@ export function toSessionInfoView(session: SessionRecord): SessionInfoView {
       ? { runLocation: toRunLocationView(session.runLocation) }
       : {}),
     interactionMode: toSessionInteractionModeView(session.interactionMode),
+    ...(session.promptDoctrine ? { promptDoctrine: session.promptDoctrine } : {}),
     memoryPolicy: toSessionMemoryPolicyView(session),
   };
 }

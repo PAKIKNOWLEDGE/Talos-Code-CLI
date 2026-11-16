@@ -16,6 +16,7 @@ import type {
 } from '../types/runtime-models.js';
 import type { TuiRuntimeEvent } from '../types/runtime-events.js';
 import type { TuiPermissionMode } from '../application/permission-mode.js';
+import type { TuiPromptDoctrine } from '../application/prompt-doctrine.js';
 import type { TuiMessage, TuiStreamEvent } from './stream-events.js';
 import type { McodeProviderRuntimePort } from '../provider/contract.js';
 import type { McodePluginRuntimeAccess } from '../plugin/contract.js';
@@ -97,6 +98,8 @@ export interface TuiEditMessageResult extends TuiRewindResult {
   userMessageId?: string;
 }
 
+export type { TuiPromptDoctrine };
+
 export interface TuiSession {
   sessionId: string;
   agentName?: string;
@@ -117,6 +120,12 @@ export interface TuiSession {
   errorDetail?: string;
   errorProviderId?: string;
   interactionMode?: 'plan';
+  /**
+   * Behaviour doctrine stamped when the Session was created. Absent for Sessions
+   * that predate the axis; those still render the configured default, which is
+   * why the status line falls back to configuration rather than hiding the item.
+   */
+  promptDoctrine?: TuiPromptDoctrine;
   /**
    * Session-scoped model echo. `thinking.effort` is the authoritative
    * think-effort for this Session; the model roster only reports the
@@ -147,6 +156,12 @@ export interface CreateTuiSessionInput {
    * Session out of `/sessions` and `/resume` without a schema change.
    */
   purpose?: string;
+  /**
+   * Behaviour doctrine stamped onto the new Session. Filled by the runtime
+   * adapter from configuration so ordinary callers never have to resolve it;
+   * children omit it and inherit their parent Session's value.
+   */
+  promptDoctrine?: TuiPromptDoctrine;
 }
 
 export type TuiSessionMcpServer =
@@ -212,6 +227,15 @@ export interface TuiSessionPort {
   getMessages(sessionId: string, limit?: number): Promise<TuiMessage[]>;
   listMessagePage(sessionId: string, input?: TuiMessagePageInput): Promise<TuiMessagePage>;
   renameSession(sessionId: string, title: string): Promise<TuiSession>;
+  /**
+   * Switches the behaviour doctrine of a Session that has not started yet. The
+   * runtime rejects this with `local_prompt_doctrine_locked` once the Session has
+   * a user message, so callers must surface that rejection rather than retry.
+   */
+  setSessionPromptDoctrine(
+    sessionId: string,
+    doctrine: TuiPromptDoctrine,
+  ): Promise<TuiSession>;
   archiveSession(sessionId: string, archived: boolean): Promise<void>;
   deleteSession(sessionId: string): Promise<void>;
   listSessionInputSummaries(

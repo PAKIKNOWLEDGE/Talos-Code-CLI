@@ -34,6 +34,21 @@ See the parity matrix for the authoritative list. Core groups:
 - **Background tasks:** `backgroundTasks/list`
 - **Runtime events:** `runtime/events/subscribe`, `runtime/events/unsubscribe`
 
+## Session payload additions
+
+Session objects (`session/list`, `session/create`, `session/load`, `session/resume`, and the
+`runtime/event` payloads that embed them) are the TUI's `TuiSession`, so a field added there reaches
+Desktop automatically. One such field is deliberate:
+
+- `promptDoctrine?: 'apocalypse' | 'stargate'` — the behaviour doctrine composed into this Session's
+  system prompt. It is additive and optional; a client that ignores it keeps working. The value is
+  resolved by the TUI layer, so it is always present in practice and reports the doctrine actually in
+  force — including for a Session whose record predates the field and therefore follows
+  `config.yaml`. It is inert unless the Session renders the `tui` prompt template. See
+  [status.md](status.md#session-scope) for the lock and its known boundaries.
+
+ACP does not carry this field (`session/new` still returns only the Session id and control state).
+
 ## Notifications
 
 | Method | When |

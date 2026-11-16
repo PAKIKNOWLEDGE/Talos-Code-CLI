@@ -80,6 +80,8 @@ export type SessionInfoView = PresentFields<
   visibility: NonNullable<SessionRecord["visibility"]>;
   sessionKind: SessionKind;
   interactionMode: SessionInteractionModeView;
+  /** Present only once a Session has been stamped with an explicit doctrine. */
+  promptDoctrine?: NonNullable<SessionRecord["promptDoctrine"]>;
   memoryPolicy: SessionMemoryPolicyView;
   conversationCapabilities?: { fork: boolean; rewind: boolean };
   model?: ModelInfoView;

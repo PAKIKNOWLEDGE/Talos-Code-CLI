@@ -253,6 +253,9 @@ export class ForkService {
       title: resolveChildTitle(request, suggestedTitle),
       ...(source.appMode ? { appMode: source.appMode } : {}),
       ...(runLocation ? { runLocation } : {}),
+      // The child inherits the whole conversation, so it inherits the doctrine
+      // that shaped it rather than re-deriving one from live configuration.
+      ...(source.promptDoctrine ? { promptDoctrine: source.promptDoctrine } : {}),
       ...(source.effectiveModel !== undefined ? { effectiveModel: source.effectiveModel } : {}),
       ...(source.effectiveModelVariant !== undefined
         ? { effectiveModelVariant: source.effectiveModelVariant }

@@ -1,4 +1,5 @@
 import type { TuiPermissionMode } from '../../application/permission-mode.js';
+import type { TuiPromptDoctrine } from '../../application/prompt-doctrine.js';
 import type { TuiTokenPlanQuota, TuiWorkspaceGitMetadata } from '../../runtime/port.js';
 import type { TuiAgentStatus } from './status-protocol.js';
 import type { TuiStatusLineItem } from './status-line-items.js';
@@ -43,6 +44,12 @@ export interface TuiShellState {
   busy?: boolean;
   permissionMode?: TuiPermissionMode;
   permissionModeUpdating?: boolean;
+  /**
+   * Behaviour doctrine of the active Session. The Runtime fills the configured
+   * value for Sessions created before the axis existed, so this is absent only
+   * when no Session is active and the item renders silent.
+   */
+  promptDoctrine?: TuiPromptDoctrine;
   planMode?: 'default' | 'plan';
   planModeTransition?: 'next-message' | 'submitting';
   tokenPlanQuotaState?: 'available' | 'not-subscribed' | 'unavailable';

@@ -115,6 +115,17 @@ export const initializeApplications: InitializeApplications = (options) => {
           await deletion.deleteSession(sessionId);
         }),
     },
+    promptDoctrineGuard: {
+      readSession: (sessionId) =>
+        options.sessionSystem.repositories.sessions.get(sessionId),
+      hasUserMessages: async (sessionId) =>
+        (
+          await options.sessionSystem.repositories.messages.listRecent(
+            sessionId,
+            { limit: 1, role: "user" },
+          )
+        ).length > 0,
+    },
     ...(options.assertSessionDeletionAllowed
       ? { assertSessionDeletionAllowed: options.assertSessionDeletionAllowed }
       : {}),

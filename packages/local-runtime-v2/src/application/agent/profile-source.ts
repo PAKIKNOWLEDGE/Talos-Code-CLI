@@ -40,6 +40,9 @@ export function createV2AgentProfileSource(
       const requestRef = frozenOwner
         ? `agent:${frozenOwner}`
         : readMetadataRequestRef(metadata.requestRef);
+      // The Session's stamped doctrine wins so a mid-session configuration edit
+      // cannot change the discipline of a conversation already in progress.
+      const promptDoctrine = session.promptDoctrine ?? config.promptDoctrine;
       const request = {
         // Execution behavior follows the frozen canonical owner, while the
         // persisted Session may retain a legacy primary-family storage owner.
@@ -47,7 +50,7 @@ export function createV2AgentProfileSource(
         ...(requestRef === undefined ? {} : { requestRef }),
         surface: resolveAgentPromptSurface(session, runtimeOwnerKind),
         promptProfile: runtimeOwnerKind === 'tui' ? 'tui' : 'desktop',
-        ...(config.promptDoctrine ? { promptDoctrine: config.promptDoctrine } : {}),
+        ...(promptDoctrine ? { promptDoctrine } : {}),
         appMode: session.appMode ?? 'coding',
         capabilities,
         memoryEnabled: isCommandLineRuntimeOwner(runtimeOwnerKind) ? false : config.memory?.enabled,

@@ -13,6 +13,7 @@ import type {
   SessionPage,
   SessionRecord,
   SessionModelSnapshot,
+  SessionPromptDoctrine,
   SessionTaskAgentBindingBackfill,
 } from '../repo/contract.js';
 import {
@@ -81,6 +82,7 @@ export interface SessionCreateInput {
   readonly purpose?: string;
   readonly sessionKind?: SessionKind;
   readonly appMode?: SessionAppMode;
+  readonly promptDoctrine?: SessionPromptDoctrine;
   readonly isDefaultWorkspace?: boolean;
   readonly runLocation?: unknown;
   readonly model?: ConversationModelSelection;
@@ -100,6 +102,7 @@ export interface InternalSessionCreateInput {
   readonly originCronId?: string;
   readonly runLocation?: SessionRecord['runLocation'];
   readonly appMode?: SessionAppMode;
+  readonly promptDoctrine?: SessionPromptDoctrine;
   readonly effectiveModel?: string | null;
   readonly effectiveModelVariant?: string | null;
   readonly effectiveModelThinking?: ConversationModelThinkingSelection | null;
@@ -488,6 +491,7 @@ export class SessionRecordService
       parentVisibility: parent?.visibility,
       taskMemoryPolicy: taskMemoryPolicyFor(sessionKind, parent),
       taskCapture,
+      promptDoctrine: input.promptDoctrine ?? parent?.promptDoctrine,
     };
   }
 
@@ -932,6 +936,12 @@ interface CreateMetadataContext {
   readonly parentVisibility: SessionRecord['visibility'];
   readonly taskMemoryPolicy?: SessionRecord['memoryPolicy'];
   readonly taskCapture?: CapturedTaskAgentBinding;
+  /**
+   * Resolved here when an explicit value or a parent Session supplies one, so a
+   * child Session never re-reads live configuration. A Session created without
+   * either (root repair, cron) stores nothing and does follow `config.yaml`.
+   */
+  readonly promptDoctrine?: SessionPromptDoctrine;
 }
 
 interface ResolvedWorkspace {
@@ -969,6 +979,7 @@ function toMetadataCreateInput(context: CreateMetadataContext): SessionMetadataC
     sessionType: 'branch',
     sessionKind: requestedKind,
     ...whenDefined('memoryPolicy', context.taskMemoryPolicy),
+    ...whenDefined('promptDoctrine', context.promptDoctrine),
     ...metadataModelFields(context.input, context.taskCapture),
     ...metadataBindingFields(context.taskCapture),
     origin: 'user',
@@ -984,6 +995,10 @@ function toInternalMetadataCreateInput(
     sessionType,
     sessionKind: context.sessionKind,
     ...whenDefined('memoryPolicy', context.taskMemoryPolicy),
+    ...whenDefined(
+      'promptDoctrine',
+      context.input.promptDoctrine ?? context.parent?.promptDoctrine,
+    ),
     ...internalMetadataFields(context, sessionType),
     ...internalModelFields(context.input, context.taskCapture, context.forkedAgentDefinition),
     ...internalBindingFields(context.taskCapture, context.forkedAgentDefinition),

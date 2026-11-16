@@ -30,6 +30,7 @@ function recordIdentityFields(
   | 'isDefaultWorkspace'
   | 'runLocation'
   | 'appMode'
+  | 'promptDoctrine'
 > {
   return {
     sessionId: input.sessionId,
@@ -44,6 +45,7 @@ function recordIdentityFields(
     originCronId: input.originCronId,
     isDefaultWorkspace: input.isDefaultWorkspace,
     runLocation: input.runLocation,
+    promptDoctrine: input.promptDoctrine,
     ...appModeFields(sessionType, input.appMode),
   };
 }

@@ -10,6 +10,7 @@ import type {
   TuiSessionModelSelection,
   TuiWorkspaceRoot,
 } from '../port.js';
+import { normalizeTuiPromptDoctrine } from '../../application/prompt-doctrine.js';
 
 type CliGetSessionRewindPreviewResp = Awaited<ReturnType<CliService['getSessionRewindPreview']>>;
 type CliListSessionInputSummariesResp = Awaited<
@@ -23,6 +24,7 @@ type CliSessionInputSummaryView = NonNullable<
 
 export function normalizeSessionInfoView(session: SessionInfoView): TuiSession {
   if (!session.sessionId) throw new Error('Runtime returned a Session without sessionId.');
+  const promptDoctrine = normalizeTuiPromptDoctrine(session.promptDoctrine);
   return compact({
     sessionId: session.sessionId,
     agentName: session.agentName,
@@ -50,6 +52,7 @@ export function normalizeSessionInfoView(session: SessionInfoView): TuiSession {
     errorDetail: session.status?.errorDetail,
     errorProviderId: session.status?.errorProviderId,
     interactionMode: session.interactionMode === 1 ? ('plan' as const) : undefined,
+    ...(promptDoctrine ? { promptDoctrine } : {}),
     model: normalizeSessionModelSelection(session.model),
   });
 }

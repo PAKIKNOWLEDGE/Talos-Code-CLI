@@ -42,10 +42,17 @@ Companion GUI: `C:\DEV\develop\T3rra-C0d3-Talos` — [docs/status.md](https://gi
 ## Prompt doctrine
 
 The TUI system prompt composes exactly one behaviour doctrine, selected by `promptDoctrine` in `config.yaml`
-(`apocalypse` | `stargate`, default `apocalypse`; the values and the default are declared once in
-`packages/config/src/config.ts` and re-exported by the Agent layer). Both are copied from a validated upstream
+(`apocalypse` | `stargate`, default `apocalypse`). The values and the default are declared in
+`packages/config/src/config.ts` and re-exported by the Agent layer; `packages/protocol/src/local.ts` keeps a
+`SessionPromptDoctrineView` literal union as the wire mirror of that set, so a new doctrine has to be added in
+both places. Both doctrines are copied from a validated upstream
 harness rather than authored here, and each asset carries a header comment listing its source, resolved
 conditional branches, deletions, and name substitutions.
+
+Configuration only seeds **new** Sessions, so a later `config.yaml` edit cannot change the discipline of a
+conversation already in progress. A Session that stores `promptDoctrine` renders that stored value; one that
+stores none — created before the field existed, or by a path that never supplied it — keeps following
+`config.yaml`. [Session scope](#session-scope) below lists exactly which creation paths stamp the field.
 
 Verifiability differs by doctrine, and the difference is deliberate: `stargate` can be diffed against
 `third_party/pi-mono` in this checkout, while `apocalypse` is a reconstruction from the source map shipped in
@@ -87,8 +94,56 @@ Composition rules:
   gate, and they are deliberately kept out of `managed-prompts.json` (that file is the desktop remote-delivery
   contract).
 
-Session scoping (doctrine fixed at session start, visible in the status bar) is tracked as a follow-up change;
-`config.yaml` currently supplies the value for every render.
+### Session scope
+
+The doctrine is fixed once the Session's first user message is sent, and it stays visible the whole time, in the
+status bar.
+
+- `sessions` stores `promptDoctrine` next to `interactionMode`. A child Session inherits its parent's value, a fork
+  copies its source's value — a fork carries the whole conversation, so it has to carry the doctrine that shaped it
+  too — and `resume` keeps whatever the record holds. `createSession` accepts the field as well, and the TUI create
+  path forwards the configured value, so a TUI Session is stamped when it is created instead of being written
+  immediately afterwards. A BTW side Session always inherits its parent's value for the same reason, so an explicit
+  value on that one route is ignored.
+- `createV2AgentProfileSource` resolves `session.promptDoctrine ?? config.promptDoctrine`. The fallback is applied
+  twice on the way to the status bar: the Runtime's session view omits the field when the record has none,
+  reporting only the stored value, and the TUI layer fills the configured value in while normalising that view.
+  Without the second step the line would report an empty slot instead of the doctrine actually in force.
+- The Runtime owns the lock. `SessionLifecycleApplication.updateSession` rejects a changed value with `409
+  local_prompt_doctrine_locked` once the Session has a user message; re-sending the stored value stays allowed, so
+  a title-only update and an idempotent re-save both pass. The value is validated first, so an unknown doctrine is
+  `400 VALIDATION_ERROR` and never reported as a locked Session. The guard is injected (`promptDoctrineGuard`)
+  because the Session and message repositories already live in `initialize.ts`; a wiring that omits it does not
+  enforce the lock, and one test pins that seam so it cannot appear by accident.
+- The TUI only reacts: `/doctrine [status | apocalypse | stargate]` reports the current value or asks the Runtime
+  to change it, and surfaces the rejection verbatim instead of retrying. Asking for the value already in force
+  prints the status block instead of issuing a write, a successful change announces that it applies from the
+  Session's next turn (the prompt already composed for the current turn is not rebuilt), and the command is hidden
+  until a Session exists. There is no second copy of the lock rule in the client, so the two cannot drift.
+- `prompt-doctrine` is a status-line item rendered as `Apocalypse` / `Stargate`, or `APOC` / `STAR` when the line
+  has to shrink. It joins both default item orders. The Collapsal footer keeps `approval-mode` last, so the item
+  sits immediately before `plan-mode`.
+
+Known boundaries of that guarantee:
+
+- Only a Session that stores a value is scoped to it. `createSession` and the TUI stamp one, but a Session created
+  by a path that supplies neither a value nor a parent — cron, root repair, and any caller of the create route that
+  omits the field — stores nothing and keeps rendering `config.yaml`. Extending the stamp to those paths would give
+  the session lifecycle a configuration dependency it does not have today.
+- The gate is the live user-message table, so a rewind back to the first user message removes every user message
+  and the Session counts as empty again — consistent with "only an empty Session may change". Rewinding to a later
+  message keeps the lock.
+- The check and the write are a read pair followed by a separate write, so a user message committed in between
+  makes that single update pass. Closing it needs a conditional mutation inside one transaction, which the session
+  repository does not offer.
+- A Session that stores nothing renders the configured doctrine, so a client asking to store exactly that value is
+  still refused once the conversation has begun: the Runtime cannot tell "pin what it already renders" from
+  "change it" without reading configuration. The TUI compares against the value it displays, so it reports status
+  rather than issuing that write.
+
+Permission modes are untouched by this axis: `promptDoctrine` is orthogonal to `promptMode` and to the permission
+classifier.
+
 
 ## Next entries (engine)
 

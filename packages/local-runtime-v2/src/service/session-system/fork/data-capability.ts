@@ -64,6 +64,7 @@ export function createSessionForkDataCapability(input: {
             : {}),
           ...(session.appMode ? { appMode: session.appMode } : {}),
           ...(session.runLocation ? { runLocation: session.runLocation } : {}),
+          ...(session.promptDoctrine ? { promptDoctrine: session.promptDoctrine } : {}),
           ...(await readForkedBindingFields(input.records, session)),
           ...(session.effectiveModel !== undefined
             ? { effectiveModel: session.effectiveModel }
@@ -136,6 +137,7 @@ type ForkSessionInput = {
   readonly runLocation?: Parameters<
     SessionRecordService['createInternalSession']
   >[0]['runLocation'];
+  readonly promptDoctrine?: SessionRecord['promptDoctrine'];
   readonly effectiveModel?: SessionRecord['effectiveModel'];
   readonly effectiveModelVariant?: SessionRecord['effectiveModelVariant'];
   readonly effectiveModelThinking?: SessionRecord['effectiveModelThinking'];
