@@ -400,6 +400,17 @@ Scope: the TUI system prompt composes its behaviour discipline from one of two d
 - **npm:** `@pakiknowledge/tal0s-code@1.0.0` published from the tarball built at that tag, shasum `7b1fff238b9c9c137031fdb0fceef18b6f992a0d`. The 13.2 MB upload was reset in transit several times, so npm reported failures while the registry did in the end receive the version; a later retry returned `403 You cannot publish over the previously published versions: 1.0.0`, which is what confirmed it. After a large publish, treat the registry as the only evidence and allow a few minutes before concluding it failed.
 - **GitHub Release:** [v1.0.0](https://github.com/PAKIKNOWLEDGE/Talos-Code-CLI/releases/tag/v1.0.0) with `.tar.gz` and `.sha256` (`52b3693d…`).
 
+## Behaviour doctrine chosen before the Session exists (1.0.1)
+
+Scope: `/doctrine` is usable in an empty chat, the pending choice reaches `createSession` so the Session is created with the doctrine already stamped, and an anchored Session reports its doctrine instead of offering a rejected change. The runtime lock and the doctrine assets are unchanged. Classic remains the default skin.
+
+### Verification
+
+- Focused Vitest passed: the doctrine flow in an empty chat, the pending value in the status line, stamping the doctrine at Session creation, omitting the field when nothing was chosen, the `409` anchored wording with no new-Session guidance, the `/doctrine` catalog lines, and the packaged 1.0.1 notes in both languages (14 changelog assertions).
+- `tsc -p tsconfig.standalone.json` passed; `pnpm lint` passed.
+- `pnpm verify --profile windows` **PASS** at `379b782`: 10 gates on win32. Skipped typecheck (not in the Windows contract, run separately above), capabilities, status-contract, smoke, BYOK, policy, sandbox, and release-package.
+- Pre-release upstream scan: [upstream-pr-watch.md](upstream-pr-watch.md) 2026-11-16 - **release: proceed** (no P0, no merge since 2026-11-04).
+- Environment note: the first gate run failed `test:artifact` and the full TUI unit directory showed 89 failures because the shell exported `TALOS_NEUTRAL_RUNTIME=1`, which makes the `mcode-tools` wrapper exit 1 by design and suppresses managed login. With that variable unset, the gate list and the affected unit files pass. Neither failure was a repository defect.
 ## Custom model image input (0.1.13)
 
 Scope: `/model` Alt+I saves image input for one custom or gateway model. An exact catalog id inherits image input only when every source agrees. Classic remains the default skin.
