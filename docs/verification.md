@@ -394,6 +394,12 @@ Scope: the TUI system prompt composes its behaviour discipline from one of two d
 - `pnpm verify --profile windows` **PASS** at `85ea113`: 10 gates on win32. Skipped typecheck (not in the Windows contract, run separately above), capabilities, status-contract, smoke, BYOK, policy, sandbox, and release-package.
 - Pre-release upstream scan: [upstream-pr-watch.md](upstream-pr-watch.md) 2026-11-16 - **release: proceed** (no P0, no merge since 2026-11-04).
 
+### Delivery (2026-11-16)
+
+- **Git:** `feat/prompt-doctrine-session-scope` fast-forwarded to `main` (no version PR; `gh pr create` was refused by account permissions and left alone, as usual). Feature work ends at `eadd16d`; version commit `c38e94b`, tag `v1.0.0`.
+- **npm:** `@pakiknowledge/tal0s-code@1.0.0` published from the tarball built at that tag, shasum `7b1fff238b9c9c137031fdb0fceef18b6f992a0d`. The 13.2 MB upload was reset in transit several times, so npm reported failures while the registry did in the end receive the version; a later retry returned `403 You cannot publish over the previously published versions: 1.0.0`, which is what confirmed it. After a large publish, treat the registry as the only evidence and allow a few minutes before concluding it failed.
+- **GitHub Release:** [v1.0.0](https://github.com/PAKIKNOWLEDGE/Talos-Code-CLI/releases/tag/v1.0.0) with `.tar.gz` and `.sha256` (`52b3693d…`).
+
 ## Custom model image input (0.1.13)
 
 Scope: `/model` Alt+I saves image input for one custom or gateway model. An exact catalog id inherits image input only when every source agrees. Classic remains the default skin.
