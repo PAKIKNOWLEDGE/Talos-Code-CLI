@@ -1125,6 +1125,9 @@ describe("BuiltinAgentCatalog TUI prompt profile", () => {
       expect(enabled.corePrompt).toContain("markdown in a terminal");
       expect(enabled.corePrompt).toContain("## Deliverable Files");
       expect(enabled.corePrompt).not.toContain("## Media Output");
+      // Continuity ownership is Talos-owned and guarded, not a role narrative.
+      expect(enabled.corePrompt).toContain("You own this conversation's continuity");
+      expect(child.corePrompt).not.toContain("You own this conversation's continuity");
       expect(enabled.surfacePrompt).toBe("");
       expect(child.surfacePrompt).toContain("hidden TUI child Agent");
       expect(reader.read).not.toHaveBeenCalled();

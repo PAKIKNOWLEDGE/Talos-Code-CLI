@@ -70,10 +70,18 @@ Composition rules:
   compile time). The composer keeps only Talos-owned material: identity, the `# Harness` runtime facts (permission
   mode, secrets, and the workspace and convention rules), memory, response-style rules, preamble examples,
   references, and deliverable conventions.
-- `# Core Judgment` now holds the doctrine's own framing instead of Talos's previous root-session paragraph. That
-  paragraph is intentionally dropped: `_v2` ships no surface template, so `rootSessionPrompt` is empty and
-  `addRuntimeRules` never re-injects `# Core Judgment` — the composer is the only source, and the borrowed intro
-  sentence now serves as the framing. The `persona` block still supplies the product identity.
+- `# Core Judgment` now holds the doctrine's own framing instead of Talos's previous root-session paragraph. The
+  mechanism that used to supply that paragraph is inert for this agent: `_v2` renders no surface prompt for a
+  snapshot-backed primary agent (`agent-profile.ts`), so `rootSessionPrompt` is empty, `addRuntimeRules` never
+  re-injects `# Core Judgment`, and the composer is the only source. The borrowed intro sentence now provides the
+  framing, and the `persona` block still supplies the product identity.
+- What the dropped paragraph actually did is kept, as one guarded `# Harness` bullet rather than a role
+  narrative: continuity ownership and the rule that a delegated child returns findings instead of addressing the
+  user. It is written as responsibility, not hierarchy, and sits behind `{{#if surface.interactive}}` so a
+  task-child render never claims to own the conversation. Market practice points the same way — OpenAI's
+  `RECOMMENDED_PROMPT_PREFIX` prepends a shared system-level fact to every agent that participates in handoffs and
+  bans narrating the transfers, while Claude Code gives each subagent its own prompt instead of a shared
+  "you are the root" story.
 - `addRuntimeRules` (`preparation/config/runtime-prompt-rules.ts`) injects into the rendered prompt only the
   `<system-reminder>` description, three file-operation rules, and two Windows rules under `# Harness`;
   `LANGUAGE_RULES` under `## Response Style`; `TOOL_CALL_PREAMBLE_REMINDER` under `## Preamble messages`; and
