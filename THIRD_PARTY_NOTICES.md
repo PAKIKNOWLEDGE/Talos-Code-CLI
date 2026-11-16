@@ -1,7 +1,6 @@
 # Third-party notices
 
 - **Pi**: `third_party/pi-mono` and derived terminal code, MIT. Full notices are in `third_party/pi-mono/LICENSE` and `packages/tui/THIRD_PARTY_NOTICES.md`. Local modifications are recorded in `third_party/pi-mono/MINIMAX_CHANGES.md`.
-- **Claude Code system-prompt text**: `packages/local-runtime-v2/assets/agents/_v2/tui/doctrine/apocalypse.md.hbs` reproduces the static discipline sections of Anthropic's Claude Code system prompt, reconstructed from the source map shipped inside that company's published package. Copyright Anthropic; it is not offered under the root MIT license, and no redistribution grant accompanies it. The file's header comment records every deletion and name substitution applied to the copied text.
 - **Sandbox Runtime**: `third_party/sandbox-runtime`, Apache-2.0. See its README, LICENSE, and upstream.json for the upstream version, source revision, fork changes, and native build instructions.
 - **models.dev**: the bundled provider / model catalog snapshot, MIT; notices are in `packages/tui/THIRD_PARTY_NOTICES.md`.
 - **Bundled assets**: LICENSE, NOTICE, and file-level declarations in each asset directory retain their original attribution.
