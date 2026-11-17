@@ -18,7 +18,7 @@ Upstream product docs at [agent.minimax.io](https://agent.minimax.io/docs/cli/qu
 ## Contribute
 
 - [Contributing](../CONTRIBUTING.md) · [Maintainers and review](maintainers.md) · [Security reporting](../SECURITY.md)
-- [Architecture](architecture.md) · [Verification records](verification.md)
+- [Architecture](architecture.md) · [Verification records](verification.md) · [Test expectations](test-expectations.md)
 - [Conversation experience follow-up](superpowers/plans/2026-10-03-nixos-followup.md): recorded observations reserved for a later task.
 - [Prompt identity follow-ups](superpowers/plans/2026-10-07-prompt-identity-followups.md): deferred naming and skill-content work from the Talos identity pass.
 - [Harness prompt research](superpowers/plans/2026-10-07-harness-prompt-research.md): pi-basis verification, prompt scale measurements, sources, and upstream observations from 2026-10-07.

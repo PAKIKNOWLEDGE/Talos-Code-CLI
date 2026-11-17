@@ -72,6 +72,8 @@ The default profile is `full` (Linux CI and release validation). On Windows, the
 
 Source export reads committed `HEAD` and rejects uncommitted tracked changes. On the reviewed commit with a clean tracked working tree, run the applicable profile before opening a PR. Report the checks actually run and any blocked or untested boundaries. Offline tests do not establish live-service or cross-platform acceptance.
 
+A full local run of `packages/tui/test/unit` shows a fixed set of failures that are not regressions: an inherited `TALOS_NEUTRAL_RUNTIME=1` makes roughly 85 upstream-service tests fail by design, and four permission assertions in `tui-app.test.ts` predate the current `replyPermission` call shape. Read [test expectations](docs/test-expectations.md) before investigating a failing suite there. Clear the variable first; the gates do not run this directory.
+
 ## Boundaries
 
 Do not reference internal hosts, generated IDL, or private services; `check:source` catches known patterns but does not replace publication review. Do not restore paths listed in `scripts/lib/retired-sources.mjs` or remove supported capabilities to make standalone checks pass. Do not commit account data, sessions, logs, credentials, or real user content; use temporary data directories and synthetic test inputs. Documentation and commit messages are written in English; preserve the required languages of localized product strings and bundled runtime prompts. See `CONTRIBUTING.md`.
