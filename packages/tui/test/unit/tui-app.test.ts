@@ -9612,6 +9612,7 @@ describe("createTuiApp", () => {
       "mavis",
       "permission-1",
       "allowOnce",
+      undefined,
     );
     expect(runtime.replyQuestionnaire).toHaveBeenCalledWith(
       "mavis",
@@ -10367,6 +10368,7 @@ describe("createTuiApp", () => {
         "mavis",
         "permission-pending",
         "deny",
+        undefined,
       ),
     );
     expect(app.tui.hasOverlay()).toBe(false);
@@ -10376,6 +10378,58 @@ describe("createTuiApp", () => {
       detail: "Denied · bash",
     });
     expect(app.tui.render(80).join("\n")).not.toContain("Approval required");
+    await app.stop();
+  });
+
+  it("forwards deny guidance as the permission reply message", async () => {
+    const terminal = new FakeTerminal();
+    const runtime = createRuntime();
+    vi.mocked(runtime.listSessions).mockResolvedValue([
+      {
+        sessionId: "session-pending",
+        title: "Pending permission",
+        workspaceDir: "/workspace",
+      },
+    ]);
+    vi.mocked(runtime.listPendingPermissions).mockResolvedValue([
+      {
+        requestId: "permission-guided",
+        sessionId: "session-pending",
+        agentName: "mavis",
+        toolName: "bash",
+        toolInput: "pnpm test",
+        ruleContents: ["Bash(pnpm test:*)"],
+        allowAlwaysSupported: true,
+      },
+    ]);
+    const app = createTuiApp({
+      runtime,
+      terminal,
+      version: "0.1.0",
+      workspaceDir: "/workspace",
+    });
+
+    app.start();
+    await app.ready;
+    await app.submit("/resume session-pending");
+    expect(app.interaction.isActive()).toBe(true);
+
+    terminal.input?.("3");
+    terminal.input?.("Use the focused suite");
+    terminal.input?.("\r");
+
+    await vi.waitFor(() =>
+      expect(runtime.replyPermission).toHaveBeenCalledWith(
+        "mavis",
+        "permission-guided",
+        "deny",
+        "Use the focused suite",
+      ),
+    );
+    expect(app.transcript.get("permission:permission-guided")).toMatchObject({
+      status: "resolved",
+      detail: "Denied · bash · Guidance: Use the focused suite",
+    });
     await app.stop();
   });
 
@@ -10428,6 +10482,7 @@ describe("createTuiApp", () => {
       "mavis",
       "permission-render",
       "allowOnce",
+      undefined,
     );
     expect(app.transcript.get("permission:permission-render")).toMatchObject({
       status: "resolved",
@@ -10882,6 +10937,7 @@ describe("createTuiApp", () => {
         "verifier",
         "permission-grandchild",
         "deny",
+        undefined,
       ),
     );
     expect(runtime.stopDelegation).not.toHaveBeenCalled();
@@ -10902,6 +10958,7 @@ describe("createTuiApp", () => {
         "worker",
         "permission-child-next",
         "deny",
+        undefined,
       ),
     );
     expect(runtime.abortSession).not.toHaveBeenCalled();
