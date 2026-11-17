@@ -72,7 +72,7 @@ The default profile is `full` (Linux CI and release validation). On Windows, the
 
 Source export reads committed `HEAD` and rejects uncommitted tracked changes. On the reviewed commit with a clean tracked working tree, run the applicable profile before opening a PR. Report the checks actually run and any blocked or untested boundaries. Offline tests do not establish live-service or cross-platform acceptance.
 
-A full local run of `packages/tui/test/unit` shows a fixed set of failures that are not regressions: an inherited `TALOS_NEUTRAL_RUNTIME=1` makes roughly 85 upstream-service tests fail by design, and four permission assertions in `tui-app.test.ts` predate the current `replyPermission` call shape. Read [test expectations](docs/test-expectations.md) before investigating a failing suite there. Clear the variable first; the gates do not run this directory.
+A full local run of `packages/tui/test/unit` is green when `TALOS_NEUTRAL_RUNTIME` is unset; an inherited `TALOS_NEUTRAL_RUNTIME=1` makes roughly 85 upstream-service tests fail by design. Read [test expectations](docs/test-expectations.md) before investigating a failing suite there. Clear the variable first; the gates do not run this directory.
 
 ## Boundaries
 

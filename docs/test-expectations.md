@@ -1,8 +1,10 @@
 # Test expectations in Talos
 
-A full local run of the TUI unit directory shows a fixed set of failures that are not defects in the
-current tree. This page records what they are, why they happen, and how to tell them apart from a real
-regression. Read it before investigating a failing suite in `packages/tui/test/unit`.
+A full local run of the TUI unit directory is green when `TALOS_NEUTRAL_RUNTIME` is unset. A run that
+inherits `TALOS_NEUTRAL_RUNTIME=1` from a Talos session instead shows a fixed set of failures that are
+not defects in the current tree. This page records what they are, why they happen, and how to tell
+them apart from a real regression. Read it before investigating a failing suite in
+`packages/tui/test/unit`.
 
 ## How the suites are meant to run
 
@@ -18,6 +20,9 @@ pnpm exec vitest run --config vitest.oss.config.mjs packages/tui/test/unit
 
 Note that the Windows verification profile (`pnpm verify --profile windows`) does not run this directory
 at all, so a green gate list says nothing about it.
+
+Measured on 2026-11-17 at `5e3e39e` with the variable cleared: 104 files and 2,622 tests, of which
+**2,601 passed, 21 were skipped, and none failed**. That is the baseline to compare against.
 
 ## Category 1: neutral-profile failures, expected by design
 
@@ -41,6 +46,10 @@ Measured on 2026-11-16 with `TALOS_NEUTRAL_RUNTIME=1`: 104 files and 2,619 tests
 | 1 | `business-telemetry-privacy.test.ts` |
 | 1 | `headless-runner.test.ts` |
 
+Re-measured on 2026-11-17 (`5e3e39e`, same variable set): 2,622 tests with 85 failures in the same
+fourteen files. The `tui-app.test.ts` row falls to 13 because the four assertions described in
+Category 2 are now repaired; the other rows are unchanged.
+
 These suites were written against upstream MiniMax Code behavior that the neutral profile removes on
 purpose. They assert a managed account or Token Plan sign-in, the official plugin catalog and managed
 connectors, cloud `mcode-tools`, upstream telemetry and incident upload, and account-linked feedback
@@ -53,26 +62,32 @@ the upload paths never open. Examples measured directly:
 - `application-login-gate` and `visible-presentation` account-readiness cases pass 60/60 once the variable
   is unset.
 
-With the variable cleared, the same run reports **1 failed file and 4 failed tests** on this machine,
-which is the second category.
+With the variable cleared, the same run reports no failures at all, as the baseline above records.
 
-## Category 2: four permission assertions that need a test-side update
+## Category 2 (resolved): four stale permission assertions
 
-`packages/tui/test/unit/tui-app.test.ts` fails four permission cases with or without the neutral profile:
+Until 2026-11-17, `packages/tui/test/unit/tui-app.test.ts` failed four permission cases with or
+without the neutral profile:
 
 - `shows account status and resolves pending permission and questionnaire decisions`
 - `denies a pending permission explicitly and releases the blocked interaction`
 - `resolves a regular inline permission without clearing the terminal viewport`
 - `surfaces only descendant permissions while keeping explicit Deny separate from Stop`
 
-The cause is call shape, not behavior. `packages/tui/src/runtime/adapter.ts:703` declares
+The cause was call shape, not behavior. `packages/tui/src/runtime/adapter.ts:703` declares
 `replyPermission(agentName, requestId, decision, message?)`, and
 `packages/tui/src/tui/controller/interaction/interaction-flow.ts:1211` fills the fourth slot with
-`decision === 'deny' ? feedback : undefined`. The assertions still expect three arguments, so
-`toHaveBeenCalledWith('mavis', '<id>', 'allowOnce')` sees a fourth `undefined` and fails.
+`decision === 'deny' ? feedback : undefined`. The assertions expected three arguments, so
+`toHaveBeenCalledWith('mavis', '<id>', 'allowOnce')` saw a fourth `undefined` and failed.
 
-These are unrelated to the neutral profile and to any recent TUI work. The fix belongs on the test side:
-assert the fourth argument, or assert the first three with `expect.objectContaining`-style matching.
+They are repaired on the test side (`5e3e39e`): each assertion now includes the fourth argument, and
+a new case, `forwards deny guidance as the permission reply message`, covers the path the argument
+exists for — a Deny that carries user guidance through to the Runtime and into the transcript detail.
+Asserting the argument is stricter than dropping it, so this is not a relaxation of the suite.
+
+The product side was left alone, because the call shape is the intended contract: the Runtime already
+forwards `message` only when it has a value (`packages/local-runtime-v2/src/local/cli-service.ts:431`
+spreads it conditionally), so passing an explicit `undefined` is not a wire difference.
 
 ## What this page does not claim
 
