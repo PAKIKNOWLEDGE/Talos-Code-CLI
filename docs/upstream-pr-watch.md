@@ -50,6 +50,8 @@ Do **not** merge upstream during a Talos feature slice unless the pre-release sc
 | 2026-11-16 | 1.0.0 (Session-scoped behaviour doctrine) | Upstream main unchanged at **`3c21163`** (2026-11-04, Python SDK 0.1.1). No pull request merged since 2026-11-04. Open set unchanged: #594 #550 #538 #528 #364 #319 #317 #307 #255 #186 #146 #145. | **No** | **release: proceed** — record-only; the doctrine layer is local prompt composition over already-injected runtime rules. Earlier candidates still open: #568 stack-trace exposure, #584 `exec` errors, #579 coordinated `computer_*` rename. |
 | 2026-11-16 | 1.0.1 (doctrine choice before the Session) | Upstream main unchanged at **`3c21163`** (2026-11-04, Python SDK 0.1.1). No pull request merged since 2026-11-04. Open set unchanged: #594 #550 #538 #528 #364 #319 #317 #307 #255 #186 #146 #145. | **No** | **release: proceed** — record-only; the change only moves when the existing local doctrine choice is made. Candidates still open: #568 stack-trace exposure, #584 `exec` errors, #579 coordinated `computer_*` rename. |
 
+| 2026-11-17 | 1.0.1 (no new ship; permission reply assertions repaired) | Upstream main unchanged at **`3c21163`** (2026-11-04, Python SDK 0.1.1). No pull request merged since 2026-11-04. Open set unchanged: #594 #550 #538 #528 #364 #319 #317 #307 #255 #186 #146 #145. | **No** | **release: proceed** — record-only. Carried forward: the [v1 / v2 runtime-layout observation](status.md#runtime-layout-v1--v2) has to be re-checked at every scan; trigger is an upstream version line that still ships `@mavis/local-runtime`, or 2027-01-17. |
+
 ## References
 
 - Pinned baseline: `release/extraction.json` → `sourceRevision`

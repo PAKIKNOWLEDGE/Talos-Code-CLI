@@ -145,12 +145,48 @@ Permission modes are untouched by this axis: `promptDoctrine` is orthogonal to `
 classifier.
 
 
+## Runtime layout (v1 / v2)
+
+`packages/local-runtime-v2` (`@mavis/local-runtime-v2`, 0.1.0, 929 files) is the only runtime the TUI
+loads. It declares `@mavis/local-runtime` (v1, 0.2.1, 641 files) as a workspace dependency and
+reaches into it from 13 source files and 4 test/helper files, gathered mostly in
+`local-runtime-v2/src/compat/v1/`. Nothing outside v2 imports v1, so this is one runtime stacked on
+another rather than two live runtimes competing for the same job.
+
+Both packages arrived in the same reviewed upstream import (`2aed5ca`, 2026-09-28, upstream 0.5.7).
+The duplication is inherited, not a Talos architecture decision. v1 is a full host with 49
+top-level modules — including cloud-facing ones (`channels`, `api`, `matrix`, `team`) that the TUI
+product path never reaches. What v2 actually borrows is the persistence slice: the SQLite
+session-asset, turn-diff, and communication-message stores, asset registration, and the turn-diff
+capabilities.
+
+**Decision (2026-11-17): record and observe; do not modify either package.** Upstream is mid-rewrite
+— upstream `main` has rested at `3c21163` (0.7.2) since 2026-11-04 with no merged pull request — so
+collapsing v1 into v2 is theirs to sequence first. Removing it here would absorb work they may be
+about to do and turn the next selective sync into a conflict.
+
+Revisit when upstream changes the layout (a version line that still ships `@mavis/local-runtime`, or
+a v2 tree that no longer imports it), **or by 2027-01-17**, whichever comes first. The check belongs
+in [upstream-pr-watch](upstream-pr-watch.md) at each pre-release scan, so a release cannot pass
+without at least seeing it.
+
+Three accepted exits, and the third is not a failure:
+
+1. Upstream collapses v1 into v2 — inherit the removal during a selective sync.
+2. Talos removes it after the deadline.
+3. v1 stays permanently as the storage base — write that down and stop planning a removal.
+
+Exit 2 is gated on evidence rather than on the deadline: v2 opening a synthetic v1-era session
+database has to work first. A branch does not protect this, because the risk lives in existing user
+databases rather than in Git.
+
 ## Next entries (engine)
 
 1. **Security/reliability ports** — #568 (stack-trace exposure), the OAuth refresh fence from #566, and #584 (`exec` workspace errors). Each needs its own reviewed change; see [upstream-pr-watch](upstream-pr-watch.md#review-log).
 2. **Waiting boundary** — steer/reminder semantics (architecture if needed).
 3. **Deferred identity/skill renames** — [prompt identity follow-ups](superpowers/plans/2026-10-07-prompt-identity-followups.md).
 4. **Upstream watch** — [upstream-pr-watch](upstream-pr-watch.md) cadence; record the next snapshot before following npm release.
+5. **Runtime layout** — re-check [v1 / v2](#runtime-layout-v1--v2) at each pre-release scan; the observation expires on 2027-01-17 or at the first upstream layout change.
 
 ## Reading map
 
